@@ -1,7 +1,7 @@
 // The LAN battle as the sketch actually wires it: what squad you fight with,
 // what the guest is allowed to do, and whether a result off the wire lands on
 // the right creature. The protocol itself is link_test's job; this is the half
-// that lives in TamaPoke.ino and that link_test cannot reach.
+// that lives in TamaDigi.ino and that link_test cannot reach.
 //
 // The radio is still untested -- it needs two boards. Everything on either side
 // of it is checked here.
@@ -71,9 +71,9 @@ int main(){
   lan.begin(true,"HOST");
   snprintf(lan.peerName,sizeof(lan.peerName),"%s","RIVAL");
   lan.addMon(mon(9,50,"SHELL"));
-  lan.addMon(mon(143,50,"SNORE"));
+  lan.addMon(mon(21,50,"SNORE"));
   lan.theirs[0]=mon(6,50,"BLAZE");
-  lan.theirs[1]=mon(65,50,"SPOON");
+  lan.theirs[1]=mon(4,50,"SPOON");
   lan.theirsN=2;
   lan.state=LINK_READY;
   lan.send=capture;
@@ -98,7 +98,7 @@ int main(){
   // host is the only side that may spend a turn
   btlLinkHost = false;
   lan.state = LINK_READY;
-  btlMenu = 2;                       // the POKEMON list
+  btlMenu = 2;                       // the DIGIMON list
   uint8_t was = btlSquadAt;
   sent = 0;
   battleTap(69 + 168 + 10, 286 + 10);   // cell 1 of the switch grid
@@ -153,7 +153,7 @@ int main(){
   r.hostIdx = 1; r.hostHp = 60;
   memcpy(lan.result,&r,sizeof(r)); lan.resultNew=true;
   render();
-  ck(btlFoeAt==1 && btlFoe.dex==65, "the rival's next creature comes off the wire");
+  ck(btlFoeAt==1 && btlFoe.dex==4, "the rival's next creature comes off the wire");
 
   // --- and the guest never decides the ending
   lan.youWon = true; lan.state = LINK_DONE;

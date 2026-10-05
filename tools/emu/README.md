@@ -1,4 +1,4 @@
-# TamaPoke desktop emulator
+# TamaDigi desktop emulator
 
 Runs the **real firmware** on your computer, in a window you can click.
 
@@ -7,10 +7,10 @@ Runs the **real firmware** on your computer, in a window you can click.
 ```bash
 brew install sdl2          # macOS   (Debian: apt install libsdl2-dev)
 bash tools/emu/build.sh
-tools/emu/tamapoke-emu --scale 2 --fast 60
+tools/emu/tamadigi-emu --scale 2 --fast 60
 ```
 
-It compiles `TamaPoke.ino`, `pet.cpp`, `i18n.cpp` and `party.cpp` **unmodified**.
+It compiles `TamaDigi.ino`, `pet.cpp`, `i18n.cpp` and `party.cpp` **unmodified**.
 Only the hardware layer is replaced, so what you see is what the panel draws —
 the same 466×466 RGB565 framebuffer, the same 5×7 font, the same code paths.
 
@@ -46,7 +46,7 @@ clipped on real hardware.
 |---|---|
 | `--scale N` | window zoom (default 2) |
 | `--fast N` | run the clock N× faster — `--fast 60` turns an in-game minute into a second, so a full 3-day life takes about an hour. The speed-up is **suspended while you are touching the panel**: the firmware times taps and swipes off the same `millis()`, so scaling it during a gesture would shrink the tap window (`dt < 1500`) to `1500/N` real ms and make the screen unclickable |
-| `--save FILE` | where to persist NVS (default `tamapoke.nvs` in the cwd) |
+| `--save FILE` | where to persist NVS (default `tamadigi.nvs` in the cwd) |
 | `--wipe` | delete the save first |
 | `--sprites DIR` | sprite directory (defaults to `tools/sdcard/mons`) |
 
@@ -56,7 +56,7 @@ Renders one screen to a PPM and exits — no display needed, so it works over SS
 and in CI:
 
 ```bash
-tools/emu/tamapoke-emu --shot battle --lvl 73 --iv 31 --dex 149 --out shot.ppm
+tools/emu/tamadigi-emu --shot battle --lvl 73 --iv 31 --dex 149 --out shot.ppm
 sips -s format png shot.ppm --out shot.png     # macOS; or use ImageMagick
 ```
 
@@ -80,8 +80,8 @@ sips -s format png shot.ppm --out shot.png     # macOS; or use ImageMagick
 Everything except `font.cpp` and `genproto.py` is a stub; the game itself is the
 real thing.
 
-`sprites` are read straight from `tools/sdcard/mons/`, so animation, shinies and
-Pokédex thumbnails all work if you have generated them (`tools/pack_pmd.py`).
+`sprites` are read straight from `tools/sdcard/mons/`, so animation, variants and
+Digidex thumbnails all work if you have generated them (`tools/pack_sprites.py`).
 Without them you get the `S_NO_SPRITES` path, exactly as a board with no SD card
 would.
 
@@ -95,7 +95,7 @@ from committed packs once:
 ```bash
 python3 tools/unpack_bundle.py
 export TAMA_ESP_EMULATOR=/path/to/esp-emu
-TAMA_TEST_JOBS=4 TAMA_TEST_LOG_DIR=/tmp/tamapoke-tests bash tools/emu/tests/run.sh
+TAMA_TEST_JOBS=4 TAMA_TEST_LOG_DIR=/tmp/tamadigi-tests bash tools/emu/tests/run.sh
 bash tools/emu/tests/run.sh battle
 bash tools/emu/tests/run.sh workflow
 TAMA_TEST_BACKEND=host bash tools/emu/tests/run.sh save
@@ -112,8 +112,8 @@ The emulator is found through `TAMA_ESP_EMULATOR` or `PATH`. A missing native
 emulator is a failure, never an automatic host fallback. `TAMA_TEST_BACKEND=host`
 is an explicit local debugging override; CI requires native-first mode.
 
-Native suites cover the battle engine/AI and gym simulation, species/learnset/
-roster data, evolution and region rules, sleep and clock validation, rewards,
+Native suites cover the battle engine/AI and boss simulation, Digimon/learnset/
+roster data, digivolution and region rules, sleep and clock validation, rewards,
 player/creature persistence, legacy upgrades, save export/import, link protocol
 and lossy transport, synth/cry samples, palette and CRC calculations. Their
 assertions are the same source files compiled for the S3, not new copies of the
@@ -127,13 +127,13 @@ and the original-defect mutations. A substring filter selects suites across both
 backends, still requires Arduino and web checks, but omits the full-run probes
 and mutations. Missing tools/assets/results, nonzero exits and deadlines are
 failures, not skips. Logs are kept when `TAMA_TEST_LOG_DIR` is set. All test saves
-are disposable; the runner does not read or overwrite your `tamapoke.nvs` or
+are disposable; the runner does not read or overwrite your `tamadigi.nvs` or
 backups.
 
 `workflow_test` runs 11 scenarios in four audio modes: enabled, disabled, volume
-zero and a full queue of pending effects. The scenarios cover easy and hard gym
-wins, wild wins, gym/wild losses and fleeing, capture into the party or box, and
-early dismissal of gym/wild victory narration. Each drives the real selection,
+zero and a full queue of pending effects. The scenarios cover easy and hard boss
+wins, wild wins, boss/wild losses and fleeing, capture into the party or box, and
+early dismissal of boss/wild victory narration. Each drives the real selection,
 battle and result handlers, then runs at least 30 simulated seconds on the main
 screen with rendering, touch/menu and serial checks. It requires healthy saving,
 then writes real firmware checkpoints to disk and execs a fresh process. Reload

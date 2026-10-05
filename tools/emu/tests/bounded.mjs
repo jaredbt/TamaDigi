@@ -67,7 +67,7 @@ async function selfTest() {
     rejected: ['unexpected firmware reset'], echo: false,
   });
   assert(!reset.ok && reset.failure.includes('unexpected output'));
-  const unavailable = await runCommand(['/definitely/unavailable/tamapoke-tool'], { echo: false });
+  const unavailable = await runCommand(['/definitely/unavailable/tamadigi-tool'], { echo: false });
   assert(!unavailable.ok && unavailable.failure);
   const routed = await testRoutes();
   assert(routed.some((test) => test.backend === 'native') && routed.some((test) => test.backend === 'host'));

@@ -1,0 +1,76 @@
+name: Build installer and publish to Pages
+
+# Builds the firmware in the cloud and publishes the web installer, so nobody
+# needs the Arduino toolchain on their own computer: push to main, wait for this
+# to finish, then open https://<user>.github.io/<repo>/web/ in Chrome or Edge.
+#
+# One-time setup: Settings -> Pages -> Source: "GitHub Actions".
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: arduino/setup-arduino-cli@v2
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.arduino15
+            ~/Arduino/libraries
+          key: arduino-${{ runner.os }}-esp32-3.3.11-gfx-1.6.7-sensor-0.4.1-xpowers-0.3.3
+      - name: Install the pinned ESP32 core and libraries
+        run: |
+          arduino-cli core update-index --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core install esp32:esp32@3.3.11 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli lib install "GFX Library for Arduino@1.6.7" "SensorLib@0.4.1" "XPowersLib@0.3.3"
+      - name: Compile the firmware and stamp the installer
+        # Compiler errors are repeated as annotations, so they show on the run's
+        # summary page without opening the raw log.
+        run: |
+          set -o pipefail
+          if ! bash tools/build_web.sh 2>&1 | tee build.log; then
+            grep -E "error|Error|undefined reference" build.log | head -25 | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+            exit 1
+          fi
+      # The same firmware as a plain download (Actions -> this run -> Artifacts).
+      # start.bat uses it when Pages is not available, e.g. a private repo on a
+      # free GitHub plan: put tamadigi-firmware.zip next to start.bat or leave it
+      # in Downloads.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tamadigi-firmware
+          path: |
+            web/firmware/bootloader.bin
+            web/firmware/partitions.bin
+            web/firmware/boot_app0.bin
+            web/firmware/app.bin
+            web/manifest.json
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}web/
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

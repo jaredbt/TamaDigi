@@ -22,9 +22,9 @@ async function checked(command, options, stage) {
 
 async function build(directory) {
   const emu = join(directory, 'tools/emu');
-  await checked(['python3', join(emu, 'genproto.py'), join(directory, 'TamaPoke.ino')],
+  await checked(['python3', join(emu, 'genproto.py'), join(directory, 'TamaDigi.ino')],
     { cwd: emu, timeoutMs: 30000 }, 'generate real sketch prototypes');
-  await writeFile(join(emu, 'sketch.cpp'), '#include "proto.h"\n' + await readFile(join(directory, 'TamaPoke.ino'), 'utf8'));
+  await writeFile(join(emu, 'sketch.cpp'), '#include "proto.h"\n' + await readFile(join(directory, 'TamaDigi.ino'), 'utf8'));
   const command = ['g++', '-std=c++17', '-O1', '-w', '-pthread', `-I${emu}`, `-I${directory}`,
     `-I${emu}/tests/audio_stubs`, '-DTAMA_REAL_AUDIO', '-DTAMA_DETERMINISTIC_CLOCK',
     `-DSPRITE_DIR="${root}/tools/sdcard/mons"`, '-o', join(directory, 'workflow'),
@@ -49,7 +49,7 @@ const mutations = [
       files['pet.h'] = replaceOnce(files['pet.h'],
         '  Pet(const Pet &) = delete;\n  Pet &operator=(const Pet &) = delete;',
         '  Pet(const Pet &) = default;\n  Pet &operator=(const Pet &) = default;');
-      files['TamaPoke.ino'] = replaceOnce(files['TamaPoke.ino'],
+      files['TamaDigi.ino'] = replaceOnce(files['TamaDigi.ino'],
         '    combatantFromPet(btlSquad[btlSquadN++], pet, maxLvl);',
         '    Pet capped = pet;\n' +
         '    if (maxLvl && capped.level() > maxLvl)\n' +
@@ -69,16 +69,16 @@ const mutations = [
 
 async function main() {
   assert(process.argv.length === 2, 'usage: node tools/emu/tests/mutations.mjs');
-  const directory = await mkdtemp(join(tmpdir(), 'tamapoke-mutations-'));
+  const directory = await mkdtemp(join(tmpdir(), 'tamadigi-mutations-'));
   try {
     for (const file of await readdir(root))
-      if (/\.(cpp|h)$/.test(file) || file === 'TamaPoke.ino') await cp(join(root, file), join(directory, file));
+      if (/\.(cpp|h)$/.test(file) || file === 'TamaDigi.ino') await cp(join(root, file), join(directory, file));
     await cp(join(root, 'tools/emu'), join(directory, 'tools/emu'), {
       recursive: true,
-      filter: (file) => !/\.(nvs|bin|ppm|png|o)$/.test(file) && !file.endsWith('/tamapoke-emu'),
+      filter: (file) => !/\.(nvs|bin|ppm|png|o)$/.test(file) && !file.endsWith('/tamadigi-emu'),
     });
     const originals = {};
-    for (const file of ['pet.h', 'TamaPoke.ino', 'audio.cpp']) originals[file] = await readFile(join(directory, file), 'utf8');
+    for (const file of ['pet.h', 'TamaDigi.ino', 'audio.cpp']) originals[file] = await readFile(join(directory, file), 'utf8');
     await build(directory);
     for (const mutation of mutations) {
       console.log(`CHECK fixed control: ${mutation.case}`);

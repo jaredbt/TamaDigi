@@ -5,8 +5,8 @@
 // A whole-save backup, over the serial console.
 //
 // A run is weeks of real time living in one NVS partition, and there is now a
-// lot in it: the creature, the party, the box, both badge ladders, the Pokedex,
-// the streak, the trainer name. Nothing could get it back out.
+// lot in it: the creature, the party, the box, both badge ladders, the Digidex,
+// the streak, the tamer name. Nothing could get it back out.
 //
 // The backup is KEY-DRIVEN, not a struct of fields. SAVE_FIELDS lists every key
 // the firmware stores along with its type, and both directions walk that one
@@ -76,7 +76,7 @@ size_t saveExportSize();
 //
 // The intent lives in a namespace of its OWN, and both halves of that are
 // load-bearing:
-//   * not "tamapoke", because clear() on that namespace would erase the very
+//   * not "tamadigi", because clear() on that namespace would erase the very
 //     flag that records the wipe was asked for -- so a cut between the clear and
 //     the acknowledgement would leave a half-wiped save with no intent to finish
 //     it. Preferences::clear() empties one namespace, not the store.

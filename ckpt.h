@@ -9,7 +9,7 @@
 // save spread over ~50 keys is not atomic. A cut in the middle leaves the early
 // fields new and the later ones old, and what loads next boot is a creature
 // assembled from two different lives -- current Attack training beside older
-// Defence, Speed and species. That is issue #3.
+// Defence, Speed and Digimon. That is issue #3.
 //
 // The fix is to write each logical record as ONE blob, guarded by a CRC, into
 // TWO keys used alternately. The newest complete blob wins; if the write that

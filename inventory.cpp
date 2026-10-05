@@ -9,7 +9,7 @@ Inventory bag;
 void Inventory::begin() {
   memset(counts, 0, sizeof(counts));
   // Checked so a failure is at least visible; see the note in Party::begin().
-  if (!prefs.begin("tamapoke", false))
+  if (!prefs.begin("tamadigi", false))
     Serial.println("save: NVS would not open for the bag");
   size_t stored = prefs.getBytesLength("bag");
   if (stored) {
@@ -46,8 +46,8 @@ void Inventory::clear() {
 }
 
 void Inventory::grantStarterKit() {
-  counts[IT_POKEBALL] = 5;
-  counts[IT_POTION] = 3;
+  counts[IT_SCANCHIP] = 5;
+  counts[IT_SMRECOVERY] = 3;
   save();
 }
 

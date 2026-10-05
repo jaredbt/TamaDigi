@@ -1,14 +1,14 @@
 // Choosing which generation your egg comes from.
 //
-// The species is rolled when the egg APPEARS, not when it cracks, so changing
-// region has to move the waiting egg or the setting would look broken -- you
-// would pick Johto and still hatch a Rattata. That makes the interesting
+// The Digimon is rolled when the egg APPEARS, not when it cracks, so changing
+// version has to move the waiting egg or the setting would look broken -- you
+// would pick Ver.2 and still hatch a Rattata. That makes the interesting
 // question not "does it work" but "can it be farmed", and these are the two
 // rules that stop it:
 //
-//   1. The rarity tier the egg was granted is kept; only which species of that
-//      tier changes. So flipping region cannot fish for a legendary.
-//   2. Each region's answer is REMEMBERED for the current egg, so switching
+//   1. The rarity tier the egg was granted is kept; only which Digimon of that
+//      tier changes. So flipping version cannot fish for a Mega.
+//   2. Each version's answer is REMEMBERED for the current egg, so switching
 //      back shows the same creature. There is nothing to gain by flipping.
 #include "Arduino.h"
 #include "Preferences.h"
@@ -35,9 +35,7 @@ static void seed(Pet &p, int upto=60){
 }
 
 int main(){
-  // SD pack checks must never demand a file that cannot exist. Alola's literal
-  // midpoint is 765 ORANGURU, which is in noart.h; using lo/mid/hi directly
-  // made every complete Alola upload fail PACK COMMIT after nine minutes.
+  // SD pack checks must never demand a file that cannot exist.
   {
     bool valid = true;
     for (uint8_t region = 0; region < REGION_COUNT; region++) {
@@ -49,15 +47,18 @@ int main(){
       }
     }
     ck(valid, "every SD region probe names a drawable species in that region");
-    ck(regionArtProbe(6, 1) != 765, "Alola does not probe its art-less midpoint");
+    // VER.3's own range has art-less Digimon (POYOMON, TOKOMON...): the probe
+    // must step past them rather than name a file that cannot exist
+    ck(speciesHasArt(regionArtProbe(2, 0)), "VER.3 does not probe its art-less POYOMON");
     ck(regionArtProbe(REGION_ALL, 0) == 0 && regionArtProbe(REGION_COUNT, 0) == 0,
        "derived and invalid regions have no SD probe");
   }
 
-  // --- the lottery stays inside the chosen region
+  // --- the lottery stays inside the chosen version
   {
     Pet p; seed(p);
     for (uint8_t r=0; r<REGION_COUNT; r++){
+      if (!regionHatchable(r)) continue;   // VER.3: no Baby I art, no eggs
       p.setRegion(r);
       const RegionInfo &ri = REGIONS[r];
       int out=0;
@@ -71,21 +72,23 @@ int main(){
     }
   }
 
-  // --- ALL really does span everything
+  // --- ALL really does span everything (the whole dex seen, so no version is
+  //     preferred for having an unfinished line)
   {
-    Pet p; seed(p);
+    Pet p; seed(p, DEX_COUNT);
     p.setRegion(REGION_ALL);
     bool gen[3]={false,false,false};
     for (int i=0;i<900;i++){
       int16_t d = p.pickEggSpecies();
-      gen[d<=151?0:(d<=251?1:2)] = true;
+      gen[d<=14?0:(d<=28?1:2)] = true;
     }
-    ck(gen[0]&&gen[1]&&gen[2], "ALL draws from all three generations");
+    ck(gen[0]&&gen[1]&&gen[2], "ALL draws from every version with an egg");
   }
 
-  // --- a first egg gives a starter from the chosen region
+  // --- a first egg gives a starter from the chosen version
   {
     for (uint8_t r=0; r<REGION_COUNT; r++){
+      if (!regionHatchable(r)) continue;
       { Pet previous; previous.begin(); previous.factoryReset(); }
       Pet p; p.begin();
       p.setRegion(r);
@@ -103,18 +106,20 @@ int main(){
     }
   }
 
-  // --- switching region moves the WAITING egg
+  // --- switching version moves the WAITING egg
   {
     Pet p; seed(p);
     p.setRegion(0);
     p.newEgg();
     ck(p.isEgg(), "an egg is waiting");
     int16_t k = p.eggPeek();
-    ck(k>=1 && k<=151, "and it is a Kanto creature");
+    ck(k>=1 && k<=17, "and it is a Ver.1 Digi-Egg");
     p.setRegion(1);
-    ck(p.eggPeek()>=152 && p.eggPeek()<=251, "switching to Johto moves the egg there");
+    ck(p.eggPeek()>=18 && p.eggPeek()<=34, "switching to Ver.2 moves the egg there");
+    p.setRegion(3);
+    ck(p.eggPeek()>=54 && p.eggPeek()<=70, "and on to Ver.4");
     p.setRegion(2);
-    ck(p.eggPeek()>=252 && p.eggPeek()<=386, "and on to Hoenn");
+    ck(p.region == 2 && p.eggPeek()>=35 && p.eggPeek()<=53, "and back to Ver.3");
   }
 
   // --- RULE 1: the rarity it was granted is kept
@@ -135,7 +140,7 @@ int main(){
     printf("      (%d switches, %d kept their tier)\n", checked, kept);
   }
 
-  // --- RULE 2: each region is remembered, so flipping is not a re-roll
+  // --- RULE 2: each version is remembered, so flipping is not a re-roll
   {
     Pet p; seed(p);
     p.setRegion(0);
@@ -162,7 +167,7 @@ int main(){
     p.dbgHatchAs(6,false);
     int16_t was = p.speciesId;
     p.setRegion(1);
-    p.setRegion(2);
+    p.setRegion(3);
     ck(p.speciesId==was, "changing region does not transform a living creature");
   }
 
@@ -186,18 +191,18 @@ int main(){
   // --- it survives a reload, like every other player-wide setting
   {
     Pet p; seed(p);
-    p.setRegion(2);
+    p.setRegion(3);
     p.newEgg();
     int16_t t = p.eggPeek();
     Pet q; q.begin();
-    ck(q.region==2, "the region persists");
+    ck(q.region==3, "the region persists");
     ck(q.eggPeek()==t, "and so does the egg it chose");
     q.setRegion(0);
     Pet r2; r2.begin();
     ck(r2.region==0, "and a change persists too");
   }
 
-  // --- an out-of-range region in a save cannot index the table
+  // --- an out-of-range version in a save cannot index the table
   {
     Pet p; seed(p);
     p.setRegion(1);
@@ -206,11 +211,9 @@ int main(){
     ck(p.region < REGION_COUNT, "an impossible region is brought back in range");
   }
 
-  // A species SpriteCollab has no art for must never hatch. It keeps its dex
-  // number -- removing one renumbers every species after it, and dex numbers
-  // are positional in saved data -- but an egg containing it would give a
-  // creature that can only ever draw as a number. Unova is the first region
-  // where this bites: 13 of its 156 have no art upstream.
+  // A Digimon with no sprite must never hatch. It keeps its dex number --
+  // dex numbers are positional in saved data -- but an egg containing it would
+  // give a creature that can only ever draw as a number.
   {
     Pet p; seed(p, 60);
     gRegionArt = 0xFFFF;                       // every pack present
@@ -224,46 +227,26 @@ int main(){
     }
     printf("      %d rolls across %d regions\n", rolls, (int)REGION_COUNT);
     ck(artless == 0, "no egg ever contains a species with no art");
-    // and the guard is real: the list is not empty, so this can actually fail
-    ck(NO_ART_COUNT > 0, "and there really are art-less species to exclude");
+    // (every Digimon has art today, so NO_ART is empty; the filter stays so a
+    // future version with missing sprites cannot hatch a dex number)
   }
 
-  // ---- evolution obeys the same rule the egg pool does --------------------
+  // ---- digivolution obeys the same rule the egg pool does -----------------
   //
-  // Evolution is ONE-WAY, so a target with no pack on the card is a creature
-  // that draws as a dex number forever. eeveeOptions() has filtered this for
-  // the branch for years; the linear path had no such guard, and cross-region
-  // targets are routine -- STEELIX and BLISSEY always were, and Gen 8/9 added
-  // nine more (GIRAFARIG -> FARIGIRAF and the rest) that land in regions a
-  // player very likely has no pack for.
+  // Digivolution is ONE-WAY, so a target with no pack on the card is a Digimon
+  // that draws as a dex number forever. Without Ver.2's pack a Ver.2 Rookie is
+  // offered nothing; with it, its branch is back.
   {
     uint16_t saved = gRegionArt;
-    // find a species whose evolution target lives in a DIFFERENT region
-    int16_t crossDex = 0;
-    for (int16_t d = 1; d <= DEX_COUNT && !crossDex; d++) {
-      int16_t to = DEX_TBL[d].evolvesTo;
-      if (to && speciesHasArt(d) && speciesHasArt(to) &&
-          regionOfDex(to) != regionOfDex(d)) crossDex = d;
-    }
-    ck(crossDex != 0, "the dex really does contain a cross-region evolution");
-
     Pet p; seed(p);
-    p.dbgHatchAs(crossDex, false);
-    p.ageMinutes = 99UL * 60;            // far past any evolution level
-    p.fullness = p.joy = p.energy = p.hygiene = 100;
-
-    gRegionArt = 0xFFFF;                 // every pack installed
-    ck(p.evoTargetShowable(), "with every pack installed the target is showable");
-    bool onAll = p.canEvolveNow();
-
-    // now remove ONLY the target's region
-    gRegionArt = (uint16_t)(0xFFFF & ~(1u << regionOfDex(DEX_TBL[crossDex].evolvesTo)));
-    ck(!p.evoTargetShowable(), "without the target's pack it is not showable");
-    ck(onAll && !p.canEvolveNow(),
-       "and the creature is NOT offered an evolution it could never draw");
-
+    p.dbgHatchAs(20, false);             // GABUMON
+    p.ageMinutes = 30UL * 60;
+    p.careMistakes = 0; p.trAtk = 60;    // asks for the KABUTERIMON branch
+    gRegionArt = 0xFFFF;
+    ck(p.digiTarget() == 22, "with every pack installed GABUMON becomes KABUTERIMON");
+    gRegionArt = (uint16_t)(0xFFFF & ~(1u << regionOfDex(22)));
+    ck(p.digiTarget() == 0 && !p.canEvolveNow(), "without Ver.2's pack it is offered nothing");
     gRegionArt = saved;
-    ck(p.canEvolveNow(), "putting the pack back offers it again");
   }
 
   printf("%s\n", bad?"FAILURES":"all good");

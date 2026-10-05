@@ -1,6 +1,6 @@
 // Asserts against the real Pet, per CLAUDE.md: restating the formulas here
 // would only prove the transcription. Covers the level cap (which is what stops
-// the uint8_t wrap) and the species-level special split.
+// the uint8_t wrap) and the Digimon-level special split.
 #include "Arduino.h"
 #include "Preferences.h"
 #include "pet.h"
@@ -31,7 +31,7 @@ static void ck(bool ok, const char *what) {
 
 int main() {
   Pet p;
-  p.dbgHatchAs(65, false);      // Alakazam: bAtk 50, bSpA 135
+  p.dbgHatchAs(7, false);       // DEVIMON: a special attacker
   p.ivAtk = p.ivDef = p.ivSpe = p.ivHp = 31;
   p.trAtk = p.trDef = p.trSpe = 0;
 
@@ -47,20 +47,20 @@ int main() {
   p.ageMinutes = 60UL * 24 * 60;             // absurd, far past any wrap point
   ck(p.level() == 100, "60 days still clamps");
 
-  // --- special split: Alakazam must hit far harder specially than physically.
+  // --- special split: DEVIMON must hit far harder specially than physically.
   p.ageMinutes = 5940;
   uint16_t atk = p.atkStat(), spa = p.spaStat();
-  printf("     Alakazam L%u: atk=%u spa=%u (base 50 vs 135)\n", p.level(), atk, spa);
-  ck(spa > atk, "Alakazam spaStat beats atkStat");
+  printf("     DEVIMON L%u: atk=%u spa=%u (special profile)\n", p.level(), atk, spa);
+  ck(spa > atk, "DEVIMON spaStat beats atkStat");
 
   Pet m;
-  m.dbgHatchAs(68, false);      // Machamp: bAtk 130, bSpA 65
+  m.dbgHatchAs(41, false);      // OGREMON: a physical one
   m.ivAtk = m.ivDef = m.ivSpe = m.ivHp = 31;
   m.trAtk = m.trDef = m.trSpe = 0;
   m.ageMinutes = 5940;
-  printf("     Machamp  L%u: atk=%u spa=%u (base 130 vs 65)\n",
+  printf("     OGREMON  L%u: atk=%u spa=%u (physical profile)\n",
          m.level(), m.atkStat(), m.spaStat());
-  ck(m.atkStat() > m.spaStat(), "Machamp atkStat beats spaStat");
+  ck(m.atkStat() > m.spaStat(), "OGREMON atkStat beats spaStat");
   ck(m.atkStat() > atk && spa > m.spaStat(), "the two species are not interchangeable");
 
   printf("%s\n", bad ? "FAILURES" : "all good");

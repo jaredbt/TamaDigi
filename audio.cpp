@@ -1,7 +1,7 @@
 #include "audio.h"
 #include "gbsynth.h"
 #include "music.h"
-#include "cry.h"   // per-species chirps, synthesised rather than sampled
+#include "cry.h"   // per-Digimon chirps, synthesised rather than sampled
 #include "pin_config.h"
 #include <Arduino.h>
 #include <Wire.h>
@@ -9,7 +9,7 @@
 #include <Preferences.h>
 
 // ---------------------------------------------------------------------------
-// Audio del TamaPoke: códec ES8311 (DAC -> amplificador PA -> altavoz) por I2S.
+// Audio del TamaDigi: códec ES8311 (DAC -> amplificador PA -> altavoz) por I2S.
 // Init del ES8311 portado del driver oficial de Espressif (esp-bsp), fijado a
 // MCLK=4.096MHz (256*fs), 16kHz, 16-bit, esclavo I2S. Los efectos son tonos
 // cuadrados (estilo Game Boy) sintetizados en una tarea aparte para no
@@ -27,7 +27,7 @@ static QueueHandle_t gQ = nullptr;
 // WHAT GOES ON THE EFFECT QUEUE.
 //
 // It used to be a bare uint8_t, which is exactly one byte too few to say WHICH
-// species is speaking -- so a per-species chirp had nowhere to put its dex number.
+// Digimon is speaking -- so a per-Digimon chirp had nowhere to put its dex number.
 // Widening the element is private to this file: sfxPlay() keeps its signature and
 // every one of its ~200 call sites is untouched.
 //
@@ -216,7 +216,7 @@ static void audioTask(void *) {
     // simpler and the right priority.
     if (xQueueReceive(gQ, &req, wantAudio ? 0 : pdMS_TO_TICKS(40)) == pdTRUE) {
       if (gOn && gReady && req.kind == AUD_CRY) {
-        // A species chirp, built on the spot from DEX_TBL. Nothing is stored and
+        // A Digimon chirp, built on the spot from DEX_TBL. Nothing is stored and
         // nothing is looked up: see cry.h.
         CryNote cn[CRY_NOTES];
         const uint8_t n = crySynth(req.dex, cn);
@@ -260,7 +260,7 @@ static void audioTask(void *) {
     if (m != playing) { playing = m; mi1 = mi2 = 0; at1 = at2 = clock = 0; }
     if (!ampOn) { digitalWrite(PA, HIGH); delay(6); ampOn = true; }
 
-    // 0 = the gym leader battle, 3 = the victory fanfare. Winning used to play
+    // 0 = the boss battle, 3 = the victory fanfare. Winning used to play
     // index 2, which is the WILD BATTLE theme -- so a win sounded like the fight
     // had started again.
     const MusicTrack &t = MUSIC_TBL[(m == MUS_VICTORY) ? 3 : 0];
@@ -296,7 +296,7 @@ void audioMusic(uint8_t id) { gMusic = (id < 3) ? id : MUS_NONE; }
 void audioSetVolume(uint8_t v) {
   gVol = v > 10 ? 10 : v;
   Preferences p;
-  p.begin("tamapoke", false);
+  p.begin("tamadigi", false);
   p.putUChar("vol", gVol);
   p.end();
 }
@@ -316,7 +316,7 @@ void audioBegin() {
   if (!es8311Init()) { Serial.println("ES8311 no responde (audio off)"); return; }
 
   Preferences p;
-  p.begin("tamapoke", true);
+  p.begin("tamadigi", true);
   gOn = p.getBool("snd", true);
   gVol = p.getUChar("vol", 7);
   if (gVol > 10) gVol = 7;
@@ -344,7 +344,7 @@ void audioCry(int16_t dex) {
 void audioSetEnabled(bool on) {
   gOn = on;
   Preferences p;
-  p.begin("tamapoke", false);
+  p.begin("tamadigi", false);
   p.putBool("snd", on);
   p.end();
 }

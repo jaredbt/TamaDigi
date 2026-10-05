@@ -1,6 +1,6 @@
-// Walks one real life: hatch a Charmander, age it, evolve at each gate, and
+// Walks one real life: hatch a AGUMON, age it, digivolve at each gate, and
 // print the moveset at every step. Answers what actually happens to moves
-// across an evolution, rather than assuming.
+// across an digivolution, rather than assuming.
 #include "Arduino.h"
 #include "Preferences.h"
 #include "pet.h"
@@ -30,7 +30,7 @@ static void show(Pet &p, const char *when) {
   printf("\n");
 }
 
-// what the species could learn by this level but does not know
+// what the Digimon could learn by this level but does not know
 static void pending(Pet &p) {
   uint8_t n = learnCount(p.speciesId), miss = 0;
   char buf[240];
@@ -48,11 +48,11 @@ static void pending(Pet &p) {
 
 int main() {
   Pet p;
-  p.dbgHatchAs(4, false);          // Charmander, the form that actually hatches
+  p.dbgHatchAs(4, false);          // AGUMON, the form that actually hatches
   p.ageMinutes = 0;
   show(p, "hatched");
 
-  // healthy pet, so evolution is never blocked by low stats
+  // healthy pet, so digivolution is never blocked by low stats
   auto healthy = [&] { p.fullness = p.joy = p.energy = p.hygiene = 100; };
   for (uint32_t lvl : { 15u, 16u, 35u, 36u, 54u, 73u, 100u }) {
     p.ageMinutes = (lvl - 1) * MINUTES_PER_LEVEL;

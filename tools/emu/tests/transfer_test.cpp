@@ -4,7 +4,7 @@
 //
 //   * a tap that opens the menu does nothing while files arrive -- and the same
 //     tap works once they stop, so the first check cannot pass on a dead tap
-//   * the per-file sprite reload, region rescan and thumbnail reload wait for the
+//   * the per-file sprite reload, version rescan and thumbnail reload wait for the
 //     stream to end, and then happen by themselves
 //   * a fight is never taken over, because its render path pumps the link
 //
@@ -84,7 +84,7 @@ int main(){
     // Both buffers are alive while the new one is read, so an unchanged pointer means no reload.
     ck(thumbs.loaded && thumbs.data != thumbsBefore, "the thumbnails really were read again");
     const uint8_t *kept = thumbs.data;
-    emuSetSpriteDir("/nonexistent-tamapoke-sprites");
+    emuSetSpriteDir("/nonexistent-tamadigi-sprites");
     ck(!thumbs.load() && thumbs.loaded && thumbs.data == kept,
        "and a reload that cannot read the file keeps the thumbnails already there");
     emuSetSpriteDir(SPRITE_DIR);

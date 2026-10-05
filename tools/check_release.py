@@ -54,7 +54,7 @@ def version_from(pattern, path):
 
 
 def main():
-    source_version = version_from(r'#define FW_VERSION "([0-9.]+)"', ROOT / 'TamaPoke.ino')
+    source_version = version_from(r'#define FW_VERSION "([0-9.]+)"', ROOT / 'TamaDigi.ino')
     readme_version = version_from(r'firmware-v([0-9.]+)-', ROOT / 'README.md')
     manifest_path = ROOT / 'web' / 'manifest.json'
     manifest = json.loads(manifest_path.read_text())
@@ -63,7 +63,7 @@ def main():
 
     versions = {
         'tag': tag,
-        'TamaPoke.ino': source_version,
+        'TamaDigi.ino': source_version,
         'README.md': readme_version,
         'web/manifest.json': manifest_version,
     }

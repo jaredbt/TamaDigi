@@ -1,17 +1,17 @@
 // PER-SPECIES CHIRPS, checked at the layer that can actually be checked.
 //
 // CLAUDE.md is blunt that the emulator cannot judge audio, and that is true of how
-// a cry SOUNDS -- nobody can tell from a test whether Charizard is convincing.
+// a cry SOUNDS -- nobody can tell from a test whether GREYMON is convincing.
 // What is not a matter of taste, and what would otherwise only be discovered by
-// flashing a board and listening to 1025 creatures one at a time:
+// flashing a board and listening to every Digimon one at a time:
 //
-//   * every species produces SOMETHING, so no creature is mute;
+//   * every Digimon produces SOMETHING, so no creature is mute;
 //   * nothing exceeds the time budget, because a cry blocks the audio task and
 //     overstaying it is heard as the music stuttering;
 //   * every note is inside the chip's range, so none is silently dropped;
-//   * the same species always yields the SAME cry, which is what makes it an
+//   * the same Digimon always yields the SAME cry, which is what makes it an
 //     identity rather than a noise generator;
-//   * different species mostly differ, or the whole feature is one sound;
+//   * different Digimon mostly differ, or the whole feature is one sound;
 //   * and it RENDERS -- real samples, not silence and not clipping -- through the
 //     actual GbSynth, which is the only end-to-end proof available here.
 //
@@ -70,7 +70,7 @@ static Rendered renderCry(int16_t dex) {
   return r;
 }
 
-// A cry's bytes, for comparing two species and for proving determinism.
+// A cry's bytes, for comparing two Digimon and for proving determinism.
 static std::string fingerprint(int16_t dex) {
   CryNote n[CRY_NOTES];
   const uint8_t c = crySynth(dex, n);
@@ -86,7 +86,7 @@ static std::string fingerprint(int16_t dex) {
 }
 
 int main() {
-  // ---- EVERY species, without exception
+  // ---- EVERY Digimon, without exception
   {
     int mute = 0, tooLong = 0, badFreq = 0, quiet = 0, noNotes = 0;
     uint16_t longest = 0;
@@ -145,11 +145,11 @@ int main() {
     ck(fingerprint(25) == a, "and building a thousand others does not change it");
   }
 
-  // ---- DISTINCTNESS. Not uniqueness -- 1025 species from four notes cannot all
+  // ---- DISTINCTNESS. Not uniqueness -- 1025 Digimon from four notes cannot all
   // differ, and pretending otherwise would mean inventing entropy that says
   // nothing about the creature. What matters is that the feature is not one sound
   // wearing 1025 names, and that NEIGHBOURS differ, since consecutive dex numbers
-  // are usually one evolution line and get compared directly.
+  // are usually one digivolution line and get compared directly.
   {
     std::map<std::string, int> seen;
     for (int16_t d = 1; d <= DEX_COUNT; d++) seen[fingerprint(d)]++;
@@ -172,9 +172,18 @@ int main() {
   // ---- IT READS THE CREATURE. The mapping is only worth having if it is true:
   // a bulky creature really should sound lower than a fast light one.
   {
-    // WAILORD (321) is the bulkiest thing in the dex; NINJASK (291) is the fastest.
-    const uint16_t bulky = cryBaseHz(321), quick = cryBaseHz(291);
-    printf("      WAILORD %u Hz vs NINJASK %u Hz\n", bulky, quick);
+    // The bulkiest and the lightest Digimon, found from the data rather than
+    // named, so a roster change cannot make this test vacuous.
+    int16_t bulkDex = 1, edgeDex = 1;
+    int bHi = -9999, bLo = 9999;
+    for (int16_t d = 1; d <= DEX_COUNT; d++) {
+      const DexEntry &e = DEX_TBL[d];
+      int b = (int)e.bHp + e.bDef + e.bSpD - e.bAtk - e.bSpe - e.bSpA;
+      if (b > bHi) { bHi = b; bulkDex = d; }
+      if (b < bLo) { bLo = b; edgeDex = d; }
+    }
+    const uint16_t bulky = cryBaseHz(bulkDex), quick = cryBaseHz(edgeDex);
+    printf("      %s %u Hz vs %s %u Hz\n", DEX_TBL[bulkDex].name, bulky, DEX_TBL[edgeDex].name, quick);
     ck(bulky < quick, "the bulkiest creature speaks lower than the fastest");
     // and the whole band is used rather than everything piling into the middle
     uint16_t lo = 0xFFFF, hi = 0;
@@ -184,7 +193,8 @@ int main() {
       if (hz > hi) hi = hz;
     }
     printf("      pitch band actually used: %u..%u Hz\n", lo, hi);
-    ck(hi - lo > 600, "and the dex spreads across a real range of pitches");
+    // 61 Digimon with stage-derived stats span less than 1025 Digimon did
+    ck(hi - lo > 300, "and the dex spreads across a real range of pitches");
   }
 
   // ---- and it comes out of the SYNTH as audible, unclipped sound.
@@ -193,8 +203,7 @@ int main() {
   // numbers that GbSynth renders as silence, and only rendering catches that.
   {
     int silent = 0, clipping = 0, tooShort = 0;
-    const int16_t sample[] = { 1, 6, 25, 94, 131, 150, 249, 384, 493, 649,
-                               721, 809, 830, 887, 905, 950, 1000, DEX_COUNT };
+    const int16_t sample[] = { 1, 6, 12, 15, 25, 31, 40, 43, 52, 59, DEX_COUNT };
     for (int16_t d : sample) {
       const Rendered r = renderCry(d);
       if (r.samples < GB_RATE / 40) tooShort++;          // under 25 ms of audio

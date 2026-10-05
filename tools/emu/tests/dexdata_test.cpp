@@ -1,12 +1,10 @@
-// The dex TABLE itself, every species of it.
+// The Digimon TABLE itself, every entry of it.
 //
-// Adding a generation is a data change, and the data is generated -- so the way
-// it goes wrong is not a crash but a species that quietly cannot work: an
-// evolution pointing past the end of the table, a typing the move list has no
-// attack for, a base stat of zero. Each of those is invisible until somebody
-// hatches that exact creature.
-//
-// This is the sweep that makes the next expansion safe rather than hopeful.
+// Adding a V-Pet version is a data change, and the data is generated -- so the
+// way it goes wrong is not a crash but a Digimon that quietly cannot work: a
+// branch pointing past the end of the table, an element no attack covers, a
+// base stat of zero. Each of those is invisible until somebody raises that
+// exact Digimon. This is the sweep that makes the next version safe.
 #include "Arduino.h"
 #include "Preferences.h"
 #include "pet.h"
@@ -43,8 +41,7 @@ int main(){
     ck(zeroStat == 0, "and six base stats, none of them zero");
   }
 
-  // --- evolutions point somewhere real. evolvesTo was a uint8_t once, and
-  //     every target above 255 silently wrapped into Kanto.
+  // --- digivolutions point somewhere real
   {
     int oob = 0, self = 0, noLevel = 0;
     for (int16_t d = 1; d <= DEX_COUNT; d++) {
@@ -59,7 +56,7 @@ int main(){
     ck(noLevel == 0, "and every evolution has a level to reach");
   }
 
-  // --- an evolution chain must terminate
+  // --- an digivolution chain must terminate
   {
     int loops = 0;
     for (int16_t d = 1; d <= DEX_COUNT; d++) {
@@ -70,34 +67,16 @@ int main(){
     ck(loops == 0, "every evolution chain ends rather than looping");
   }
 
-  // Species that genuinely have no attacking move in the games either. Cocoons
-  // learn HARDEN and nothing else; DITTO has Transform, UNOWN has Hidden Power,
-  // WOBBUFFET and WYNAUT counter rather than attack, SMEARGLE only Sketches.
-  // Listed rather than tolerated, so a NEW species joining them is a failure --
-  // which is what a new generation's typings would cause.
-  // Alola added three more, and they are genuine non-attackers rather than a
-  // gap in dex_moves.py -- adding a Water move would not give PYUKUMUKU one,
-  // because it learns no damaging move of its own type in the games either:
-  // its whole gimmick is Counter and Recover. COSMOG and COSMOEM are the nebula
-  // stages, which know Splash, Teleport and Cosmic Power and nothing else.
-  // LISTED, not tolerated silently: each of these can still fight, it just has
-  // no attack of its OWN type in dex_moves.py's 77. Galar added five -- BLIPBUG
-  // and APPLIN learn almost nothing at all in the real games, NICKIT and DREEPY
-  // learn their Dark/Dragon attacks outside our subset, and ZAMAZENTA is the
-  // one worth revisiting: a legendary with no STAB is a wart, not a crash.
-  static const int16_t NO_ATTACK[] = { 11, 14, 132, 201, 202, 235, 266, 268, 360,
-                                       771, 789, 790,
-                                       824, 827, 840, 885, 889 };
-  static const int16_t NO_LEARNSET[] = { 11, 14, 132, 201, 235, 789, 790,
-                                         824, 840 };
+  static const int16_t NO_ATTACK[] = { 0 };     // every Digimon has one
+  static const int16_t NO_LEARNSET[] = { 0 };
   auto known = [](const int16_t *a, size_t n, int16_t d) {
     for (size_t i = 0; i < n; i++) if (a[i] == d) return true;
     return false;
   };
 
-  // --- THE ONE THAT BITES ON A NEW GENERATION: a species with no attack of
-  //     its own type. dex_moves.py is 77 hand-picked moves, so a typing that
-  //     arrives with a new region can leave creatures with no STAB at all.
+  // --- THE ONE THAT BITES ON A NEW GENERATION: a Digimon with no attack of
+  //     its own type. digimon_data.py is 77 hand-picked moves, so a typing that
+  //     arrives with a new version can leave creatures with no STAB at all.
   {
     int noStab = 0; int16_t first = 0;
     for (int16_t d = 1; d <= DEX_COUNT; d++) {
@@ -115,7 +94,7 @@ int main(){
       // Name every one of them. Printing only the first sends the next person
       // hunting for the rest by hand, and on a new generation there is never
       // just one -- the whole point of this check is that a new typing arrives
-      // faster than dex_moves.py's 77 hand-picked moves cover it.
+      // faster than digimon_data.py's 77 hand-picked moves cover it.
       printf("      no same-type attack: %s (%d)\n", DEX_TBL[d].name, d);
       noStab++; if (!first) first = d;
     }
@@ -140,7 +119,7 @@ int main(){
     ck(empty == 0, "and no unexpected species has an empty learnset");
   }
 
-  // --- the regions tile the dex with no gaps and no overlaps
+  // --- the versions tile the dex with no gaps and no overlaps
   {
     int uncovered = 0;
     for (int16_t d = 1; d <= DEX_COUNT; d++) {
@@ -155,24 +134,25 @@ int main(){
     ck(REGIONS[REGION_ALL].hi == DEX_COUNT, "and ALL reaches the end of the table");
   }
 
-  // --- the Pokedex bitmap is big enough for the table it indexes
+  // --- the Digidex bitmap is big enough for the table it indexes
   {
     Pet p; p.begin(); p.factoryReset();
     Pet q; q.begin();
-    q.dbgHatchAs(DEX_COUNT, false);      // hatching is what registers a species
+    q.dbgHatchAs(DEX_COUNT, false);      // hatching is what registers a Digimon
     ck(q.isRegistered(DEX_COUNT), "the last species can be registered at all");
     ck(!q.isRegistered(DEX_COUNT - 1), "without spilling into its neighbour");
   }
 
-  // --- an evolution TARGET must never hatch from an egg, or the same creature
+  // --- an digivolution TARGET must never hatch from an egg, or the same creature
   //     arrives two ways and the chain stops meaning anything. gen_dex.py
   //     derives R_EVO from being somebody's target, so this locks that
   //     derivation rather than restating it.
   {
+    // EVERY branch in EVO_TBL, not just the first one DexEntry carries
     bool isTarget[DEX_COUNT + 1] = { false };
-    for (int16_t d = 1; d <= DEX_COUNT; d++)
-      if (DEX_TBL[d].evolvesTo >= 1 && DEX_TBL[d].evolvesTo <= DEX_COUNT)
-        isTarget[DEX_TBL[d].evolvesTo] = true;
+    for (int i = 0; i < EVO_COUNT; i++)
+      if (EVO_TBL[i].to >= 1 && EVO_TBL[i].to <= DEX_COUNT)
+        isTarget[EVO_TBL[i].to] = true;
 
     int hatchable = 0;
     for (int16_t d = 1; d <= DEX_COUNT; d++)
@@ -183,23 +163,12 @@ int main(){
       }
     ck(hatchable == 0, "no evolution target also hatches straight from an egg");
 
-    // and the reverse: R_EVO means "only ever reached by evolving", so a
-    // species nothing evolves into would be unreachable entirely. EEVEE's
-    // three branches are the exception -- pet.cpp reaches 134-136 by special
-    // case, which no table scan can see.
+    // and the reverse: R_EVO means "only ever reached by digivolving", so a
+    // Digimon no branch leads to would be unreachable entirely.
     int stranded = 0;
     for (int16_t d = 1; d <= DEX_COUNT; d++) {
       if (DEX_TBL[d].rarity != R_EVO || isTarget[d]) continue;
-      // EEVEE's branch: DexEntry holds one evolvesTo, so the other seven are
-      // nobody's target in the table and would read as unreachable. They are
-      // reached by eeveeOptions(), off the SAME generated EEVEE_EVOS list that
-      // marked them evolution-only -- so ask that list rather than a hardcoded
-      // 134..136, which is what let five of them quietly hatch from eggs.
-      bool isEevee = false;
-      for (int e = 0; e < EEVEE_EVO_COUNT; e++)
-        if (EEVEE_EVOS[e] == d) isEevee = true;
-      if (isEevee) continue;
-      printf("      %s (%d) can be neither hatched nor evolved into\n",
+      printf("      %s (%d) can be neither hatched nor digivolved into\n",
              DEX_TBL[d].name, d);
       stranded++;
     }

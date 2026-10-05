@@ -10,7 +10,7 @@
 
 typedef std::map<std::string, std::vector<uint8_t>> NvsStore;
 
-// The GAME's namespace, "tamapoke", and the one every test drives directly.
+// The GAME's namespace, "tamadigi", and the one every test drives directly.
 inline NvsStore &nvs() { static NvsStore s; return s; }
 
 // Every other namespace, kept genuinely SEPARATE -- which is what the board
@@ -24,7 +24,7 @@ inline std::map<std::string, NvsStore> &nvsOther() {
   static std::map<std::string, NvsStore> m;
   return m;
 }
-#define NVS_GAME_NS "tamapoke"
+#define NVS_GAME_NS "tamadigi"
 inline NvsStore &nvsNamed(const char *name) {
   if (!name || !strcmp(name, NVS_GAME_NS)) return nvs();
   return nvsOther()[name];

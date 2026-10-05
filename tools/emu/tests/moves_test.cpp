@@ -38,13 +38,13 @@ static void dump(const char *tag, const uint8_t *mv) {
 }
 
 int main() {
-  // --- a level-100 Charizard should know four real, distinct moves
+  // --- a level-100 GREYMON should know four real, distinct moves
   Pet p;
   p.dbgHatchAs(6, false);
   p.ageMinutes = 5940;                 // level 100
   p.relearnFromLevel();
-  dump("Charizard L100", p.moves);
-  ck(p.moveCount() == 4, "L100 Charizard knows 4 moves");
+  dump("GREYMON L100", p.moves);
+  ck(p.moveCount() == 4, "L100 TYRANNOMON knows 4 moves");
   bool distinct = true, valid = true;
   for (int i = 0; i < MOVE_SLOTS; i++) {
     if (p.moves[i] >= MOVE_COUNT) valid = false;
@@ -59,7 +59,7 @@ int main() {
   baby.dbgHatchAs(6, false);
   baby.ageMinutes = 0;                 // level 1
   baby.relearnFromLevel();
-  dump("Charizard L1  ", baby.moves);
+  dump("GREYMON L1  ", baby.moves);
   ck(baby.moveCount() >= 1, "a level 1 pet still knows at least one move");
   ck(baby.moveCount() <= 4, "never exceeds 4 slots");
 
@@ -75,8 +75,8 @@ int main() {
   ck(legal, "a level 1 pet knows nothing it has not learned yet");
 
   // --- a default set must be mostly attacks, not a pile of stat-lowering
-  // status moves. This is what caught GROWL/LEER on a level 100 Charizard.
-  for (int dex : { 6, 9, 3, 65, 68, 25, 143, 150 }) {
+  // status moves.
+  for (int dex : { 5, 10, 61, 9, 41, 23, 27, 12 }) {
     Pet q;
     q.dbgHatchAs(dex, false);
     q.ageMinutes = 5940;
@@ -113,14 +113,14 @@ int main() {
   uint8_t legacy[PARTY_SLOTS * (sizeof(PartyMon))];
   for (int i = 0; i < PARTY_SLOTS; i++) {
     PartyMon m;
-    m.dex = 1 + i * 20;                // 1, 21, 41, 61, 81, 101
+    m.dex = 1 + i * 10;                // 1, 11, 21, 31, 41, 51
     m.level = 40 + i;
     m.ivAtk = m.ivDef = m.ivSpe = m.ivHp = 20;
     snprintf(m.nick, sizeof(m.nick), "OLD%d", i);
     memcpy(legacy + i * oldStride, &m, oldStride);   // old records, old stride
   }
   Preferences seed;
-  seed.begin("tamapoke", false);
+  seed.begin("tamadigi", false);
   seed.putBytes("party", legacy, PARTY_SLOTS * oldStride);
   seed.end();
 
@@ -128,18 +128,15 @@ int main() {
   pty.begin();
   bool aligned = true;
   for (int i = 0; i < PARTY_SLOTS; i++) {
-    if (pty.slots[i].dex != 1 + i * 20 || pty.slots[i].level != 40 + i) aligned = false;
+    if (pty.slots[i].dex != 1 + i * 10 || pty.slots[i].level != 40 + i) aligned = false;
     printf("     slot %d: dex=%d lvl=%u nick=%s\n",
            i, pty.slots[i].dex, pty.slots[i].level, pty.slots[i].nick);
   }
   ck(aligned, "legacy party blob migrates with slots still aligned");
   ck(pty.count() == PARTY_SLOTS, "all 6 legacy members survive");
 
-  // The MOVE PICKER had its own gate and so its own opinion: it checked
-  // learnLevel() alone, and a TM is stored as level 0, so a level 22 Charmeleon
-  // was offered FIRE BLAST (110 power). Found by hand on the board, exactly
-  // like the level 1 Squirtle holding SURF -- the same bug in the one path that
-  // fix never reached. moveUnlockLevel() is the single answer now.
+  // moveUnlockLevel() is the single answer for when an attack unlocks, for the
+  // learn prompt and the move picker alike.
   {
     int zero = 0, tooEarly = 0;
     for (int16_t d = 1; d <= DEX_COUNT; d++)
@@ -151,20 +148,15 @@ int main() {
     ck(zero == 0, "no learnset entry anywhere unlocks at level 0");
     ck(tooEarly == 0, "and no TM is reachable before a creature is built");
 
-    const int16_t CHARMELEON = 5;
-    bool early = false, late = false, ember1 = false, flame34 = false;
-    for (uint8_t i = 0; i < learnCount(CHARMELEON); i++) {
-      uint8_t mv = learnMove(CHARMELEON, i);
-      if (mv >= MOVE_COUNT) continue;
-      uint8_t at = moveUnlockLevel(CHARMELEON, i);
-      if (!strcmp(MOVE_TBL[mv].name, "FIRE BLAST")) { early = at <= 22; late = at >= 40; }
-      if (!strcmp(MOVE_TBL[mv].name, "EMBER")) ember1 = (at == 1);
-      if (!strcmp(MOVE_TBL[mv].name, "FLAMETHROWER")) flame34 = (at == 34);
-    }
-    ck(!early, "a level 22 Charmeleon is NOT offered FIRE BLAST");
-    ck(late, "it waits for the TM level like every other TM");
-    ck(ember1 && flame34,
-       "while its real level-up moves keep their real levels (EMBER 1, FLAMETHROWER 34)");
+    // A signature attack arrives with its stage: AGUMON's at the Rookie gate,
+    // GREYMON's second five hours into the Champion stage.
+    bool pepper7 = false, flame30 = false;
+    for (uint8_t i = 0; i < learnCount(3); i++)
+      if (!strcmp(MOVE_TBL[learnMove(3, i)].name, "PEPPER BRTH")) pepper7 = moveUnlockLevel(3, i) == 7;
+    for (uint8_t i = 0; i < learnCount(5); i++)
+      if (!strcmp(MOVE_TBL[learnMove(5, i)].name, "MEGA FLAME")) flame30 = moveUnlockLevel(5, i) == 30;
+    ck(pepper7, "AGUMON learns PEPPER BREATH at level 7, the Rookie gate");
+    ck(flame30, "GREYMON learns MEGA FLAME at level 30");
   }
 
   printf("%s\n", bad ? "FAILURES" : "all good");

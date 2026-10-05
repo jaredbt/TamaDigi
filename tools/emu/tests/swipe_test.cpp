@@ -2,7 +2,7 @@
 // must never close anything at all.
 //
 // This has been got wrong four separate times -- the move picker, the player
-// card, the gym list and the box -- each found by hand. Paging now lives on the
+// card, the boss list and the box -- each found by hand. Paging now lives on the
 // RIM (onRim) and the horizontal swipe is the TILE AXIS, which is what makes
 // the two gestures impossible to confuse; both halves are checked here.
 #include "Arduino.h"
@@ -104,16 +104,16 @@ int main(){
   clearAll();
   for (ItemKey k=1;k<ITEM_COUNT;k++) bag.add(k, 1);
   bagOpen=true;                                   check("bag",      &bagOpen,      &bagPage);
-  // The Pokedex pages within ONE region and changes region on a vertical swipe.
-  // Every species must be reachable: it was capped at 10 flat pages when the dex
+  // The Digidex pages within ONE version and changes version on a vertical swipe.
+  // Every Digimon must be reachable: it was capped at 10 flat pages when the dex
   // was 151 long, which silently hid everything past 160 once it grew to 386.
-  clearAll(); galleryOpen=true; galleryPick=false; galleryDetail=0; galleryPage=0; galleryRegion=0;
+  clearAll(); galleryOpen=true; galleryPick=false; galleryDetail=0; galleryPage=0; galleryRegion=3;
   onRim(1);
   if (!galleryOpen) { printf("FAIL  gallery    closed while paging\n"); bad++; }
   else if (galleryPage != 1) { printf("FAIL  gallery    did not advance (page=%u)\n", galleryPage); bad++; }
   else printf("PASS  %-10s pages on the rim\n", "gallery");
   {
-    // walk every region to its last page and tick off what it can show
+    // walk every version to its last page and tick off what it can show
     static bool seen[DEX_COUNT + 1] = { false };
     int regions = REGION_COUNT - 1;
     for (int r = 0; r < regions; r++) {
@@ -138,15 +138,15 @@ int main(){
     for (int d = 1; d <= DEX_COUNT; d++) if (!seen[d]) missing++;
     if (missing) { printf("FAIL  gallery    %d species are unreachable\n", missing); bad++; }
     else printf("PASS  %-10s every one of the %d species is reachable\n", "gallery", DEX_COUNT);
-    // and a vertical swipe UP really does move between regions
+    // and a vertical swipe UP really does move between versions
     galleryRegion = 0; galleryDetail = 0;
     onSwipeV(-1);
     if (galleryRegion != 1 || !galleryOpen) {
       printf("FAIL  gallery    a vertical swipe does not change region\n"); bad++;
     } else printf("PASS  %-10s changes region on a vertical swipe\n", "gallery");
   }
-  // The gym ladder changes REGION on a vertical swipe, the same gesture the
-  // Pokedex uses. Without this the Johto and Hoenn ladders exist but cannot be
+  // The boss ladder changes REGION on a vertical swipe, the same gesture the
+  // Digidex uses. Without this the Ver.2 and Ver.3 ladders exist but cannot be
   // reached, which is a worse failure than a paging bug: nothing looks broken.
   clearAll(); gymOpen=true; gymPick=false; gymRegion=0; gymPage=0;
   {
@@ -213,7 +213,7 @@ int main(){
   }
 
   // Opening either screen must land on the REGION CHOOSER, not on whichever
-  // region happened to be set last. Without it the Johto and Hoenn content is
+  // version happened to be set last. Without it the Ver.2 and Ver.3 content is
   // built, reachable only by an invisible gesture, and so looks absent.
   {
     clearAll();
@@ -226,7 +226,7 @@ int main(){
     } else printf("PASS  %-10s starts a wild battle from its primary action\n", "explore");
     clearAll();
     onSwipe(-1);
-    onSwipe(-1);                       // Gyms follows Explore
+    onSwipe(-1);                       // Bosses follows Explore
     if (!gymOpen || !gymPick) { printf("FAIL  gyms       does not open on the region chooser\n"); bad++; }
     else printf("PASS  %-10s opens on the region chooser\n", "gyms");
     // and a swipe DOWN out of a ladder returns to it -- one step of depth, not
@@ -269,8 +269,8 @@ int main(){
     if (rpickPage != pages - 1 || !galleryPick) { printf("FAIL  dexpick    does not wrap backward\n"); bad++; }
     else printf("PASS  %-10s wraps backward rather than closing\n", "dexpick");
 
-    // EVERY region must be reachable across the pages -- the old chooser
-    // listed GYM_REGIONS in all three modes, so Sinnoh had no row at all.
+    // EVERY version must be reachable across the pages -- the old chooser
+    // listed GYM_REGIONS in all three modes, so Ver.4 had no row at all.
     uint8_t perPage = (uint8_t)((nreg + pages - 1) / pages);
     int seen = 0;
     for (uint8_t pg = 0; pg < pages; pg++)
@@ -281,10 +281,10 @@ int main(){
   }
 
   // THE GYM CHOOSER PAGES TOO, and that is not a copy of the case above: it
-  // runs in a different mode with its own region count. GYM_REGIONS became 4
-  // when Sinnoh got a ladder, so Sinnoh sits on PAGE 2 -- built, reachable only
+  // runs in a different mode with its own version count. GYM_REGIONS became 4
+  // when Ver.4 got a ladder, so Ver.4 sits on PAGE 2 -- built, reachable only
   // by paging, and invisible if paging does not engage here. That is the exact
-  // shape that hid Sinnoh in the Pokedex chooser.
+  // shape that hid Ver.4 in the Digidex chooser.
   {
     clearAll();
     gRegionArt = 0xFFFF;
@@ -306,19 +306,19 @@ int main(){
     else printf("PASS  %-10s the last ladder lands on page %u of %u\n", "gympick", rpickPage + 1, pages);
   }
 
-  // The sprite pack is a real gate: without it the region is not selectable,
+  // The sprite pack is a real gate: without it the version is not selectable,
   // the egg pool will not draw from it, and the pill skips over it.
   {
     clearAll();
-    gRegionArt = 0x1;                          // KANTO only
-    if (!regionAvailable(0)) { printf("FAIL  gating     KANTO should be available\n"); bad++; }
-    else if (regionAvailable(1)) { printf("FAIL  gating     JOHTO has no pack and must be locked\n"); bad++; }
+    gRegionArt = 0x1;                          // VER.1 only
+    if (!regionAvailable(0)) { printf("FAIL  gating     VER.1 should be available\n"); bad++; }
+    else if (regionAvailable(1)) { printf("FAIL  gating     VER.2 has no pack and must be locked\n"); bad++; }
     else printf("PASS  %-10s a region with no pack is locked\n", "gating");
 
     // Cycle the pill all the way round twice. The invariant is that it never
-    // RESTS on a locked region -- not that it returns any particular index.
+    // RESTS on a locked version -- not that it returns any particular index.
     // REGION_ALL stays selectable while any one pack is present, since the
-    // mixed pool is then simply that region's creatures, so asserting a fixed
+    // mixed pool is then simply that version's creatures, so asserting a fixed
     // answer here just encoded my own wrong guess about ALL.
     {
       uint8_t r = 0; int landedLocked = 0; uint16_t visited = 0;
@@ -329,25 +329,25 @@ int main(){
       }
       int nvisited = 0;
       for (uint8_t b2 = 0; b2 < REGION_COUNT; b2++) if (visited & (1u << b2)) nvisited++;
-      // BOTH halves matter. "never rests on a locked region" is vacuously true
+      // BOTH halves matter. "never rests on a locked version" is vacuously true
       // when nothing is locked, so on its own it survives the gate being
       // deleted -- it did exactly that when this was negative-checked. The
-      // second half is the one with teeth: with only KANTO present the pill
-      // must reach FEWER regions than exist.
+      // second half is the one with teeth: with only VER.1 present the pill
+      // must reach FEWER versions than exist.
       if (landedLocked) { printf("FAIL  gating     the pill landed on a locked region %d times\n", landedLocked); bad++; }
       else if (nvisited >= REGION_COUNT) { printf("FAIL  gating     the pill reached all %d regions with 3 packs missing\n", (int)REGION_COUNT); bad++; }
       else printf("PASS  %-10s the pill skips locked regions and reaches only %d\n", "gating", nvisited);
     }
 
     uint8_t was = pet.region;
-    pet.setRegion(1);                          // JOHTO: locked, must not take
+    pet.setRegion(1);                          // VER.2: locked, must not take
     if (pet.region != was) { printf("FAIL  gating     setRegion accepted a locked region\n"); bad++; }
     else printf("PASS  %-10s a locked region cannot be chosen\n", "gating");
 
-    // and no egg may hatch from a region whose art is not on the card
+    // and no egg may hatch from a version whose art is not on the card
     int wrong = 0;
     for (int i = 0; i < 200; i++) {
-      int16_t d = pet.rollInRegion(1, 0);       // ask for JOHTO explicitly
+      int16_t d = pet.rollInRegion(1, 0);       // ask for VER.2 explicitly
       if (regionOfDex(d) != 0) wrong++;
     }
     if (wrong) { printf("FAIL  gating     %d/200 eggs came from a locked region\n", wrong); bad++; }
@@ -361,19 +361,19 @@ int main(){
   // which IS the bug, so this drives the screen's own list, not the rule.
   {
     uint8_t l[64];
-    uint8_t n = learnableFor(5, 22, l, sizeof(l));    // a Charmeleon at 22
-    bool blast = false, ember = false;
+    uint8_t n = learnableFor(5, 26, l, sizeof(l));    // a GREYMON at 26
+    bool flame = false, horns = false;
     for (uint8_t i = 0; i < n; i++) {
-      if (!strcmp(MOVE_TBL[l[i]].name, "FIRE BLAST")) blast = true;
-      if (!strcmp(MOVE_TBL[l[i]].name, "EMBER")) ember = true;
+      if (!strcmp(MOVE_TBL[l[i]].name, "MEGA FLAME")) flame = true;
+      if (!strcmp(MOVE_TBL[l[i]].name, "GREAT HORNS")) horns = true;
     }
-    if (blast) { printf("FAIL  picker     offers a level 22 Charmeleon FIRE BLAST\n"); bad++; }
-    else printf("PASS  picker     no FIRE BLAST for a level 22 Charmeleon\n");
-    if (!ember) { printf("FAIL  picker     lost the moves it really knows\n"); bad++; }
+    if (flame) { printf("FAIL  picker     offers a level 26 GREYMON MEGA FLAME (level 30)\n"); bad++; }
+    else printf("PASS  picker     no MEGA FLAME before level 30\n");
+    if (!horns) { printf("FAIL  picker     lost the moves it really knows\n"); bad++; }
     else printf("PASS  picker     still offers what it really knows\n");
     if (learnableFor(5, 40, l, sizeof(l)) <= n) {
-      printf("FAIL  picker     TMs never arrive at all\n"); bad++;
-    } else printf("PASS  picker     and the TMs arrive once it is built\n");
+      printf("FAIL  picker     later attacks never arrive at all\n"); bad++;
+    } else printf("PASS  picker     and later attacks arrive with the levels\n");
   }
 
   printf("%s\n", bad?"FAILURES":"every paged screen pages");

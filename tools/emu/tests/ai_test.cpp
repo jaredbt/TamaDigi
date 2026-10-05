@@ -43,8 +43,8 @@ static bool duel(int16_t da,int16_t db,uint8_t lvl,bool aSmart,bool bSmart){
   return !A.fainted();
 }
 int main(){
-  // mirror matches: same species both sides, so only the choosing differs
-  const int16_t roster[]={6,9,3,65,68,143,25,94};
+  // mirror matches: same Digimon both sides, so only the choosing differs
+  const int16_t roster[]={6,9,3,58,41,27,23,7};
   int smartWins=0,total=0;
   for(int i=0;i<8;i++)
     for(int r=0;r<25;r++){
@@ -63,8 +63,9 @@ int main(){
   printf("     foe at 6hp: picks %s for ~%u\n",MOVE_TBL[pick].name,dmg);
   ck(dmg>=foe.hp,"it takes the kill when one is on the table");
 
-  // it must not throw a move the target is immune to
-  Combatant norm,ghost; mk(norm,143,50); mk(ghost,94,50);
+  // it must not throw a move the target is immune to (there are none in the
+  // element chart, so this guards against one ever being added)
+  Combatant norm,ghost; mk(norm,27,50); mk(ghost,7,50);
   bool everImmune=false;
   for(int i=0;i<40;i++){
     uint8_t p2=aiChooseMove(norm,ghost,true);

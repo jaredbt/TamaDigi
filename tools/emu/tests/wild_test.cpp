@@ -25,67 +25,67 @@ static void ck(bool ok,const char*w){printf("%s  %s\n",ok?"PASS":"FAIL",w); if(!
 int main(){
   // ---- the bag -------------------------------------------------------------
   Inventory inv; inv.begin();
-  ck(inv.count(IT_POKEBALL)==5 && inv.count(IT_POTION)==3,
+  ck(inv.count(IT_SCANCHIP)==5 && inv.count(IT_SMRECOVERY)==3,
      "a fresh bag gets the starter kit");
   ck(inv.count(ITEM_NONE)==0, "the filler entry is never carried");
 
-  inv.add(IT_ULTRABALL, 2);
-  ck(inv.count(IT_ULTRABALL)==2, "adding a new item stacks it");
-  ck(inv.consume(IT_ULTRABALL, 2) && inv.count(IT_ULTRABALL)==0,
+  inv.add(IT_HYPERSCAN, 2);
+  ck(inv.count(IT_HYPERSCAN)==2, "adding a new item stacks it");
+  ck(inv.consume(IT_HYPERSCAN, 2) && inv.count(IT_HYPERSCAN)==0,
      "consuming the last of a stack empties it");
-  ck(!inv.consume(IT_ULTRABALL, 1), "and an empty stack cannot be consumed");
-  ck(!inv.consume(IT_POKEBALL, 99), "nor can more than is carried");
+  ck(!inv.consume(IT_HYPERSCAN, 1), "and an empty stack cannot be consumed");
+  ck(!inv.consume(IT_SCANCHIP, 99), "nor can more than is carried");
 
   // The cap has to CLIP rather than wrap: counts are uint8_t, and 99 + 200
   // overflowing to 43 would silently destroy a player's supply.
-  ck(inv.add(IT_POKEBALL, 200) == BAG_STACK_MAX - 5,
+  ck(inv.add(IT_SCANCHIP, 200) == BAG_STACK_MAX - 5,
      "a stack fills to the cap and reports what it took");
-  ck(inv.count(IT_POKEBALL)==BAG_STACK_MAX, "and stops exactly there");
-  ck(inv.add(IT_POKEBALL, 10)==0, "a full stack takes nothing more");
+  ck(inv.count(IT_SCANCHIP)==BAG_STACK_MAX, "and stops exactly there");
+  ck(inv.add(IT_SCANCHIP, 10)==0, "a full stack takes nothing more");
 
-  // Growing ITEM_TBL must be additive, exactly like the Pokedex bitmaps: a blob
+  // Growing ITEM_TBL must be additive, exactly like the Digidex bitmaps: a blob
   // written before an item existed has to leave every earlier count in place.
-  { Preferences seed; seed.begin("tamapoke", false);
+  { Preferences seed; seed.begin("tamadigi", false);
     uint8_t oldBag[4] = { 0, 7, 0, 2 };   // a build that only knew 3 items
     seed.putBytes("bag", oldBag, sizeof(oldBag));
     seed.end(); }
   Inventory grown; grown.begin();
-  ck(grown.count(IT_POKEBALL)==7 && grown.count(IT_ULTRABALL)==2,
+  ck(grown.count(IT_SCANCHIP)==7 && grown.count(IT_HYPERSCAN)==2,
      "a bag saved by a build with fewer items keeps every count");
-  ck(grown.count(IT_MASTERBALL)==0, "and the items it never knew read as zero");
-  ck(grown.count(IT_POTION)==0, "no starter kit is re-granted over a real save");
+  ck(grown.count(IT_MASTERSCAN)==0, "and the items it never knew read as zero");
+  ck(grown.count(IT_SMRECOVERY)==0, "no starter kit is re-granted over a real save");
 
   // ---- weighted drops ------------------------------------------------------
   uint32_t total = grown.weightTotal();
   ck(total == 120, "the drop table weighs what the catalogue says");
-  ck(grown.weightedDrop(0)==IT_POKEBALL, "roll 0 lands on the first weight");
-  ck(grown.weightedDrop(total-1)==IT_CARBOS, "and the last roll on the last");
+  ck(grown.weightedDrop(0)==IT_SCANCHIP, "roll 0 lands on the first weight");
+  ck(grown.weightedDrop(total-1)==IT_SPDCHIP, "and the last roll on the last");
   // The Master Ball is weight 1 of 120: it must be reachable and must not be
   // reachable one roll either side, or "rare" is an accident of arithmetic.
   uint32_t master = 0;
-  for (uint32_t r=0;r<total;r++) if (grown.weightedDrop(r)==IT_MASTERBALL) master++;
+  for (uint32_t r=0;r<total;r++) if (grown.weightedDrop(r)==IT_MASTERSCAN) master++;
   ck(master==1, "the master ball is exactly one roll in the whole table");
 
-  ItemKey ex[1] = { IT_POKEBALL };
+  ItemKey ex[1] = { IT_SCANCHIP };
   ck(grown.weightTotal(ex,1)==90, "excluding an item removes its weight");
   bool never=true;
-  for (uint32_t r=0;r<90;r++) if (grown.weightedDrop(r,ex,1)==IT_POKEBALL) never=false;
+  for (uint32_t r=0;r<90;r++) if (grown.weightedDrop(r,ex,1)==IT_SCANCHIP) never=false;
   ck(never, "and it can no longer be drawn");
 
-  // ---- shiny ---------------------------------------------------------------
-  ck(wildShinyThreshold(0)==100, "the base shiny rate is exactly 1/4096");
-  ck(wildShinyThreshold(1)==100+4096, "each bonus point is one percentage point");
-  ck(wildShinyThreshold(99)==wildShinyThreshold(WILD_SHINY_BONUS_MAX),
+  // ---- variant ---------------------------------------------------------------
+  ck(wildVariantThreshold(0)==100, "the base variant rate is exactly 1/4096");
+  ck(wildVariantThreshold(1)==100+4096, "each bonus point is one percentage point");
+  ck(wildVariantThreshold(99)==wildVariantThreshold(WILD_VARIANT_BONUS_MAX),
      "and the bonus is clamped");
-  ck(wildShinyForRoll(99,0) && !wildShinyForRoll(100,0),
-     "the shiny roll flips at its threshold, not near it");
+  ck(wildVariantForRoll(99,0) && !wildVariantForRoll(100,0),
+     "the variant roll flips at its threshold, not near it");
   { uint8_t a=31,d=5,s=0,h=25;
-    wildApplyShiny(true,a,d,s,h);
+    wildApplyVariant(true,a,d,s,h);
     ck(a==31 && d==20 && s==20 && h==25,
-       "a shiny floors every IV at 20 without capping a better one"); }
+       "a variant floors every IV at 20 without capping a better one"); }
   { uint8_t a=1,d=1,s=1,h=1;
-    wildApplyShiny(false,a,d,s,h);
-    ck(a==1, "and does nothing at all when it is not shiny"); }
+    wildApplyVariant(false,a,d,s,h);
+    ck(a==1, "and does nothing at all when it is not variant"); }
 
   // ---- capture -------------------------------------------------------------
   ck(wildCaptureChance(R_COMUN,100,100,false,ITEM_CATCH_GUARANTEED)==100,
@@ -140,7 +140,7 @@ int main(){
   ck(wildFoeEscapeChance(1,100)==10, "and stays there below that");
   ck(wildFoeEscapeChance(0,100)==0, "a fainted foe is not running anywhere");
 
-  // ---- tiers and the species pool -----------------------------------------
+  // ---- tiers and the Digimon pool -----------------------------------------
   ck(wildTierForRoll(0)==R_LEGENDARIO, "roll 0 is the legendary slice");
   ck(wildTierForRoll(1)==R_RARO && wildTierForRoll(7)==R_RARO,
      "1-7 is rare");
@@ -149,33 +149,49 @@ int main(){
   ck(wildTierForRoll(30)==R_COMUN && wildTierForRoll(255)==R_COMUN,
      "and everything above is common");
 
-  // Nothing art-less may ever be met: a caught creature is kept forever, so one
+  // Nothing art-less may ever be met: a caught Digimon is kept forever, so one
   // that can only draw as a dex number would be a permanent defect. 600 rolls
-  // across every tier, which is enough to reach the art-less bands in Unova.
-  bool artOk=true, tierOk=true, inRange=true;
+  // across every stage, which reaches Ver.3's art-less Digimon.
+  bool artOk=true, stageOk=true, inRange=true;
   for (uint32_t r=0;r<600;r++) {
-    uint8_t tier = wildTierForRoll((uint8_t)(r % 100));
-    int16_t d = wildPickSpecies(REGION_ALL, tier, r*7919u);
+    uint8_t stage = (uint8_t)(r % STAGE_COUNT);
+    int16_t d = wildPickSpecies(REGION_ALL, stage, r*7919u);
     if (!d) continue;
     if (!speciesHasArt(d)) artOk=false;
-    if (DEX_TBL[d].rarity != tier) tierOk=false;
+    if (DEX_TBL[d].stage != stage) stageOk=false;
     if (d < 1 || d > DEX_COUNT) inRange=false;
   }
   ck(artOk, "no wild encounter is a species with no art");
-  ck(tierOk, "and every one matches the tier that was rolled");
+  ck(stageOk, "and every one is of the stage that was asked for");
+
+  // the stage follows the level: no Champion before a Champion can exist
+  ck(wildStageForLevel(1) == ST_BABY1 && wildStageForLevel(7) == ST_ROOKIE &&
+     wildStageForLevel(25) == ST_CHAMPION && wildStageForLevel(100) == ST_MEGA,
+     "a level's stage is the stage clock's");
+  {
+    bool early = false;
+    for (int r = 0; r < 100; r++) if (wildStageFor(20, (uint8_t)r) > ST_ROOKIE) early = true;
+    ck(!early, "a level-20 encounter is never past Rookie");
+    bool baby = false;
+    for (int r = 0; r < 100; r++) if (wildStageFor(30, (uint8_t)r) == ST_BABY1) baby = true;
+    ck(!baby, "and once Rookies exist a Baby I is never met");
+  }
+  ck(wildTierOfDex(1) == R_COMUN && wildTierOfDex(5) == R_EVO &&
+     wildTierOfDex(12) == R_RARO && wildTierOfDex(15) == R_LEGENDARIO,
+     "the catch tier follows the stage");
   ck(inRange, "and is a real dex number");
 
-  // A region-locked roll must stay inside that region, or the pack gating that
-  // CLAUDE.md § "Phase 2 landed: region gating" describes is decorative.
+  // A version-locked roll must stay inside that version, or the pack gating that
+  // CLAUDE.md § "Phase 2 landed: version gating" describes is decorative.
   bool kanto=true;
   for (uint32_t r=0;r<200;r++) {
     int16_t d = wildPickSpecies(0, R_COMUN, r*104729u);
     if (d && (d < REGIONS[0].lo || d > REGIONS[0].hi)) kanto=false;
   }
-  ck(kanto, "a Kanto roll only ever returns a Kanto species");
+  ck(kanto, "a Ver.1 roll only ever returns a Ver.1 species");
 
-  // Negative check: with every region locked out there is nothing to meet, and
-  // the picker has to say so rather than returning a species anyway. Without
+  // Negative check: with every version locked out there is nothing to meet, and
+  // the picker has to say so rather than returning a Digimon anyway. Without
   // this the gating above could pass by never being consulted.
   uint16_t saved = gRegionArt;
   gRegionArt = 0;

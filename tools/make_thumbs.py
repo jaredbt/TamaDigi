@@ -16,7 +16,7 @@ import os
 import struct
 
 # Kept in step with dex.h rather than hardcoded: a thumbs.bin sized for 151 in a
-# 386-species build leaves the Johto and Hoenn galleries showing dex numbers.
+# 386-species build leaves the Ver.2 and Ver.3 galleries showing dex numbers.
 import re as _re
 _dexh = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'dex.h')).read()
 DEX_COUNT = int(_re.search(r'#define DEX_COUNT (\d+)', _dexh).group(1))
@@ -43,6 +43,20 @@ def read_pmd_idle_frame0(path):
             return w, h, pal, buf[p:p + w * h]  # frame 0
         p += w * h * nf
     raise ValueError('sin accion Idle (id 0)')
+
+
+def trim(w, h, data):
+    """Crop the transparent margin: the sprite canvas carries room for the hop
+    and the lunge, which a still thumbnail does not need."""
+    xs = [i % w for i, v in enumerate(data) if v != 0xFF]
+    ys = [i // w for i, v in enumerate(data) if v != 0xFF]
+    if not xs:
+        return w, h, data
+    x0, x1, y0, y1 = min(xs), max(xs), min(ys), max(ys)
+    out = bytearray()
+    for y in range(y0, y1 + 1):
+        out += data[y * w + x0:y * w + x1 + 1]
+    return x1 - x0 + 1, y1 - y0 + 1, bytes(out)
 
 
 def shrink(w, h, pal, data):
@@ -74,7 +88,7 @@ def main():
     for dex in range(1, DEX_COUNT + 1):
         path = os.path.join(DIR, f'p{dex:03d}.bin')
         # Not every species HAS art. This used to assume they all did, which
-        # held only while every packed region was 100% -- Unova is the first
+        # held only while every packed region was 100% -- Ver.4 is the first
         # that is not, and 13 missing files crashed the whole build. An absent
         # species gets an EMPTY blob: it keeps its slot and its offset (the
         # index is positional, so skipping one would shift every species after
@@ -85,6 +99,7 @@ def main():
             blobs.append(struct.pack('<3B', 0, 0, 0))
             continue
         w, h, pal, data = read_pmd_idle_frame0(path)
+        w, h, data = trim(w, h, data)
         nw, nh, npal, ndata = shrink(w, h, pal, data)
         if len(npal) > 255:
             raise ValueError(f'{dex}: paleta {len(npal)}')

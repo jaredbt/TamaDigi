@@ -21,14 +21,14 @@ static PartyMon mk(int dex,int lvl){ PartyMon m; m.dex=dex; m.level=lvl;
 int main(){
   ck(BOX_SLOTS == BOX_V323_SLOTS * 2, "the v3.24 box doubles from 18 to 36 slots");
   // a save from BEFORE the box existed: party key only, no box key
-  { Preferences seed; seed.begin("tamapoke", false);
+  { Preferences seed; seed.begin("tamadigi", false);
     PartyMon old[PARTY_SLOTS];
-    for (int i=0;i<PARTY_SLOTS;i++) old[i]=mk(1+i*20, 30+i);
+    for (int i=0;i<PARTY_SLOTS;i++) old[i]=mk(1+i*10, 30+i);
     seed.putBytes("party", old, sizeof(old));
     seed.end(); }
   Party p; p.begin();
   bool kept = true;
-  for (int i=0;i<PARTY_SLOTS;i++) if (p.slots[i].dex != 1+i*20) kept=false;
+  for (int i=0;i<PARTY_SLOTS;i++) if (p.slots[i].dex != 1+i*10) kept=false;
   ck(kept, "a pre-box save keeps its whole party");
   ck(p.boxCount()==0, "and comes up with an empty box, not garbage");
 
@@ -41,9 +41,9 @@ int main(){
       PartyMon member = mk(25 + index, 40 + index);
       memcpy(oldParty + index * stride, &member, stride);
     }
-    for (int index = 0; index < BOX_V323_SLOTS; index++) oldBox[index] = mk(258 + index, 50 + index);
+    for (int index = 0; index < BOX_V323_SLOTS; index++) oldBox[index] = mk(14 + index, 50 + index);
     Preferences seed;
-    seed.begin("tamapoke", false);
+    seed.begin("tamadigi", false);
     seed.putBytes("party", oldParty, sizeof(oldParty));
     seed.putBytes("box", oldBox, sizeof(oldBox));
     seed.end();
@@ -54,7 +54,7 @@ int main(){
       for (int index = 0; index < PARTY_SLOTS; index++)
         partyKept &= migrated.slots[index].dex == 25 + index && migrated.slots[index].level == 40 + index;
       for (int index = 0; index < BOX_V323_SLOTS; index++)
-        boxKept &= migrated.box[index].dex == 258 + index && migrated.box[index].level == 50 + index;
+        boxKept &= migrated.box[index].dex == 14 + index && migrated.box[index].level == 50 + index;
       for (int index = BOX_V323_SLOTS; index < BOX_SLOTS; index++) boxKept &= migrated.box[index].empty();
       ck(partyKept && boxKept, reload ? "combined legacy migration survives checkpoint reload" :
          "short legacy party migration waits for the 18-slot box before checkpointing");
@@ -69,7 +69,7 @@ int main(){
     nvs().clear();
     PartyMon old[BOX_V323_SLOTS];
     for (int i=0;i<BOX_V323_SLOTS;i++) old[i]=mk(40+i, 20+i);
-    Preferences seed; seed.begin("tamapoke", false);
+    Preferences seed; seed.begin("tamadigi", false);
     seed.putBytes("box", old, sizeof(old));
     seed.end();
     Party grown; grown.begin();
@@ -89,7 +89,7 @@ int main(){
   ck(p.slots[0].dex==was && p.box[0].empty(), "and swapping back withdraws");
 
   // a real exchange, both occupied
-  p.box[3] = mk(150, 70);
+  p.box[3] = mk(28, 70);
   int16_t a = p.slots[2].dex, b = p.box[3].dex;
   p.swapPartyBox(2, 3);
   ck(p.slots[2].dex==b && p.box[3].dex==a, "two occupied slots exchange");
@@ -107,11 +107,11 @@ int main(){
     for (int i=0;i<PARTY_SLOTS;i++) r.slots[i]=mk(1+i,40);
     for (int i=0;i<BOX_SLOTS;i++) r.box[i]=PartyMon();
     r.save(); r.boxSave();
-    PartyMon newcomer = mk(150, 73);
+    PartyMon newcomer = mk(28, 73);
     bool toParty = r.add(newcomer);
     bool toBox = toParty ? false : r.boxAdd(newcomer);
     ck(!toParty && toBox, "a full party sends the newcomer to the box");
-    ck(r.box[0].dex==150, "and it is really there");
+    ck(r.box[0].dex==28, "and it is really there");
     // a full party AND a full box is the only case that should refuse
     for (int i=0;i<BOX_SLOTS;i++) r.box[i]=mk(19,5);
     ck(!r.add(newcomer) && !r.boxAdd(newcomer),
@@ -150,8 +150,8 @@ int main(){
     r.begin();
     for (int i = 0; i < PARTY_SLOTS; i++) r.slots[i] = PartyMon();
     for (int i = 0; i < BOX_SLOTS; i++) r.box[i] = PartyMon();
-    r.slots[0] = mk(6, 50);        // CHARIZARD in the party
-    r.box[0] = mk(25, 40);         // PIKACHU in the box
+    r.slots[0] = mk(6, 50);        // GREYMON in the party
+    r.box[0] = mk(25, 40);         // KOROMON in the box
     r.save();
     r.boxSave();
 
@@ -170,7 +170,7 @@ int main(){
       for (int i = 0; i < BOX_SLOTS; i++) if (loaded.box[i].dex == dex) n++;
       return n;
     };
-    printf("      after a cut mid-swap: %d x CHARIZARD, %d x PIKACHU\n",
+    printf("      after a cut mid-swap: %d x GREYMON, %d x KOROMON\n",
            countOf(6), countOf(25));
     ck(countOf(6) == 1, "an interrupted swap does not lose or duplicate the party creature");
     ck(countOf(25) == 1, "nor the box creature");
@@ -207,7 +207,7 @@ int main(){
       PartyMon m = mk(30+i, 25+i);
       memcpy(old + i*oldStride, &m, oldStride);   // the leading fields only
     }
-    Preferences seed; seed.begin("tamapoke", false);
+    Preferences seed; seed.begin("tamadigi", false);
     seed.putBytes("box", old, sizeof(old));
     seed.end();
     Party g; g.begin();
@@ -222,7 +222,7 @@ int main(){
     // the legacy "box" key -- persist() no longer writes that key at all -- so
     // prove it by deleting "box" and reloading: the checkpoint alone must
     // still carry the migrated records forward.
-    Preferences wipe; wipe.begin("tamapoke", false);
+    Preferences wipe; wipe.begin("tamadigi", false);
     wipe.remove("box");
     wipe.end();
     Party g2; g2.begin();

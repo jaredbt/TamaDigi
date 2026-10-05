@@ -2,24 +2,24 @@
 #include "pet.h"     // regionAvailable(), regionOfDex()
 #include "noart.h"   // speciesHasArt()
 
-static uint8_t shinyBonus(uint8_t bonus) {
-  return bonus > WILD_SHINY_BONUS_MAX ? WILD_SHINY_BONUS_MAX : bonus;
+static uint8_t variantBonus(uint8_t bonus) {
+  return bonus > WILD_VARIANT_BONUS_MAX ? WILD_VARIANT_BONUS_MAX : bonus;
 }
 
-uint32_t wildShinyThreshold(uint8_t bonus) {
-  return WILD_SHINY_BASE + (uint32_t)shinyBonus(bonus) * WILD_SHINY_PER_POINT;
+uint32_t wildVariantThreshold(uint8_t bonus) {
+  return WILD_VARIANT_BASE + (uint32_t)variantBonus(bonus) * WILD_VARIANT_PER_POINT;
 }
 
-bool wildShinyForRoll(uint32_t roll, uint8_t bonus) {
-  return (roll % WILD_SHINY_SCALE) < wildShinyThreshold(bonus);
+bool wildVariantForRoll(uint32_t roll, uint8_t bonus) {
+  return (roll % WILD_VARIANT_SCALE) < wildVariantThreshold(bonus);
 }
 
-void wildApplyShiny(bool shiny, uint8_t &ivAtk, uint8_t &ivDef,
+void wildApplyVariant(bool variant, uint8_t &ivAtk, uint8_t &ivDef,
                     uint8_t &ivSpe, uint8_t &ivHp) {
-  if (!shiny) return;
+  if (!variant) return;
   uint8_t *ivs[] = { &ivAtk, &ivDef, &ivSpe, &ivHp };
   for (uint8_t *iv : ivs)
-    if (*iv < WILD_SHINY_IV_FLOOR) *iv = WILD_SHINY_IV_FLOOR;
+    if (*iv < WILD_VARIANT_IV_FLOOR) *iv = WILD_VARIANT_IV_FLOOR;
 }
 
 uint8_t wildCaptureChance(uint8_t rarity, uint16_t hp, uint16_t maxHp,
@@ -91,19 +91,45 @@ uint8_t wildTierForRoll(uint8_t roll) {
   return R_COMUN;                      // the rest
 }
 
-int16_t wildPickSpecies(uint8_t region, uint8_t tier, uint32_t roll) {
+uint8_t wildStageForLevel(uint8_t level) {
+  uint8_t st = ST_BABY1;
+  for (uint8_t i = 0; i < STAGE_COUNT; i++)
+    if (level >= STAGE_ENTRY[i]) st = i;
+  return st;
+}
+
+uint8_t wildStageFor(uint8_t level, uint8_t roll) {
+  uint8_t top = wildStageForLevel(level);
+  // Mostly the stage a Digimon of this level would have reached; a quarter of
+  // the time one stage behind. Never a Baby I once Rookies exist: a wild
+  // Botamon is no fight at all.
+  uint8_t st = (roll < 25 && top > ST_BABY1) ? (uint8_t)(top - 1) : top;
+  if (st == ST_BABY1 && top >= ST_ROOKIE) st = ST_BABY2;
+  return st;
+}
+
+uint8_t wildTierOfDex(int16_t dex) {
+  if (dex < 1 || dex > DEX_COUNT) return R_COMUN;
+  switch (DEX_TBL[dex].stage) {
+    case ST_MEGA:     return R_LEGENDARIO;
+    case ST_ULTIMATE: return R_RARO;
+    case ST_CHAMPION: return R_EVO;
+    default:          return R_COMUN;
+  }
+}
+
+// A Digimon of exactly this STAGE that is in an available version AND has
+// art. 0 if there is none.
+int16_t wildPickSpecies(uint8_t region, uint8_t stage, uint32_t roll) {
   uint16_t lo = 1, hi = DEX_COUNT;
   if (region < REGION_COUNT && region != REGION_ALL) {
     lo = REGIONS[region].lo;
     hi = REGIONS[region].hi;
   }
   if (hi > DEX_COUNT) hi = DEX_COUNT;
-  // Two passes rather than a candidate array: DEX_COUNT is 809 and an int16_t
-  // buffer of that size is 1.6 KB of stack on a device whose framebuffer
-  // already lives in PSRAM.
   uint16_t n = 0;
   for (uint16_t d = lo; d <= hi; d++) {
-    if (DEX_TBL[d].rarity != tier) continue;
+    if (DEX_TBL[d].stage != stage) continue;
     if (!speciesHasArt((int16_t)d)) continue;
     if (!regionAvailable(regionOfDex((int16_t)d))) continue;
     n++;
@@ -111,7 +137,7 @@ int16_t wildPickSpecies(uint8_t region, uint8_t tier, uint32_t roll) {
   if (!n) return 0;
   uint16_t want = (uint16_t)(roll % n);
   for (uint16_t d = lo; d <= hi; d++) {
-    if (DEX_TBL[d].rarity != tier) continue;
+    if (DEX_TBL[d].stage != stage) continue;
     if (!speciesHasArt((int16_t)d)) continue;
     if (!regionAvailable(regionOfDex((int16_t)d))) continue;
     if (!want) return (int16_t)d;

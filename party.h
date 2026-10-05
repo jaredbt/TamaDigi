@@ -3,7 +3,7 @@
 #include <Preferences.h>
 
 // The party: pets that finished their life and were kept, rather than being
-// dissolved into a single Pokedex bit like every previous ending did.
+// dissolved into a single Digidex bit like every previous ending did.
 //
 // Only the two endings the player CHOOSES bank a pet -- farewell and release.
 // A runaway does not: it is the game's one punishing outcome, and letting a
@@ -14,7 +14,7 @@
 // more shorter records once the box grows.
 #define BOX_V323_SLOTS 18
 #define BOX_SLOTS 36
-#define MOVE_SLOTS 4    // the same four every trainer gets in the real games
+#define MOVE_SLOTS 4    // the same four every tamer gets in the real games
 
 // A stored creature -- one of the six that fight, or one in the box.
 //
@@ -24,12 +24,12 @@
 // off instead of handing back a blanked-out copy. Freezing is now a property of
 // where the record lives, not of the record itself.
 struct PartyMon {
-  int16_t dex = 0;      // Pokedex number, 0 = empty slot
+  int16_t dex = 0;      // Digidex number, 0 = empty slot
   uint16_t level = 1;   // cached from ageMinutes so lists need not recompute it
   uint16_t medals = 0;  // what it earned in life
   uint8_t ivAtk = 0, ivDef = 0, ivSpe = 0, ivHp = 0;
   uint8_t trAtk = 0, trDef = 0, trSpe = 0;
-  uint8_t shiny = 0;
+  uint8_t variant = 0;
   char nick[12] = "";
   // Moves travel with the creature. 0 = empty slot (MOVE_TBL[0] is the "-"
   // filler). Appended at the END of the struct on purpose -- Party::begin()

@@ -17,13 +17,13 @@
 // Growing the dex was always safe -- a short blob lands in the front of a bigger
 // array and the rest keeps its zero initialiser, which is what every migration
 // here relies on. SHRINKING was not: flashing a build with a smaller DEX_COUNT,
-// GYM_REGIONS or REGION_COUNT over a newer save left dexReg, dexShinyReg, the
+// GYM_REGIONS or REGION_COUNT over a newer save left dexReg, dexVariantReg, the
 // badge arrays and eggByRegion entirely ZERO. The creature survived, being all
-// scalars, while the Pokedex and every badge past Kanto quietly vanished --
+// scalars, while the Digidex and every badge past Ver.1 quietly vanished --
 // which from the player's side is their game rolling back.
 //
-// The PREFIX is the right thing to keep: dex bit n means the same species
-// whatever the table grew to afterwards, and region n is the same region.
+// The PREFIX is the right thing to keep: dex bit n means the same Digimon
+// whatever the table grew to afterwards, and version n is the same version.
 // Only the tail we have no room for is dropped, which is data about content
 // this build does not have anyway.
 //
@@ -71,22 +71,21 @@ struct PetCoreSnapshot {
   uint8_t trAtk, trDef, trSpe;
   uint8_t moves[MOVE_SLOTS];
   uint8_t lastLearnLevel;
-  uint8_t berryKnown, shiny, eggShiny, starterPick;
+  uint8_t berryKnown, variant, eggVariant, starterPick;
   uint8_t evoPen, sleepAuto, retirePending, eggTaps;
   uint8_t careMistakes, sleeping, lastEnd, frozen, bond;
   char nick[12];
-  // v1 had one byte of tail padding here, before its trailing crc. Named rather
-  // than left implicit so the struct has no bytes the compiler chose and the
-  // append point is unambiguous: a new SCALAR goes here, taking this byte, and
-  // the record's version and PET_FIXED both move.
-  uint8_t pad0;
+  // Battles won as the live Digimon since its last digivolution. This byte was
+  // v1's tail padding (always written 0), so taking it changes no offset and no
+  // size: an older record simply reads 0 wins.
+  uint8_t wins;
 };
 // EXACT, not "< 256". PET_FIXED is on-disk format -- it is what the crc covers
 // and what a v1 blob's `size` implies -- so a field added above changes what
 // every device already holds. Failing this assert is the reminder to read the
 // append-only rule at the top of this section, then move the number
 // deliberately and bump PET_CORE_VERSION.
-static_assert(offsetof(PetCoreSnapshot, pad0) == PET_FIXED - 1,
+static_assert(offsetof(PetCoreSnapshot, wins) == PET_FIXED - 1,
               "pet checkpoint fixed layout changed");
 static_assert(sizeof(PetCoreSnapshot) >= PET_FIXED, "PET_FIXED overruns the struct");
 
@@ -144,7 +143,7 @@ static bool readPetCore(Preferences &prefs, const char *key,
 }
 
 // --- the player ------------------------------------------------------------
-// Everything in a save that OUTLIVES the creature: the trainer, the Pokedex,
+// Everything in a save that OUTLIVES the creature: the tamer, the Digidex,
 // the badges, the daily streak, the medal total and the minigame records. That
 // was ~25 more keys written one after another, so a cut between them could
 // leave a badge won without the dex entry that came with it, or a medal counted
@@ -161,7 +160,7 @@ static bool readPetCore(Preferences &prefs, const char *key,
 // So the DIMENSIONS TRAVEL IN THE HEADER and each array is copied by its own
 // prefix rule: a stored array shorter than this build's lands at the front and
 // the tail keeps its zero initialiser, a longer one is truncated. That is
-// exactly what loadBlob() does per key -- dex bit n means the same species
+// exactly what loadBlob() does per key -- dex bit n means the same Digimon
 // however big the table got -- applied inside one atomic blob instead of across
 // twenty-five separate writes.
 static constexpr uint32_t PLAYER_MAGIC = 0x31594B54UL;   // "TKY1"
@@ -221,7 +220,7 @@ bool Pet::savePlayerSnapshot() {
 
   CkptCursor cur{ buf, PLAYER_FIXED, sizeof(buf) - CKPT_CRC };
   cur.put(dexReg, sizeof(dexReg));
-  cur.put(dexShinyReg, sizeof(dexShinyReg));
+  cur.put(dexVariantReg, sizeof(dexVariantReg));
   cur.put(badgesX, sizeof(badgesX));
   cur.put(badgesHardX, sizeof(badgesHardX));
   cur.put(eggByRegion, sizeof(eggByRegion));
@@ -291,13 +290,13 @@ bool Pet::loadPlayerSnapshot() {
   strHi = ckptRd16(buf + 38);
   spdHi = ckptRd16(buf + 40);
   // Only if the record actually HAS it. A v1 record's offset 42 is the first byte
-  // of the Pokedex bitmap, so reading it unconditionally would invent a memory
+  // of the Digidex bitmap, so reading it unconditionally would invent a memory
   // record out of dex bits.
   if (fixed >= PLAYER_FIXED) memoHi = ckptRd16(buf + 42);
 
   CkptCursor cur{ buf, fixed, body };
   cur.take(dexReg, sizeof(dexReg), dexBytes);
-  cur.take(dexShinyReg, sizeof(dexShinyReg), dexBytes);
+  cur.take(dexVariantReg, sizeof(dexVariantReg), dexBytes);
   cur.take(badgesX, sizeof(badgesX), badgeN * 2);
   cur.take(badgesHardX, sizeof(badgesHardX), badgeN * 2);
   cur.take(eggByRegion, sizeof(eggByRegion), regionN * 2);
@@ -305,9 +304,9 @@ bool Pet::loadPlayerSnapshot() {
   trainerName[sizeof(trainerName) - 1] = 0;
 
   // REGION_ALL is the LAST entry of the table and is stored RAW, so a save from
-  // a build with fewer regions has a number that now means somebody else --
-  // with Galar and Paldea appended, ALL moved 7 -> 9 and a stored 7 became a
-  // region with no sprite pack. The record carries the table size it was
+  // a build with fewer versions has a number that now means somebody else --
+  // with Pendulum and Pendulum appended, ALL moved 7 -> 9 and a stored 7 became a
+  // version with no sprite pack. The record carries the table size it was
   // written with so that cannot happen; this is the same rule as the "regn"
   // key, asked of the record that is actually being believed.
   if (regionN != REGION_COUNT && region >= (uint8_t)(regionN - 1)) region = REGION_ALL;
@@ -323,7 +322,7 @@ void Pet::begin() {
   // and saving silently does nothing for as long as they keep playing. It is
   // still a fresh egg now, because there is nothing to load, but saveHealthy()
   // is false and the panel says so.
-  opened = prefs.begin("tamapoke", false);
+  opened = prefs.begin("tamadigi", false);
   if (!opened)
     Serial.println("save: NVS namespace would not open -- NOTHING WILL BE SAVED");
   saveGeneration = 0;
@@ -331,13 +330,13 @@ void Pet::begin() {
   // Zeroed BEFORE the branch below, not inside load(): getBytes() leaves its
   // destination untouched when the key is missing, and the fresh-install path
   // returns without ever calling load(). Without this a begin() after a factory
-  // reset keeps the old Pokedex alive in RAM -- the firmware reboots on WIPE so
+  // reset keeps the old Digidex alive in RAM -- the firmware reboots on WIPE so
   // it never showed there, but anything calling begin() twice would see it, and
   // Party::begin() already guards the same way for the same reason.
   memset(badgesX, 0, sizeof(badgesX));
   memset(badgesHardX, 0, sizeof(badgesHardX));
   memset(dexReg, 0, sizeof(dexReg));
-  memset(dexShinyReg, 0, sizeof(dexShinyReg));
+  memset(dexVariantReg, 0, sizeof(dexVariantReg));
   for (int i = 0; i < REGION_COUNT; i++) eggByRegion[i] = 0;
   if (!prefs.getBool("init", false)) {
     prefs.putBool("init", true);
@@ -355,13 +354,13 @@ void Pet::newEgg() {
   speciesId = -1;
   prevSpeciesId = -1;
   for (int i = 0; i < REGION_COUNT; i++) eggByRegion[i] = 0;
-  eggTarget = pickEggSpecies();  // especie oculta segun rareza y pokedex
+  eggTarget = pickEggSpecies();  // especie oculta segun rareza y digidex
   eggByRegion[region % REGION_COUNT] = eggTarget;
   starterPick = (registeredCount() == 0);  // primera partida: el jugador elige inicial
-  // sorteo shiny: 1/48 base, mejor con despedida y con racha/vinculo altos
-  int shinyBase = (lastEnd == CER_FAREWELL ? 24 : 48) - careBonus();
-  if (shinyBase < 8) shinyBase = 8;
-  eggShiny = (random(shinyBase) == 0);
+  // sorteo variant: 1/48 base, mejor con despedida y con racha/vinculo altos
+  int variantBase = (lastEnd == CER_FAREWELL ? 24 : 48) - careBonus();
+  if (variantBase < 8) variantBase = 8;
+  eggVariant = (random(variantBase) == 0);
   // The debt lands on the creature about to hatch, and is spent doing so --
   // it is a one-day penalty, not a running total that compounds each retire.
   evoPen = retirePending ? EVO_PENALTY_LEVELS : 0;
@@ -374,6 +373,7 @@ void Pet::newEgg() {
   poops = 0;
   ageMinutes = 0;
   careMistakes = 0;
+  wins = 0;
   mistakeCooldown = 0;
   sleeping = false;
   frozen = false;
@@ -580,7 +580,7 @@ void Pet::reviveFrom(const PartyMon &m) {
   prevSpeciesId = -1;
   eggTaps = 0;
   starterPick = false;
-  shiny = m.shiny != 0;
+  variant = m.variant != 0;
   ivAtk = m.ivAtk; ivDef = m.ivDef; ivSpe = m.ivSpe; ivHp = m.ivHp;
   trAtk = m.trAtk; trDef = m.trDef; trSpe = m.trSpe;
   for (int i = 0; i < MOVE_SLOTS; i++) moves[i] = m.moves[i];
@@ -623,7 +623,7 @@ PartyMon Pet::toPartyMon() const {
   m.trAtk = trAtk;
   m.trDef = trDef;
   m.trSpe = trSpe;
-  m.shiny = shiny ? 1 : 0;
+  m.variant = variant ? 1 : 0;
   for (int i = 0; i < MOVE_SLOTS; i++) m.moves[i] = moves[i];
   strncpy(m.nick, nick, sizeof(m.nick) - 1);
   m.nick[sizeof(m.nick) - 1] = 0;
@@ -654,7 +654,7 @@ void Pet::switchTo(const PartyMon &m) {
   prevSpeciesId = -1;
   eggTaps = 0;
   starterPick = false;
-  shiny = m.shiny != 0;
+  variant = m.variant != 0;
   ivAtk = m.ivAtk; ivDef = m.ivDef; ivSpe = m.ivSpe; ivHp = m.ivHp;
   trAtk = m.trAtk; trDef = m.trDef; trSpe = m.trSpe;
   for (int i = 0; i < MOVE_SLOTS; i++) moves[i] = m.moves[i];
@@ -665,6 +665,7 @@ void Pet::switchTo(const PartyMon &m) {
   bondToday = 0;
   learnQCount = 0;
   frozen = false;          // the whole point: it ages and levels again
+  wins = 0;                // a party record does not carry its stage's wins
   if (m.hasCareState()) {
     ageMinutes = m.ageMinutes;
     fullness = m.fullness;
@@ -744,33 +745,67 @@ void Pet::defTick(bool resting) {
   if (trDef < trMaxDef()) trDef++;
 }
 
-// quedan miembros sin registrar en la linea evolutiva de esta base?
+// Does any Digimon reachable from this base (through every branch) remain
+// unregistered? Walks EVO_TBL breadth-first; the tree is small.
 bool Pet::lineHasUnregistered(int16_t base) const {
-  int16_t cur = base;
-  for (int guard = 0; cur >= 1 && cur <= DEX_COUNT && guard < 6; guard++) {
-    if (!isRegistered(cur)) return true;
-    if (cur == DEX_EEVEE) {
-      int16_t opts[EEVEE_EVO_COUNT];
-      uint8_t n = eeveeOptions(opts);
-      for (uint8_t i = 0; i < n; i++)
-        if (!isRegistered(opts[i])) return true;
-      return false;
+  if (base < 1 || base > DEX_COUNT) return false;
+  int16_t q[DEX_COUNT + 1];
+  bool seen[DEX_COUNT + 1] = { false };
+  uint8_t head = 0, tail = 0;
+  q[tail++] = base;
+  seen[base] = true;
+  while (head < tail) {
+    int16_t cur = q[head++];
+    if (speciesHasArt(cur) && !isRegistered(cur)) return true;
+    for (uint8_t i = 0; i < EVO_COUNT; i++) {
+      if (EVO_TBL[i].from != cur) continue;
+      int16_t t = (int16_t)EVO_TBL[i].to;
+      if (t >= 1 && t <= DEX_COUNT && !seen[t] && tail <= DEX_COUNT) { seen[t] = true; q[tail++] = t; }
     }
-    cur = DEX_TBL[cur].evolvesTo;
   }
   return false;
 }
 
-uint8_t Pet::eeveeOptions(int16_t *out) const {
-  uint8_t n = 0;
-  for (uint8_t i = 0; i < EEVEE_EVO_COUNT; i++) {
-    int16_t b = EEVEE_EVOS[i];
-    if (b < 1 || b > DEX_COUNT) continue;
-    if (!speciesHasArt(b)) continue;                     // no art anywhere
-    if (!regionAvailable(regionOfDex(b))) continue;      // pack not on the card
-    out[n++] = b;
+// The training a branch looks at: everything the three trainable stats have
+// gathered, capped to the byte the table compares against.
+uint8_t Pet::trainingTotal() const {
+  uint16_t t = (uint16_t)trAtk + trDef + trSpe;
+  return t > 255 ? 255 : (uint8_t)t;
+}
+
+// THE digivolution answer: the first branch out of the current form whose
+// conditions hold and whose target this player can actually be shown. 0 means
+// none does -- a Champion that has not won enough stays a Champion.
+int16_t Pet::digiTarget() const {
+  if (isEgg() || speciesId < 1 || speciesId > DEX_COUNT) return 0;
+  const uint8_t cm = careMistakes, tr = trainingTotal();
+  for (uint8_t i = 0; i < EVO_COUNT; i++) {
+    const DigiEvo &e = EVO_TBL[i];
+    if ((int16_t)e.from != speciesId) continue;
+    if (cm < e.minCare || (e.maxCare != EVO_ANY && cm > e.maxCare)) continue;
+    if (tr < e.minTrain || (e.maxTrain != EVO_ANY && tr > e.maxTrain)) continue;
+    if (wins < e.minWins) continue;
+    if (!speciesShowable((int16_t)e.to)) continue;
+    return (int16_t)e.to;
   }
-  return n;
+  return 0;
+}
+
+// The battles a branch needs, for the card's hint: the smallest minWins among
+// this form's branches. 0 if no branch asks for any.
+uint8_t Pet::winsNeeded() const {
+  if (isEgg()) return 0;
+  uint8_t best = 255;
+  for (uint8_t i = 0; i < EVO_COUNT; i++)
+    if ((int16_t)EVO_TBL[i].from == speciesId && EVO_TBL[i].minWins < best)
+      best = EVO_TBL[i].minWins;
+  return best == 255 ? 0 : best;
+}
+
+void Pet::addWin() {
+  if (isEgg() || frozen) return;
+  if (wins < 255) wins++;
+  save();   // a win is rare and it decides a branch: commit it now
 }
 
 uint8_t Pet::eggRarity() const {
@@ -779,8 +814,8 @@ uint8_t Pet::eggRarity() const {
 
 // elige la especie del huevo: tirada de rareza (mejorada por una despedida
 // completa, castigada por una escapada) y sesgo hacia lineas incompletas
-// Room for the candidate list. A whole rarity tier of a 386-species dex is far
-// more than the 80 the Kanto-only build needed.
+// Room for the candidate list. A whole rarity tier of a 386-Digimon dex is far
+// more than the 80 the Ver.1-only build needed.
 #define CAND_MAX 260
 
 uint16_t gRegionArt = 0xFFFF;   // everything, until the SD narrows it
@@ -795,8 +830,8 @@ bool regionAvailable(uint8_t r) {
   return (gRegionArt & (uint16_t)(1u << r)) != 0;
 }
 
-// THE single answer to "can this player be shown this species". The egg pool
-// and every evolution ask it; having two opinions is how EEVEE's branch was
+// THE single answer to "can this player be shown this Digimon". The egg pool
+// and every digivolution ask it; having two opinions is how TENTOMON's branch was
 // filtered for years while the linear path was not.
 bool speciesShowable(int16_t d) {
   return d >= 1 && d <= DEX_COUNT && speciesHasArt(d) &&
@@ -826,6 +861,25 @@ int16_t regionArtProbe(uint8_t region, uint8_t slot) {
   return 0;
 }
 
+// Can an egg come from this version? Its pack must be on the card AND its
+// Baby I must have art -- Ver.3 ships without Poyomon, so its Digimon appear in
+// the wild and in the ladders while its egg stays locked.
+bool regionHatchable(uint8_t r) {
+  if (!regionAvailable(r)) return false;
+  const RegionInfo &rg = REGIONS[r];
+  for (uint8_t i = 0; i < rg.starterCount; i++)
+    if (speciesShowable(rg.starters[i])) return true;
+  return false;
+}
+
+uint8_t nextHatchableRegion(uint8_t from) {
+  for (uint8_t i = 1; i <= REGION_COUNT; i++) {
+    uint8_t r = (uint8_t)((from + i) % REGION_COUNT);
+    if (regionHatchable(r)) return r;
+  }
+  return from;
+}
+
 uint8_t nextAvailableRegion(uint8_t from) {
   for (uint8_t i = 1; i <= REGION_COUNT; i++) {
     uint8_t r = (uint8_t)((from + i) % REGION_COUNT);
@@ -834,24 +888,27 @@ uint8_t nextAvailableRegion(uint8_t from) {
   return from;                      // nothing available anywhere: stay put
 }
 
-// The region to actually hatch from. Normally the player's own, but a card can
+// The version to actually hatch from. Normally the player's own, but a card can
 // be swapped under a save: rather than rewrite their choice (which would lose
 // it silently the moment they put the right card back), the CHOICE is kept and
 // only the roll falls through to somewhere playable.
 static uint8_t eggRegionFallback(uint8_t want) {
-  if (regionAvailable(want)) return want;
+  if (regionHatchable(want)) return want;
   for (uint8_t i = 0; i < REGION_COUNT; i++)
-    if (i != REGION_ALL && regionAvailable(i)) return i;
+    if (i != REGION_ALL && regionHatchable(i)) return i;
   return want;                      // no art anywhere: behave as we always did
 }
 
 int16_t Pet::pickEggSpecies() {
   const uint8_t use = eggRegionFallback(region % REGION_COUNT);
   const RegionInfo &rg = REGIONS[use];
-  // primera partida: inicial clasico -- del region elegida, so a Johto run
-  // starts with a Johto starter rather than a Kanto one
+  // primera partida: inicial clasico -- del version elegida, so a Ver.2 run
+  // starts with a Ver.2 starter rather than a Ver.1 one
   if (registeredCount() == 0) {
-    return rg.starters[random(rg.starterCount)];
+    int16_t ok[8]; uint8_t n = 0;
+    for (uint8_t i = 0; i < rg.starterCount && n < 8; i++)
+      if (speciesShowable(rg.starters[i])) ok[n++] = rg.starters[i];
+    return n ? ok[random(n)] : rg.starters[random(rg.starterCount)];
   }
 
   uint8_t tier = R_COMUN;
@@ -865,7 +922,7 @@ int16_t Pet::pickEggSpecies() {
   }
 
   // candidatos del tier con linea incompleta; si no hay, baja de tier;
-  // si la pokedex del tier esta completa, vale cualquiera del tier
+  // si la digidex del tier esta completa, vale cualquiera del tier
   for (int pass = 0; pass < 2; pass++) {
     for (int t = tier; t >= R_COMUN; t--) {
       int16_t cand[CAND_MAX];
@@ -873,10 +930,10 @@ int16_t Pet::pickEggSpecies() {
       for (int16_t d = rg.lo; d <= rg.hi && n < CAND_MAX; d++) {
         if (DEX_TBL[d].rarity != t) continue;
         if (pass == 0 && !lineHasUnregistered(d)) continue;
-        // ALL spans every region, so filter per species: a missing Sinnoh pack
-        // must not put a Sinnoh creature in a mixed egg.
+        // ALL spans every version, so filter per Digimon: a missing Pendulum pack
+        // must not put a Pendulum creature in a mixed egg.
         if (!regionAvailable(regionOfDex(d))) continue;
-        // And a species with no art ANYWHERE never hatches, pack or no pack --
+        // And a Digimon with no art ANYWHERE never hatches, pack or no pack --
         // it would be a creature that can only ever draw as a number. It keeps
         // its dex slot; it is simply not something an egg can contain.
         if (!speciesHasArt(d)) continue;
@@ -888,9 +945,9 @@ int16_t Pet::pickEggSpecies() {
   return rg.starters[random(rg.starterCount)];  // inalcanzable, por si acaso
 }
 
-// Rolls a species of a GIVEN tier inside a region. Used when the player changes
-// region while an egg is waiting: the rarity they were granted is kept and only
-// the region changes, so switching cannot be farmed for a legendary.
+// Rolls a Digimon of a GIVEN tier inside a version. Used when the player changes
+// version while an egg is waiting: the rarity they were granted is kept and only
+// the version changes, so switching cannot be farmed for a Mega.
 int16_t Pet::rollInRegion(uint8_t r, uint8_t tier) {
   const RegionInfo &rg = REGIONS[eggRegionFallback(r % REGION_COUNT)];
   for (int t = tier; t >= R_COMUN; t--) {
@@ -901,28 +958,26 @@ int16_t Pet::rollInRegion(uint8_t r, uint8_t tier) {
           speciesHasArt(d)) cand[n++] = d;
     if (n) return cand[random(n)];
   }
-  return rg.starters[0];      // a region with nothing in it cannot happen
+  return rg.starters[0];      // a version with nothing in it cannot happen
 }
 
-// Changing region swaps the WAITING egg to that region's creature.
+// Changing version swaps the WAITING egg to that version's creature.
 //
-// Without this the setting would look broken: you would pick Johto and still
-// hatch a Rattata, because the species is rolled when the egg appears and not
+// Without this the setting would look broken: you would pick Ver.2 and still
+// hatch a Rattata, because the Digimon is rolled when the egg appears and not
 // when it cracks. Two rules stop it becoming a re-roll button:
 //
-//   1. The rarity tier is kept. Only which species of that tier changes, so
-//      toggling can never be farmed for a legendary.
-//   2. Each region's answer is REMEMBERED for this egg. Switching back shows
+//   1. The rarity tier is kept. Only which Digimon of that tier changes, so
+//      toggling can never be farmed for a Mega.
+//   2. Each version's answer is REMEMBERED for this egg. Switching back shows
 //      the same creature again, so there is nothing to gain by flipping.
 //
 // A hatched creature is untouched -- this only ever moves an egg.
 void Pet::setRegion(uint8_t r) {
   r %= REGION_COUNT;
-  // The sprite pack is a real gate, not a hint: without it the region is not
-  // selectable at all. The chooser still SHOWS it, greyed and with a reason --
-  // hiding it outright is how Johto and Hoenn once came to look absent when
-  // they were built and reachable all along.
-  if (!regionAvailable(r)) return;
+  // The sprite pack is a real gate, not a hint: without it the version is not
+  // selectable at all. The chooser still SHOWS it, greyed and with a reason.
+  if (!regionHatchable(r)) return;
   if (r == region) return;
   uint8_t old = region;
   region = r;
@@ -938,7 +993,7 @@ void Pet::setRegion(uint8_t r) {
 void Pet::registerSpecies(int16_t dex) {
   if (dex < 1 || dex > DEX_COUNT) return;
   dexReg[(dex - 1) >> 3] |= (1 << ((dex - 1) & 7));
-  if (shiny) dexShinyReg[(dex - 1) >> 3] |= (1 << ((dex - 1) & 7));
+  if (variant) dexVariantReg[(dex - 1) >> 3] |= (1 << ((dex - 1) & 7));
 }
 
 // la racha y el vinculo mejoran el sorteo del huevo (0..~14)
@@ -1007,7 +1062,7 @@ void Pet::rename(const char *name) {
 
 // La aportacion del IV (IV x nivel / 100) es exactamente la de los juegos de
 // 3a generacion en adelante: un IV perfecto vale +31 a nivel 100. El resto de
-// la formula es la de TamaPoke (base plana + nivel) y no la de los juegos: con
+// la formula es la de TamaDigi (base plana + nivel) y no la de los juegos: con
 // el x nivel/100 canonico sobre la base, un bicho recien nacido mostraria
 // stats de un solo digito, que en una pantalla de mascota parece un error.
 static uint16_t calcStat(uint8_t base, uint8_t iv, uint8_t lvl, uint8_t tr) {
@@ -1028,8 +1083,8 @@ uint16_t Pet::speStat() const {
 uint16_t Pet::vitStat() const {
   return isEgg() ? 0 : calcStat(DEX_TBL[speciesId].bHp, ivHp, level(), 10);
 }
-// Special reuses the physical IV and training against the species' special base
-// stat, which is what keeps Alakazam (50 Atk / 135 SpA) a real attacker without
+// Special reuses the physical IV and training against the Digimon' special base
+// stat, which is what keeps DEVIMON (50 Atk / 135 SpA) a real attacker without
 // adding IVs or migrating saves.
 uint16_t Pet::spaStat() const {
   return isEgg() ? 0 : calcStat(DEX_TBL[speciesId].bSpA, ivAtk, level(), trAtk);
@@ -1057,8 +1112,8 @@ bool Pet::knowsMove(uint8_t mv) const {
 // Picks a sensible default set, best first.
 //
 // NOT "the newest four": 1907 of the 2281 learnset entries sit at level 0 and
-// another 237 at level 1, so for most species level orders nothing and taking
-// the last four in table order is arbitrary -- it handed a level 100 Charizard
+// another 237 at level 1, so for most Digimon level orders nothing and taking
+// the last four in table order is arbitrary -- it handed a level 100 GREYMON
 // GROWL and LEER. So score instead: attacks over status, stronger over weaker,
 // STAB ahead of equal power, and a bonus for the handful of moves that really
 // are gated behind a level, since those are meant to be upgrades.
@@ -1067,8 +1122,8 @@ bool Pet::knowsMove(uint8_t mv) const {
 // This replaced a power/2 curve, which was impossible for a player to predict
 // (SURF at 45, ROCK SLIDE at 37) and dribbled unlocks out one at a time so none
 // of them felt like anything. A single number is explainable in one sentence and
-// lands on a seam the game already has: the first five leaders sit at 14-43, so
-// you fight the early ladder on what your species actually learns, and TMs
+// lands on a seam the game already has: the first five bosses sit at 14-43, so
+// you fight the early ladder on what your Digimon actually learns, and TMs
 // arrive as you enter the back half. A creature retires at 73 and caps at 100.
 //
 // It only works because dex_moves.py now carries the cheap early attacks --
@@ -1115,14 +1170,14 @@ void Pet::relearnFromLevel() {
     // but wrong here: with only one or two level-up moves early on, the spare
     // slots were filled with the strongest TMs in the table and a NEWBORN opened
     // with SURF, BLIZZARD and OUTRAGE. That, not the damage formula, is why a
-    // level 1 Squirtle could beat Brock.
+    // level 1 BETAMON could beat the first boss.
     //
     // So a TM is gated by its own power: roughly power/2, which puts the 40s
     // around level 20 and the 110s out past 50 where a creature is genuinely
     // built. Level-up moves are untouched -- they already have real gates.
     if (tmPass && lvl < tmLevelFor(m)) continue;
     int16_t sc = (m.cat == MC_STATUS) ? 10 : (int16_t)m.power + 20;
-    // STAB outweighs raw power, or every species defaults to the same two
+    // STAB outweighs raw power, or every Digimon defaults to the same two
     // generic sledgehammers and the roster loses its identity.
     if (m.cat != MC_STATUS && (m.type == d.type1 || m.type == d.type2)) sc += 40;
     if (m.effect == EF_RECHARGE) sc -= 35;   // a free turn for the opponent
@@ -1142,10 +1197,10 @@ void Pet::relearnFromLevel() {
   }
   if (moveCount() >= MOVE_SLOTS) break;   // level-up moves already filled it
   }
-  // Guarantee one same-type move. Machamp's only Fighting options are weak or
+  // Guarantee one same-type move. OGREMON's only Fighting options are weak or
   // recoil-laden, so pure scoring left it with four generic attacks and nothing
-  // that reads as a Machamp. If the set came out with no STAB, the weakest slot
-  // gives way to the best same-type attack the species can actually learn.
+  // that reads as a OGREMON. If the set came out with no STAB, the weakest slot
+  // gives way to the best same-type attack the Digimon can actually learn.
   for (int i = 0; i < MOVE_SLOTS; i++) {
     if (!moves[i]) continue;
     const MoveEntry &m = MOVE_TBL[moves[i]];
@@ -1161,7 +1216,7 @@ void Pet::relearnFromLevel() {
     const MoveEntry &m = MOVE_TBL[mv];
     if (m.cat == MC_STATUS || (m.type != d.type1 && m.type != d.type2)) continue;
     // The same TM gate as above. This fallback used to ignore it, which is how
-    // a level 1 Squirtle ended up holding SURF: it had no Water move, so the
+    // a level 1 BETAMON ended up holding SURF: it had no Water move, so the
     // guarantee reached past every check and handed it the best one in the
     // table. A creature with no STAB it can legally use simply has none yet.
     if (at == 0 && lvl < tmLevelFor(m)) continue;
@@ -1267,9 +1322,9 @@ void Pet::rollIVs() {
     }
     for (int k = 0; k < 3; k++) *p[k] = 31;
   }
-  // en la 2a generacion el shiny ERA un patron de DV concreto: un shiny nunca
+  // en la 2a generacion el variant ERA un patron de DV concreto: un variant nunca
   // era mediocre. Aqui se traduce como un suelo de 20 en todos los IV.
-  if (shiny) {
+  if (variant) {
     if (ivAtk < 20) ivAtk = 20;
     if (ivDef < 20) ivDef = 20;
     if (ivSpe < 20) ivSpe = 20;
@@ -1288,8 +1343,11 @@ uint16_t Pet::registeredCount() const {
 // despedida la dispara el usuario con el boton (no salta sola, para que la vea)
 bool Pet::canFarewellNow() const {
   if (frozen) return false;     // a companion cannot be lost; that is the point
+  // Any Digimon that has lived its three days and grown past Rookie: on the
+  // V-Pet a Champion that never won its battles still reaches the end of its
+  // life, it just never becomes an Ultimate.
   return !isEgg() && !sleeping && ceremony == CER_NONE &&
-         DEX_TBL[speciesId].evolvesTo == 0 && ageMinutes >= FAREWELL_AGE_MIN;
+         DEX_TBL[speciesId].stage >= ST_CHAMPION && ageMinutes >= FAREWELL_AGE_MIN;
 }
 
 // abandono total durante 1h: lista para escaparse. La dispara el usuario con el
@@ -1302,7 +1360,7 @@ bool Pet::canRunawayNow() const {
   // bed at zero woke with energy back at 100 and was still one tap from
   // leaving, until the next tick 60 s later cleared it. That tap is a caress --
   // the button is drawn over the creature -- so the window really was reachable
-  // and it cost somebody a DRAGONAIR.
+  // and it cost somebody a AGUMON.
   return !isEgg() && !sleeping && ceremony == CER_NONE &&
          neglectTicks >= RUNAWAY_TICKS && inTotalNeglect();
 }
@@ -1322,8 +1380,8 @@ void Pet::startRetire() {
   startFarewell();
   // An early retire is NOT the good ending and must not pay like one.
   // startFarewell() sets lastEnd = CER_FAREWELL, which blesses the next egg --
-  // rare 27% -> 45%, legendary 3% -> 10%, shiny 1/48 -> 1/24. Combined with the
-  // creature no longer being banked, that made retiring early a pure SHINY FARM:
+  // rare 27% -> 45%, Mega 3% -> 10%, variant 1/48 -> 1/24. Combined with the
+  // creature no longer being banked, that made retiring early a pure VARIANT FARM:
   // retire, check the egg, retire again, with nothing accumulating to regret.
   // Neutral instead, exactly like a release. The ceremony on screen is still the
   // farewell -- this was a choice the player made, not a neglected creature
@@ -1365,7 +1423,7 @@ void Pet::release() {
 
 void Pet::hatch() {
   speciesId = eggTarget;
-  shiny = eggShiny;
+  variant = eggVariant;
   // IV del individuo (cada crianza es unica). Se tiran ANTES de resetear el
   // vinculo a proposito: el careBonus que los empuja es el del bicho anterior.
   rollIVs();
@@ -1377,7 +1435,7 @@ void Pet::hatch() {
   medals = 0;
   newMedal = 0;
   nick[0] = 0;
-  registerSpecies(speciesId);  // criado = registrado en la pokedex
+  registerSpecies(speciesId);  // criado = registrado en la digidex
   // Start empty: checkLearnGates() fills the level-1 moves. Seeding from TMs
   // instead would hand a newborn FIRE BLAST, which no level 1 creature knows.
   for (int i = 0; i < MOVE_SLOTS; i++) moves[i] = 0;
@@ -1389,66 +1447,40 @@ void Pet::hatch() {
   save();
 }
 
-// ¿se dan ya las condiciones para evolucionar? Cada descuido retrasa la
-// evolucion 1 nivel, y ademas tiene que estar bien cuidado en ese momento
-// (ninguna estadistica por debajo de 40). NO evoluciona sola: la dispara el
-// usuario tocando al bicho (evolve()), para que vea la transformacion.
+// Is a digivolution ready to be offered? The STAGE CLOCK decides when (the
+// next stage's entry level, plus a day owed for an early retire), and
+// digiTarget() decides into what. Care mistakes no longer delay anything: they
+// choose the branch, which is the V-Pet's whole idea. It does NOT happen on its
+// own: the player taps to watch it (digivolve()).
 bool Pet::canEvolveNow() const {
   if (frozen) return false;     // frozen at the form it was banked in
   if (isEgg() || sleeping || ceremony != CER_NONE) return false;
   const DexEntry &d = DEX_TBL[speciesId];
-  if (d.evolvesTo == 0) return false;
-  // The TARGET has to be drawable, not merely present in the table. Evolution
-  // is one-way, so evolving into a species with no art or no pack on the card
-  // hands the player a dex number forever -- exactly what eeveeOptions()
-  // already prevents for the branch. The linear path never had the same guard,
-  // and evolution targets routinely reach OUT of the installed region: STEELIX
-  // and BLISSEY always did, and Gen 8/9 added nine more (GIRAFARIG ->
-  // FARIGIRAF, LINOONE -> OBSTAGOON and the rest) that land in Galar and
-  // Paldea. One rule for both paths, stated as what is ALLOWED.
-  if (!evoTargetShowable()) return false;
-  // evoPen is the day owed for retiring the PREVIOUS creature early. It rides
-  // on the same threshold careMistakes already moves, so there is one rule for
-  // "this creature evolves later" rather than two that can disagree.
-  return level() >= (uint16_t)(d.evolveLevel + careMistakes + evoPen) &&
-         lowestStat() >= 40;
+  if (d.evolvesTo == 0 || d.evolveLevel == 0) return false;
+  if (level() < (uint16_t)(d.evolveLevel + evoPen)) return false;
+  return digiTarget() != 0;
 }
 
-// Is there any form this creature could evolve INTO that this player could
-// actually be shown? For EEVEE that is the filtered branch; for everything else
-// it is the single target in the table.
-bool Pet::evoTargetShowable() const {
-  if (speciesId == DEX_EEVEE) {
-    int16_t opts[EEVEE_EVO_COUNT];
-    return eeveeOptions(opts) > 0;
-  }
-  return speciesShowable(DEX_TBL[speciesId].evolvesTo);
-}
+bool Pet::evoTargetShowable() const { return digiTarget() != 0; }
 
 void Pet::evolve() {
   if (!canEvolveNow()) return;
-  const DexEntry &d = DEX_TBL[speciesId];
+  int16_t next = digiTarget();
+  if (!next) return;
   prevSpeciesId = speciesId;
-  int16_t next = d.evolvesTo;
-  if (speciesId == DEX_EEVEE) {
-    // Eevee's branch: all eight, preferring one still missing from the Pokedex,
-    // which is what makes raising Eevees a collection goal rather than a
-    // coin flip. Only ones this player can actually be shown -- see
-    // eeveeOptions(). If none qualify the table's own 134 stands, so a card with
-    // no packs at all still evolves rather than freezing.
-    int16_t opts[EEVEE_EVO_COUNT];
-    uint8_t n = eeveeOptions(opts);
-    if (n) {
-      int16_t fresh[EEVEE_EVO_COUNT];
-      uint8_t m = 0;
-      for (uint8_t i = 0; i < n; i++)
-        if (!isRegistered(opts[i])) fresh[m++] = opts[i];
-      next = m ? fresh[random(m)] : opts[random(n)];
-    }
-  }
   speciesId = next;
   registerSpecies(speciesId);
-  checkLearnGates();   // the new form may gate a move at this very level
+  // A new stage is a fresh start, as on the V-Pet: mistakes and wins count
+  // again from zero towards the NEXT branch.
+  careMistakes = 0;
+  wins = 0;
+  // The new form's signature attacks sit at its stage's entry level, which the
+  // creature may already be past (the player can postpone). Rewind the learn
+  // gate to just below that entry so they are offered rather than skipped.
+  uint8_t entry = STAGE_ENTRY[DEX_TBL[speciesId].stage % STAGE_COUNT];
+  if (entry > 0 && lastLearnLevel >= entry) lastLearnLevel = entry - 1;
+  checkLearnGates();
+  checkMedals();
   sfxPlay(SFX_EVOLVE);
   evolveUntil = millis() + EVOLVE_ANIM_MS;
   save();
@@ -1488,9 +1520,9 @@ void Pet::feedCandy() {
 
 uint8_t Pet::playResult(uint8_t score) {
   if (ceremony != CER_NONE || isEgg()) return 0;
-  // The ball game is DEFENCE's trainer now. It used to train SPEED, which was
+  // The ball game is DEFENCE's tamer now. It used to train SPEED, which was
   // moved to its own reaction test to stop playing being a stat grind -- and
-  // that left DEF with no active trainer at all, only the slow passive tick.
+  // that left DEF with no active tamer at all, only the slow passive tick.
   // Keeping the ball on the defensive stat fits it: you are stopping something
   // from getting past you.
   uint8_t before = trDef;
@@ -1589,7 +1621,7 @@ uint8_t Pet::trainStrength(uint16_t hits) {
 }
 
 // The memory game. JOY AND BOND, no stat -- see the note in pet.h. Modelled on
-// play() rather than on the three trainers, and it obeys the same contract they
+// play() rather than on the three tamers, and it obeys the same contract they
 // all do: nothing while an egg or a ceremony is in progress, the daily bond cap
 // still applies, the day is registered, and it saves.
 uint8_t Pet::playMemo(uint16_t best) {
@@ -1735,12 +1767,13 @@ bool Pet::saveCoreSnapshot() {
   snapshot.trAtk = trAtk; snapshot.trDef = trDef; snapshot.trSpe = trSpe;
   memcpy(snapshot.moves, moves, sizeof(moves));
   snapshot.lastLearnLevel = lastLearnLevel;
-  snapshot.berryKnown = berryKnown; snapshot.shiny = shiny;
-  snapshot.eggShiny = eggShiny; snapshot.starterPick = starterPick;
+  snapshot.berryKnown = berryKnown; snapshot.variant = variant;
+  snapshot.eggVariant = eggVariant; snapshot.starterPick = starterPick;
   snapshot.evoPen = evoPen; snapshot.sleepAuto = sleepAuto;
   snapshot.retirePending = retirePending; snapshot.eggTaps = eggTaps;
   snapshot.careMistakes = careMistakes; snapshot.sleeping = sleeping;
   snapshot.lastEnd = lastEnd; snapshot.frozen = frozen; snapshot.bond = bond;
+  snapshot.wins = wins;
   strncpy(snapshot.nick, nick, sizeof(snapshot.nick) - 1);
 
   uint8_t buf[PET_CORE_CAP] = {};
@@ -1816,12 +1849,13 @@ bool Pet::loadCoreSnapshot() {
   trAtk = snapshot.trAtk; trDef = snapshot.trDef; trSpe = snapshot.trSpe;
   memcpy(moves, snapshot.moves, sizeof(moves));
   lastLearnLevel = snapshot.lastLearnLevel;
-  berryKnown = snapshot.berryKnown != 0; shiny = snapshot.shiny != 0;
-  eggShiny = snapshot.eggShiny != 0; starterPick = snapshot.starterPick != 0;
+  berryKnown = snapshot.berryKnown != 0; variant = snapshot.variant != 0;
+  eggVariant = snapshot.eggVariant != 0; starterPick = snapshot.starterPick != 0;
   evoPen = snapshot.evoPen; sleepAuto = snapshot.sleepAuto;
   retirePending = snapshot.retirePending != 0; eggTaps = snapshot.eggTaps;
   careMistakes = snapshot.careMistakes; sleeping = snapshot.sleeping != 0;
   lastEnd = snapshot.lastEnd; frozen = snapshot.frozen != 0; bond = snapshot.bond;
+  wins = snapshot.wins;
   memcpy(nick, snapshot.nick, sizeof(nick));
   nick[sizeof(nick) - 1] = 0;
   return true;
@@ -1880,13 +1914,13 @@ void Pet::load() {
   if (trDef > trMaxDef()) trDef = trMaxDef();
   if (trSpe > trMaxSpe()) trSpe = trMaxSpe();
   berryKnown = prefs.getBool("bk", false);
-  shiny = prefs.getBool("shy", false);
-  eggShiny = prefs.getBool("eshy", false);
+  variant = prefs.getBool("shy", false);
+  eggVariant = prefs.getBool("eshy", false);
   starterPick = prefs.getBool("stpk", false);
   evoPen = prefs.getUChar("evop", 0);
   sleepAuto = prefs.getUChar("slpa", SLEEP_NONE);
   retirePending = prefs.getBool("rtpn", false);
-  loadBlob(prefs, "dexsh", dexShinyReg, sizeof(dexShinyReg));
+  loadBlob(prefs, "dexsh", dexVariantReg, sizeof(dexVariantReg));
   lastSeenEpoch = prefs.getUInt("seen", 0);
   ageMinutes = prefs.getUInt("age", 0);
   if (prefs.isKey("dexn")) {
@@ -1927,15 +1961,15 @@ void Pet::load() {
   lastLearnLevel = prefs.getUChar("mvlv", 0);
   frozen = prefs.getBool("froz", false);
   avatar = prefs.getUChar("avtr", 0);
-  // Absent on a Kanto-only save, which leaves both arrays zeroed -- exactly
-  // "no Johto or Hoenn badges yet".
+  // Absent on a Ver.1-only save, which leaves both arrays zeroed -- exactly
+  // "no Ver.2 or Ver.3 badges yet".
   loadBlob(prefs, "badgX", badgesX, sizeof(badgesX));
   loadBlob(prefs, "badhX", badgesHardX, sizeof(badgesHardX));
   region = prefs.getUChar("reg", REGION_ALL);
   if (region >= REGION_COUNT) region = REGION_ALL;
   // REGION_ALL is the LAST entry of the table and is persisted RAW, so growing
-  // the table silently renames whatever the player had chosen: with Galar and
-  // Paldea appended, ALL moved 7 -> 9 and a stored 7 became GALAR -- a region
+  // the table silently renames whatever the player had chosen: with Pendulum and
+  // Pendulum appended, ALL moved 7 -> 9 and a stored 7 became PENDULUM -- a version
   // with no sprite pack, which would have emptied the egg pool of every save
   // still on the default. "regn" records the table size the save was written
   // with so that cannot happen again; its absence means the last build that
@@ -1945,7 +1979,7 @@ void Pet::load() {
     if (!storedRegions) storedRegions = 8;
     if (region >= (uint8_t)(storedRegions - 1)) region = REGION_ALL;
   }
-  // A save from the Kanto-only build has neither key; getBytes leaves the
+  // A save from the Ver.1-only build has neither key; getBytes leaves the
   // array at its zeroed initialiser, which is exactly "nothing remembered".
   loadBlob(prefs, "eggR", eggByRegion, sizeof(eggByRegion));
   prefs.getString("tnam", trainerName, sizeof(trainerName));

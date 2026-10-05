@@ -18,10 +18,20 @@ static inline uint16_t typeEffPct(uint8_t atk, uint8_t def1, uint8_t def2) {
   return e;  // tenths x tenths = percent
 }
 
-// Same, but for a species straight out of the Pokedex.
+// Same, but for a Digimon straight out of the Digidex.
 static inline uint16_t typeEffVsDex(uint8_t atk, int16_t dex) {
   if (dex < 1 || dex > DEX_COUNT) return 100;
   return typeEffPct(atk, DEX_TBL[dex].type1, DEX_TBL[dex].type2);
+}
+
+// The whole matchup, as one percentage: the attack's ELEMENT against the
+// defender's element, times the ATTRIBUTE triangle of the two Digimon
+// (Vaccine > Virus > Data > Vaccine). Status moves never get here.
+static inline uint16_t battleEffPct(int16_t atkDex, uint8_t moveType, int16_t defDex) {
+  uint32_t e = typeEffVsDex(moveType, defDex);
+  if (atkDex >= 1 && atkDex <= DEX_COUNT && defDex >= 1 && defDex <= DEX_COUNT)
+    e = e * attrEffPct(DEX_TBL[atkDex].attr, DEX_TBL[defDex].attr) / 100;
+  return (uint16_t)e;
 }
 
 // Same-Type Attack Bonus: 1.5x when the move matches one of the user's types.
@@ -30,38 +40,15 @@ static inline bool hasStab(int16_t dex, uint8_t moveType) {
   return DEX_TBL[dex].type1 == moveType || DEX_TBL[dex].type2 == moveType;
 }
 
-// Short display name for a type. English in every language, matching how the
-// species names in DEX_TBL are already English regardless of the UI language.
+// Short display names and chip colours for the elements and attributes are
+// GENERATED into dex.h (ELEMENT_NAME, TYPE_COL, TYPE_COL_LIGHT, ATTR_NAME) from
+// tools/digimon_data.py, so a new element cannot be missing a colour.
 static inline const char *typeName(uint8_t t) {
-  static const char *const N[TYPE_COUNT] = {
-    "NORMAL", "FIRE", "WATER", "ELECTRIC", "GRASS", "ICE", "FIGHTING",
-    "POISON", "GROUND", "FLYING", "PSYCHIC", "BUG", "ROCK", "GHOST",
-    "DRAGON", "DARK", "STEEL", "FAIRY",
-  };
-  return (t < TYPE_COUNT) ? N[t] : "?";
+  return (t < TYPE_COUNT) ? ELEMENT_NAME[t] : "?";
 }
-
-// One colour per type, for the chips on move rows and the battle grid. The move
-// list used to print the type as grey 6px text, which on a 466px round panel at
-// arm's length is unreadable -- and type is the single most important thing
-// about a move in a game whose whole combat model is the type chart.
-//
-// These are the standard series type colours converted to RGB565. They are
-// hand-written rather than generated because they are not derived from anything:
-// DexEntry.accent is per SPECIES and says nothing about a move.
-static const uint16_t TYPE_COL[TYPE_COUNT] = {
-  0xAD4F, 0xF406, 0x6C9E,     // NORMAL, FIRE, WATER
-  0xFE86, 0x7E4A, 0x9EDB,     // ELECTRIC, GRASS, ICE
-  0xC185, 0xA214, 0xE60D,     // FIGHTING, POISON, GROUND
-  0xAC9E, 0xFAD1, 0xADC4,     // FLYING, PSYCHIC, BUG
-  0xBD07, 0x72D3, 0x71DF,     // ROCK, GHOST, DRAGON
-  0x72C9, 0xBDDA, 0xECD5,     // DARK, STEEL, FAIRY
-};
-
-// Whether a type's colour is light enough to need dark text on it. Precomputed
-// from the same luminance the eye uses (0.299/0.587/0.114) so the label never
-// comes out grey-on-yellow.
-static const uint8_t TYPE_COL_LIGHT[TYPE_COUNT] = { 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1 };
+static inline const char *attrName(uint8_t a) {
+  return (a < ATTR_COUNT) ? ATTR_NAME[a] : "?";
+}
 
 static inline uint16_t typeColor(uint8_t t) {
   return t < TYPE_COUNT ? TYPE_COL[t] : 0x8410;

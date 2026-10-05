@@ -5,7 +5,7 @@
 // and listen, which is a terrible loop for something you want to iterate on.
 // This turns that into: run a command, double-click a file.
 //
-//   tools/emu/tamapoke-emu --wav out.wav --demo duty
+//   tools/emu/tamadigi-emu --wav out.wav --demo duty
 //
 // It drives the same GbSynth the firmware uses, so what comes out of the
 // speaker should be what comes out of this file.

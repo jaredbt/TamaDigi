@@ -43,7 +43,7 @@ static void ck(bool ok,const char*w){printf("%s  %s\n",ok?"PASS":"FAIL",w); if(!
 // everything it printed.
 static std::string runConsole(const std::vector<std::string> &lines){
   gIn = lines; gAt = 0;
-  char path[] = "/tmp/tamapoke_console_XXXXXX";
+  char path[] = "/tmp/tamadigi_console_XXXXXX";
   int fd = mkstemp(path);
   if (fd < 0) return "";
   fflush(stdout);
@@ -71,12 +71,12 @@ int main(){
   pet.ivAtk=29; pet.ivHp=13;
   pet.badges = 0x0055;
   pet.streak = 8;
-  for (int i=0;i<3;i++){ PartyMon m; m.dex=100+i; m.level=44+i;
+  for (int i=0;i<3;i++){ PartyMon m; m.dex=39+i; m.level=44+i;
     m.ivAtk=m.ivDef=m.ivSpe=m.ivHp=17; party.replaceAt(i,m); }
   pet.renameTrainer("ASH");        // persists everything above
 
   std::string out = runConsole({"EXPORT"});
-  ck(out.find("# TamaPoke save") != std::string::npos, "EXPORT says what it is");
+  ck(out.find("# TamaDigi save") != std::string::npos, "EXPORT says what it is");
 
   // every IMPORT line it printed, in order
   std::vector<std::string> back;
@@ -111,7 +111,7 @@ int main(){
      "so did the creature and its age");
   ck(p2.ivAtk==29 && p2.ivHp==13 && p2.badges==0x0055 && p2.streak==8,
      "and the IVs, badges and streak");
-  ck(q2.count()==3 && q2.slots[1].dex==101 && q2.slots[1].level==45,
+  ck(q2.count()==3 && q2.slots[1].dex==40 && q2.slots[1].level==45,
      "and the party");
 
   // --- a mistyped paste must not be applied

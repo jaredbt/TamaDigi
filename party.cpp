@@ -16,13 +16,13 @@ void Party::begin() {
   for (auto &s : slots) s = PartyMon();
   // Checked so a failure is at least visible. The panel's warning comes from
   // Pet::saveHealthy(), which shares this namespace and so fails with it.
-  if (!prefs.begin("tamapoke", false))
+  if (!prefs.begin("tamadigi", false))
     Serial.println("save: NVS would not open for the party");
   // The blob is raw structs, so growing PartyMon (moves[] was appended in v1.9)
   // changes its stride. Reading an older, shorter blob straight into the new
   // array would land slot 1 onward at the wrong offset and quietly invent a
   // party out of misaligned bytes -- and the dex-range check below would not
-  // reliably catch it, since a stray byte is often a valid Pokedex number.
+  // reliably catch it, since a stray byte is often a valid Digidex number.
   // So migrate by length: copy each old record into the front of the new one
   // and leave moves[] zeroed for the learnset to fill in.
   size_t stored = prefs.getBytesLength("party");
@@ -52,7 +52,7 @@ void Party::begin() {
       memcpy(&slots[i], old + i * oldStride, oldStride);
   }
   // a blob written by an older/newer build could hold nonsense; drop anything
-  // that is not a real Pokedex number rather than indexing DEX_TBL with it
+  // that is not a real Digidex number rather than indexing DEX_TBL with it
   for (auto &s : slots) {
     if (s.dex < 1 || s.dex > DEX_COUNT) s.dex = 0;
     s.nick[sizeof(s.nick) - 1] = 0;
@@ -128,7 +128,7 @@ void Party::begin() {
 // commits. A cut between them left the creature that came OUT of the box sitting
 // in both places while the one that went in was lost -- a duplicate and a loss
 // from a single interrupted swap, which is worse than issue #3 because it invents
-// a creature. box_test reproduces it: 0 x CHARIZARD, 2 x PIKACHU.
+// a creature. box_test reproduces it: 0 x GREYMON, 2 x KOROMON.
 //
 // Keeping them as separate keys and reconciling on load was the alternative, and
 // it cannot be done reliably: PartyMon has no identity, so two legitimately

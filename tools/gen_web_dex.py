@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Writes web/dex.json: the species names and the level rule for the installer.
 
-The page labels backups with them ("CHARIZARD Lv.30" rather than "dex 6"), and it
+The page labels backups with them ("GREYMON Lv.30" rather than "dex 5"), and it
 used to re-type MINUTES_PER_LEVEL and MAX_LEVEL to do even that much. Both come
 from the game's own sources here, so the page cannot drift from the firmware.
 
@@ -15,7 +15,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / 'tools'))
-from dex_data import DEX  # noqa: E402
+from digimon_data import ROSTER as DEX  # noqa: E402
 
 OUT = ROOT / 'web' / 'dex.json'
 
@@ -29,7 +29,7 @@ def define(name):
 
 def build():
     names = [''] * (max(entry[0] for entry in DEX) + 1)
-    for num, _slug, display, *_rest in DEX:
+    for num, _ver, _spr, display, *_rest in DEX:
         names[num] = display
     data = {
         'schema': 1,

@@ -186,7 +186,7 @@ run_one() {
   test_command=(bounded 180)
   [ "$name" = workflow_test ] && test_command+=(--require 'PASS mandatory workflows complete:')
   test_command+=(-- ./test)
-  if (cd "$suite_out" && "${test_command[@]}" 2>&1 | grep -vE '^(TamaPoke fw|emu:|RTC )') >"$suite_out/test.log"; then
+  if (cd "$suite_out" && "${test_command[@]}" 2>&1 | grep -vE '^(TamaDigi fw|emu:|RTC )') >"$suite_out/test.log"; then
     if [ "$name" = workflow_test ]; then
       { echo "=== $name"; grep -E '^PASS (workflow|mandatory)' "$suite_out/test.log"; } >"$suite_out/output"
     else

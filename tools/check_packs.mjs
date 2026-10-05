@@ -183,7 +183,7 @@ const file = { name: 'mons/p025.bin', data: bytes(PUT_BLOCK * 7 + 100, 25) };
 // The window is only safe while it fits the board's receive buffer, which drops
 // what does not fit -- so the limit is read from the firmware, not restated here.
 {
-  const sketch = readFileSync(join(root, 'TamaPoke.ino'), 'utf8');
+  const sketch = readFileSync(join(root, 'TamaDigi.ino'), 'utf8');
   const rx = Number(/Serial\.setRxBufferSize\((\d+)\)/.exec(sketch)?.[1]);
   ck(rx > 0 && PUT_WINDOW * PUT_BLOCK + 64 <= rx,
      `${PUT_WINDOW} blocks of ${PUT_BLOCK} bytes and a PUT line fit the board's ${rx}-byte receive buffer`);

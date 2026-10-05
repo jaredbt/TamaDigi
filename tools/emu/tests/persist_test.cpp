@@ -1,5 +1,5 @@
 // Player-wide progress must outlive the creature that earned it. Badges, the
-// avatar, the streak and the Pokedex all belong to the player, not the pet, so
+// avatar, the streak and the Digidex all belong to the player, not the pet, so
 // none of the three endings may take them.
 #include "Arduino.h"
 #include "Preferences.h"
@@ -19,7 +19,7 @@ static void ck(bool ok,const char*w){printf("%s  %s\n",ok?"PASS":"FAIL",w); if(!
 
 static void award(Pet &p){
   p.winBadge(0,0,false); p.winBadge(0,1,false); p.winBadge(0,0,true);
-  p.winBadge(2,3,false);   // and one in another region's ladder
+  p.winBadge(2,3,false);   // and one in another version's ladder
   p.avatar = 2; p.streak = 9; p.bestStreak = 11; p.totalMedals = 5;
 }
 static bool intact(Pet &p){

@@ -1,5 +1,5 @@
-// Explore chooses its own installed region and routes that choice into the
-// real wild encounter builder without changing the egg region.
+// Explore chooses its own installed version and routes that choice into the
+// real wild encounter builder without changing the egg version.
 #include "Arduino.h"
 #include "Arduino_GFX_Library.h"
 #include "Preferences.h"
@@ -21,10 +21,10 @@ void onTap(int16_t x, int16_t y);
 bool startWildBattle(uint8_t region, bool hard);
 int8_t exploreRegionHit(int16_t x, int16_t y);
 int uiTapFinger();
-// The region chooser's tap resolver and its geometry. The sprite-pack gate it
+// The version chooser's tap resolver and its geometry. The sprite-pack gate it
 // enforces now covers the GYM ladders as well, which is a behaviour change worth
 // pinning: it used to exempt them, so a ladder was enterable whether its pack was
-// on the card or not -- and a gym leader with no sprite opens the fight with a bare
+// on the card or not -- and a boss with no sprite opens the fight with a bare
 // dex number where a creature should be.
 int regionPickTap(int16_t x, int16_t y, uint8_t mode);
 int uiRegionRowCenterY(int row);
@@ -89,10 +89,10 @@ int main() {
     int16_t rightX = (rightL + rightR) / 2, rightY = (rightT + rightB) / 2;
     int16_t leftX = (leftL + leftR) / 2, leftY = (leftT + leftB) / 2;
   onTap(rightX, rightY);
-  ck(exploreRegion == 1, "the Explore selector advances to Johto");
+  ck(exploreRegion == 1, "the Explore selector advances to Ver.2");
   ck(pet.region == 0, "changing Explore does not change the egg region");
   onTap(leftX, leftY);
-  ck(exploreRegion == 0, "the Explore selector can move back to Kanto");
+  ck(exploreRegion == 0, "the Explore selector can move back to Ver.1");
 
   gRegionArt = (uint16_t)((1u << 0) | (1u << 2));
   exploreRegion = 0;
@@ -114,8 +114,8 @@ int main() {
   //
   // It read `forGyms || regionAvailable(i)` in the draw path and `mode !=
   // RPICK_FOR_GYMS && !regionAvailable(i)` in the tap path, so a ladder was always
-  // open regardless of whether its creatures could be drawn. Alola could already
-  // hit that; Galar and Paldea -- which have twenty-nine art-less species between
+  // open regardless of whether its creatures could be drawn. Pendulum could already
+  // hit that; Pendulum and Pendulum -- which have twenty-nine art-less Digimon between
   // them -- would have made it ordinary.
   //
   // Both modes are checked, because the whole fault was one mode being exempt.
@@ -130,16 +130,16 @@ int main() {
     ck(allOpen == uiRegionRowsPerPage(),
        "with every pack installed, every gym ladder on the page is selectable");
 
-    gRegionArt = 1u << 0;                      // KANTO only
+    gRegionArt = 1u << 0;                      // VER.1 only
     ck(regionPickTap((int16_t)rx, (int16_t)uiRegionRowCenterY(0), RP_FOR_GYMS) == 0,
-       "with only Kanto installed, Kanto's ladder is still selectable");
+       "with only Ver.1 installed, Ver.1's ladder is still selectable");
     ck(regionPickTap((int16_t)rx, (int16_t)uiRegionRowCenterY(1), RP_FOR_GYMS) < 0,
        "but a ladder whose sprite pack is missing is refused, not entered");
     ck(regionPickTap((int16_t)rx, (int16_t)uiRegionRowCenterY(1), RP_FOR_DEX) < 0,
-       "exactly as the Pokedex already refused it");
+       "exactly as the Digidex already refused it");
 
     // AND IT FAILS SAFE. gRegionArt defaults to all-set, so a board with no card
-    // at all behaves as it always did rather than losing every gym.
+    // at all behaves as it always did rather than losing every boss.
     gRegionArt = 0xFFFF;
     ck(regionPickTap((int16_t)rx, (int16_t)uiRegionRowCenterY(1), RP_FOR_GYMS) == 1,
        "and putting the packs back makes them selectable again");

@@ -119,7 +119,7 @@ int main(){
   // ---- the box sheet
   {
     clearAll();
-    party.box[0]=mon(133,25,"EEVEE");
+    party.box[0]=mon(11,25,"TENTOMON");
     party.boxSave();
     partyOpen=true; boxOpen=true;
     boxTap(SLOT_X(0), SLOT_Y(0));
@@ -146,12 +146,12 @@ int main(){
   // ---- TO PARTY still works, since the sheet replaced a direct tap
   {
     clearAll();
-    party.box[0]=mon(143,40,"SNORLAX");
+    party.box[0]=mon(21,40,"WHAMON");
     party.boxSave();
     partyOpen=true; boxOpen=true;
     boxTap(SLOT_X(0), SLOT_Y(0));
     boxTap(primaryX, primaryY);                   // TO PARTY
-    ck(party.count()==1 && party.slots[0].dex==143, "TO PARTY withdraws it");
+    ck(party.count()==1 && party.slots[0].dex==21, "TO PARTY withdraws it");
     ck(party.boxCount()==0, "and the box slot is freed");
   }
 
@@ -159,7 +159,7 @@ int main(){
   {
     clearAll();
     for (int i=0;i<PARTY_SLOTS;i++) party.slots[i]=mon(10+i,30+i,"PARTY");
-    party.box[0]=mon(143,40,"SNORLAX");
+    party.box[0]=mon(21,40,"WHAMON");
     party.save();
     party.boxSave();
     partyOpen=true; boxOpen=true;
@@ -171,7 +171,7 @@ int main(){
        "TO PARTY then opens the party replacement picker");
     int16_t oldPartyDex=party.slots[2].dex;
     partyTap(SLOT_X(2), SLOT_Y(2));
-    ck(party.slots[2].dex==143 && party.box[0].dex==oldPartyDex,
+    ck(party.slots[2].dex==21 && party.box[0].dex==oldPartyDex,
        "choosing a party slot exchanges the two creatures");
     ck(boxSel==0, "and clears the pending replacement");
   }

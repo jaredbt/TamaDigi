@@ -46,12 +46,12 @@ jobs:
           TAMA_TEST_BACKEND: "auto"
           TAMA_ESP_EMULATOR: ${{ runner.temp }}/esp-emu/esp-emu
           TAMA_TEST_JOBS: "2"
-          TAMA_TEST_LOG_DIR: ${{ runner.temp }}/tamapoke-test-logs
+          TAMA_TEST_LOG_DIR: ${{ runner.temp }}/tamadigi-test-logs
         run: node tools/emu/tests/bounded.mjs 2400 --require 'PASS migrated native suites:' --require 'PASS native post-panic fresh-process persistence;' -- bash tools/emu/tests/run.sh
       - name: Retain test evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: firmware-test-evidence
-          path: ${{ runner.temp }}/tamapoke-test-logs
+          path: ${{ runner.temp }}/tamadigi-test-logs
           retention-days: 14

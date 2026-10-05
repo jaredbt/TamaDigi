@@ -1,4 +1,4 @@
-// Building trainer or wild opponents must not overwrite the player's creature.
+// Building tamer or wild opponents must not overwrite the player's creature.
 #include "Arduino.h"
 #include "Preferences.h"
 #include "pet.h"
@@ -28,7 +28,7 @@ static void ck(bool ok, const char *what) {
 static void seedPlayer() {
   Pet player;
   player.begin();
-  player.dbgHatchAs(6, false);              // CHARIZARD
+  player.dbgHatchAs(6, false);              // GREYMON
   player.ageMinutes = 60UL * 72;            // level 73
   player.ivAtk = 30;
   player.ivDef = 29;
@@ -43,7 +43,7 @@ int main() {
 
   {
     Pet trainerFoe;
-    trainerFoe.dbgHatchAs(95, false);         // ONIX
+    trainerFoe.dbgHatchAs(34, false);         // ONIX
     trainerFoe.ivAtk = trainerFoe.ivDef = trainerFoe.ivSpe = trainerFoe.ivHp = 16;
     trainerFoe.ageMinutes = 60UL * 13;
     trainerFoe.relearnFromLevel();
@@ -63,7 +63,7 @@ int main() {
   seedPlayer();
   {
     Pet wildFoe;
-    wildFoe.dbgHatchAs(25, true);             // shiny PIKACHU
+    wildFoe.dbgHatchAs(25, true);             // variant KOROMON
     wildFoe.ivAtk = 20;
     wildFoe.ivDef = 21;
     wildFoe.ivSpe = 22;

@@ -12,13 +12,13 @@ extern Lang gLang;  // idioma activo (definido en i18n.cpp)
 enum StrId : uint8_t {
   // estado del bicho (statusMsg)
   S_EVOLVING, S_EATING, S_LIKES, S_HUNGRY, S_NEEDS_BATH,
-  S_EXHAUSTED, S_SAD, S_CHUBBY, S_IS_SHINY, S_HAPPY,
+  S_EXHAUSTED, S_SAD, S_CHUBBY, S_IS_VARIANT, S_HAPPY,
   // ceremonias de despedida
   S_FAREWELL, S_RUNAWAY, S_GOODBYE,
   // huevo
   S_EGG_HDR, S_EGG_LEGEND, S_EGG_RARE, S_EGG_TOUCH, S_EGG_MOVES, S_EGG_ALMOST,
   // formatos compartidos
-  S_POKEDEX_FMT,   // "POKEDEX %u/151"
+  S_DIGIDEX_FMT,   // "DIGIDEX %u/151"
   S_NAME_FMT,      // "%s%s Nv.%u"
   // dialogo soltar
   S_RELEASE_FMT, S_YES, S_NO,
@@ -91,16 +91,16 @@ enum StrId : uint8_t {
   S_BTL_WIN, S_BTL_LOSE,
   S_BTL_SENDS,      // "%s sends out %s"
   S_BTL_GO,         // "Go, %s!"
-  S_GYMS,           // gym list title
+  S_GYMS,           // boss list title
   S_BADGES_FMT,     // "BADGES %u/8"
   S_TRAINER,        // player card title
   S_SPD_GAIN_FMT,   // "SPEED +%u" after the reaction test
   S_AVATAR_HINT,    // "tap: change avatar"
   S_MEDALS_TOTAL_FMT,  // "%u earned in all"
-  S_EASY, S_HARD,   // gym ladder difficulty toggle
+  S_EASY, S_HARD,   // boss ladder difficulty toggle
   S_PICK_FMT,       // "CHOSEN %u/%u"
   S_FIGHT,          // start the battle
-  S_LOCKED,         // a gym not yet unlocked
+  S_LOCKED,         // a boss not yet unlocked
   S_BTL_SWITCH,     // battle menu: bring on another creature
   S_BTL_BEAT,       // "%s defeated!" on the win screen
   S_BTL_NEWBADGE,   // a badge earned for the first time
@@ -115,15 +115,15 @@ enum StrId : uint8_t {
   S_LAN_PICK, S_LAN_VS,
   S_LAN_GONE, S_LAN_WAITFOE, S_LAN_REMATCH,
   S_BTL_RUN,        // the third option in a fight: leave it
-  S_EGG_REGION,     // hint under the egg's region pill
-  S_WIN_TRAIN_FMT,  // "%s +%u" -- the training a gym win is worth
+  S_EGG_REGION,     // hint under the egg's version pill
+  S_WIN_TRAIN_FMT,  // "%s +%u" -- the training a boss win is worth
   S_WIN_MAXED,      // ... or that there is nowhere left to train
-  S_CHOOSE_REGION,  // first boot: pick the region your starter comes from
+  S_CHOOSE_REGION,  // first boot: pick the version your starter comes from
   S_RETIRE,         // menu row: retire the creature on demand
   S_RETIRE_Q,       // ...and the confirmation
   S_RETIRE_COST,    // what retiring early costs the next creature
   S_EVO_SLOW,       // shown on the card while a creature carries that debt
-  S_NEED_PACK,      // region chooser: this region's sprite pack is not on the SD
+  S_NEED_PACK,      // version chooser: this version's sprite pack is not on the SD
   // Letting a BANKED creature go for good, from the party or box detail sheet.
   // The confirmation reuses S_RELEASE_FMT / S_NO; its destructive action repeats
   // S_RELEASE_BTN instead of the ambiguous generic YES.
@@ -134,7 +134,7 @@ enum StrId : uint8_t {
   // Wild encounters, the bag, and choosing which creature you raise.
   S_BAG,            // menu row, and the battle menu's fourth option
   S_BAG_EMPTY,      // ...with nothing in it
-  S_EXPLORE,        // gym screen: go looking for a wild creature
+  S_EXPLORE,        // boss screen: go looking for a wild creature
   S_WILD_MET,       // "A wild %s appeared!"
   S_WILD_FLED,      // "%s fled!"
   S_GOT_AWAY,       // running from a wild fight succeeded
@@ -152,9 +152,9 @@ enum StrId : uint8_t {
   S_RESET,          // the row, and the confirm's YES: start the game over
   S_RESET_Q,        // "Erase everything?"
   S_RESET_COST,     // what it costs, on screen BEFORE the tap
-  // Pokedex filters. RAISED and CAUGHT are different sets: the dex records what
+  // Digidex filters. RAISED and CAUGHT are different sets: the dex records what
   // has been raised as the live creature, the party and box record what you HAVE.
-  S_FILT_ALL, S_FILT_RAISED, S_FILT_CAUGHT, S_FILT_SHINY,
+  S_FILT_ALL, S_FILT_RAISED, S_FILT_CAUGHT, S_FILT_VARIANT,
   S_FILT_NONE,      // the filter matched nothing, said out loud
   // how the box is ordered on screen
   S_SORT_SLOT, S_SORT_DEX, S_SORT_LVL,
@@ -174,6 +174,10 @@ enum StrId : uint8_t {
   S_BOX_PUT,        // party detail sheet: move this creature into the box
   // shown while a sprite pack streams in over USB
   S_XFER, S_XFER_FMT, S_XFER_HINT,
+  // Digimon: the progress card's branch inputs, and the attribute label
+  S_TRAIN_TOTAL_FMT,  // "Training: %u" -- trAtk + trDef + trSpe
+  S_ATTR,             // card label: Vaccine / Data / Virus / Free
+  S_STAGE_0, S_STAGE_1, S_STAGE_2, S_STAGE_3, S_STAGE_4, S_STAGE_5,
   STR_COUNT
 };
 

@@ -119,7 +119,7 @@ size_t saveExportSize() {
 size_t saveExport(uint8_t *out, size_t cap) {
   if (cap < SAVE_HDR + 2) return 0;
   Preferences p;
-  p.begin("tamapoke", true);
+  p.begin("tamadigi", true);
   size_t at = SAVE_HDR;
   uint16_t count = 0;
   uint8_t val[MAX_VAL];
@@ -192,7 +192,7 @@ bool saveImport(const uint8_t *in, size_t n) {
   // PASS TWO: it parses, so commit. Cleared first, or keys the backup does not
   // contain would survive from whatever save happened to be on the device.
   Preferences p;
-  p.begin("tamapoke", false);
+  p.begin("tamadigi", false);
   p.clear();
   at = SAVE_HDR;
   while (at + 4 <= n - 2) {
@@ -248,7 +248,7 @@ void resetComplete() {
 bool resetRecover() {
   if (!resetArmed()) return false;
   Preferences p;
-  if (p.begin("tamapoke", false)) {
+  if (p.begin("tamadigi", false)) {
     p.clear();
     p.end();
   }

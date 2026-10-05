@@ -1,16 +1,11 @@
-// The three gym ladders as DATA. Every entry is hand-authored, so the failure
-// mode is a typo that puts a creature outside the dex or a level outside the
-// curve -- and a bad dex number here is an out-of-bounds read into DEX_TBL, not
-// a strange-looking opponent.
+// The boss ladders as DATA. They are generated from LADDERS in
+// tools/digimon_data.py (which validates that no boss sits below its stage),
+// so the failure mode is a typo that puts a Digimon outside the dex or a level
+// outside the curve -- and a bad dex number here is an out-of-bounds read into
+// DEX_TBL, not a strange-looking opponent.
 //
-// All three ladders are VERIFIED against the games themselves: Kanto by hand
-// against FireRed/LeafGreen, and Johto and Hoenn by tools/verify_rosters.py,
-// which diffs them against pokecrystal and pokeemerald -- the disassemblies, so
-// the games' own tables rather than somebody's transcription. Re-run it after
-// touching a roster; it reports zero differences across all 26 trainers.
-//
-// This test is the cheap always-on half: it cannot know what is canonical, but
-// it catches the mistakes that would crash or unbalance the game.
+// This test is the cheap always-on half: it catches the mistakes that would
+// crash or unbalance the game.
 #include "Arduino.h"
 #include "dex.h"
 #include "trainers.h"
@@ -29,10 +24,10 @@ static void ck(bool ok,const char*w){printf("%s  %s\n",ok?"PASS":"FAIL",w); if(!
 
 int main(){
   // GYM_REGIONS <= REGION_COUNT - 1, NOT equal to it. This asserted equality
-  // and so broke the moment Sinnoh landed: the dex can carry a region long
-  // before that region has a roster, which is exactly the state the expansion
+  // and so broke the moment Ver.4 landed: the dex can carry a version long
+  // before that version has a roster, which is exactly the state the expansion
   // moves through. What must stay true is that no ladder is claimed for the
-  // ALL pseudo-region and that every ladder the code indexes really exists --
+  // ALL pseudo-version and that every ladder the code indexes really exists --
   // TRAINERS indexes TRAINER_SETS[gymRegion % GYM_REGIONS], so a GYM_REGIONS
   // larger than the table is the crash this guards.
   ck(GYM_REGIONS <= REGION_COUNT - 1,
@@ -64,8 +59,8 @@ int main(){
         if (m.level < 1 || m.level > MAX_TRAINER_LEVEL) badLvl++;
         if (m.level > top) top = m.level;
       }
-      // The ladder is sequential and level-capped to the leader's best, so a
-      // later leader being far WEAKER would make the run go backwards. Johto's
+      // The ladder is sequential and level-capped to the boss's best, so a
+      // later boss being far WEAKER would make the run go backwards. Ver.2's
       // Pryce really is below Jasmine in Gold/Silver, so a small dip is allowed
       // and only a collapse is a failure.
       if (top + 8 < prevTop) outOfRegion++;
@@ -99,12 +94,12 @@ int main(){
     ck(champ >= best, m);
   }
 
-  // Some of each region's own generation must appear, which is what would catch
-  // a roster pasted into the wrong table. NOT "most": Johto's leaders are
-  // famously Kanto-heavy in Gold/Silver -- Falkner's Pidgey, Bugsy's Metapod,
-  // Morty's Gastly line, Pryce's Seel, Clair's Dragonair -- so only 13 of its 49
-  // are Johto natives, and that is faithful rather than a mistake. Hoenn, which
-  // shares almost nothing with Kanto, comes out at 47 of 57.
+  // Some of each version's own generation must appear, which is what would catch
+  // a roster pasted into the wrong table. NOT "most": Ver.2's bosses are
+  // famously Ver.1-heavy in Gold/Silver -- Falkner's Pidgey, Bugsy's Metapod,
+  // Morty's Gastly line, Pryce's Seel, Clair's AGUMON -- so only 13 of its 49
+  // are Ver.2 natives, and that is faithful rather than a mistake. Ver.3, which
+  // shares almost nothing with Ver.1, comes out at 47 of 57.
   for (int r=1; r<GYM_REGIONS; r++){
     const TrainerSet &ts = TRAINER_SETS[r];
     int own=0, total=0;
@@ -120,15 +115,12 @@ int main(){
     ck(own >= 8, m);              // enough to prove it is the right table
   }
 
-  // ---- no trainer may field a creature that cannot be DRAWN
+  // ---- no tamer may field a creature that cannot be DRAWN
   //
-  // noart.h and trainers.h had nothing connecting them, so four roster slots --
-  // three of them the LEAD, which is the first thing you see in a fight -- put a
-  // bare dex number on screen: Elesa's Zebstrika, Marlon's Carracosta,
-  // Marshal's Throh and Malva's Pyroar. Nobody noticed until somebody looked.
-  // Every future generation brings more art-less species (Alola, Galar and
-  // Paldea all have them), so this has to fail the build rather than wait to be
-  // spotted again.
+  // noart.h and the boss ladders are generated separately, so nothing else
+  // connects them: a boss slot with no art would put a bare dex number on
+  // screen. A future version may bring art-less Digimon, so this has to fail
+  // the build rather than wait to be spotted.
   {
     int offenders = 0;
     for (uint8_t r = 0; r < GYM_REGIONS; r++) {
@@ -146,8 +138,11 @@ int main(){
     ck(offenders == 0, "no trainer fields a creature with no sprite art");
     // and prove the check can actually fire: NO_ART must not be empty, or the
     // loop above passes by having nothing to test against
-    ck(NO_ART_COUNT > 0, "(and noart.h is non-empty, so that check means something)");
-    ck(!speciesHasArt(NO_ART[0]), "speciesHasArt really does reject an art-less dex");
+    // every Digimon has art today; when one does not, prove the filter bites
+    if (NO_ART_COUNT > 0)
+      ck(!speciesHasArt(NO_ART[0]), "speciesHasArt really does reject an art-less dex");
+    else
+      ck(speciesHasArt(1) && speciesHasArt(DEX_COUNT), "every Digimon has sprite art");
   }
 
   printf("%s\n", bad?"FAILURES":"all good");

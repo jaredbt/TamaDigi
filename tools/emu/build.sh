@@ -1,7 +1,7 @@
 #!/bin/bash
-# Builds the TamaPoke desktop emulator from the real firmware sources.
+# Builds the TamaDigi desktop emulator from the real firmware sources.
 #
-#   bash tools/emu/build.sh && tools/emu/tamapoke-emu
+#   bash tools/emu/build.sh && tools/emu/tamadigi-emu
 #
 # Needs SDL2 (brew install sdl2 / apt install libsdl2-dev). Nothing else: the
 # hardware is stubbed, so the Arduino toolchain is not required.
@@ -18,18 +18,18 @@ fi
 # The Arduino build generates function prototypes for the .ino automatically;
 # a plain g++ build does not, and the sketch calls plenty of functions before
 # defining them. Regenerated every build so it can never go stale.
-python3 genproto.py "$ROOT/TamaPoke.ino"
+python3 genproto.py "$ROOT/TamaDigi.ino"
 
 # .ino is C++ but g++ will not compile that extension
-{ echo '#include "proto.h"'; cat "$ROOT/TamaPoke.ino"; } > sketch.cpp
+{ echo '#include "proto.h"'; cat "$ROOT/TamaDigi.ino"; } > sketch.cpp
 
 g++ -std=c++17 -O1 -w \
   -I. -I"$ROOT" \
   -DSPRITE_DIR="\"$ROOT/tools/sdcard/mons\"" \
   $(sdl2-config --cflags) \
-  -o tamapoke-emu \
+  -o tamadigi-emu \
   sketch.cpp wavout.cpp "$ROOT/gbsynth.cpp" "$ROOT/pet.cpp" "$ROOT/i18n.cpp" "$ROOT/party.cpp" "$ROOT/battle.cpp" "$ROOT/link.cpp" "$ROOT/save.cpp" "$ROOT/inventory.cpp" "$ROOT/wild.cpp" \
   host_impl.cpp font.cpp clock.cpp main_sdl.cpp \
   $(sdl2-config --libs)
 
-echo "built: $HERE/tamapoke-emu"
+echo "built: $HERE/tamadigi-emu"

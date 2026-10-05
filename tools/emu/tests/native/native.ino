@@ -33,7 +33,7 @@ void checkMemory() {
 
 void seedLegacy() {
   Preferences seed;
-  require(seed.begin("tamapoke", false), "legacy namespace unavailable");
+  require(seed.begin("tamadigi", false), "legacy namespace unavailable");
   require(seed.clear(), "legacy seed clear failed");
   require(seed.putBool("init", true) > 0, "legacy init failed");
   require(seed.putChar("spec", 0) > 0, "legacy species failed");
@@ -97,10 +97,10 @@ void setup() {
   if (phase == 0) {
     Serial0.println("MILESTONE native-real-nvs-legacy-migration");
     pet.winBadge(1, 2, true);
-    require(bag.add(IT_MASTERBALL, 2) == 2, "inventory reward failed");
+    require(bag.add(IT_MASTERSCAN, 2) == 2, "inventory reward failed");
     pet.saveNow();
     Preferences poison;
-    require(poison.begin("tamapoke", false), "poison namespace failed");
+    require(poison.begin("tamadigi", false), "poison namespace failed");
     require(poison.putShort("dexn", 1) > 0 && poison.putString("nick", "POISON") > 0 &&
             poison.putUShort("badg", 0) > 0, "legacy poisoning failed");
     PartyMon empty[BOX_V323_SLOTS];
@@ -111,7 +111,7 @@ void setup() {
     Serial0.flush();
     ESP.restart();
   }
-  require(pet.badgeMask(1, true) == (1 << 2) && bag.count(IT_MASTERBALL) == 2,
+  require(pet.badgeMask(1, true) == (1 << 2) && bag.count(IT_MASTERSCAN) == 2,
           "native rewards lost across reboot");
     static uint8_t backup[SAVE_TRANSFER_MAX];
   require(saveExport(backup, sizeof(backup)) > 0, "native checkpoint backup unavailable");

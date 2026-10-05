@@ -1,80 +1,35 @@
 {
   "schema": 1,
   "regions": {
-    "kanto": {
+    "ver1": {
       "index": 0,
-      "bytes": 42650410,
-      "crc32": "8d98e960",
-      "sprites": 303,
-      "equivalent": [
-        "4c625d85"
-      ]
+      "bytes": 1861144,
+      "crc32": "bc98d9a1",
+      "sprites": 35
     },
-    "johto": {
+    "ver2": {
       "index": 1,
-      "bytes": 29199483,
-      "crc32": "9bf97d86",
-      "sprites": 201,
-      "equivalent": [
-        "b89e10d2"
-      ]
+      "bytes": 1865752,
+      "crc32": "7e277888",
+      "sprites": 35
     },
-    "hoenn": {
+    "ver3": {
       "index": 2,
-      "bytes": 40701086,
-      "crc32": "a8c550e7",
-      "sprites": 271,
-      "equivalent": [
-        "0cd83ee2"
-      ]
+      "bytes": 2106146,
+      "crc32": "f8268ffc",
+      "sprites": 39
     },
-    "sinnoh": {
+    "ver4": {
       "index": 3,
-      "bytes": 35129746,
-      "crc32": "c988e64d",
-      "sprites": 215,
-      "equivalent": [
-        "22ffc9a6"
-      ]
+      "bytes": 1959046,
+      "crc32": "95a4f1cd",
+      "sprites": 35
     },
-    "unova": {
+    "ver5": {
       "index": 4,
-      "bytes": 42260860,
-      "crc32": "04c38a8b",
-      "sprites": 286,
-      "equivalent": [
-        "ed0d42b0"
-      ]
-    },
-    "kalos": {
-      "index": 5,
-      "bytes": 22253280,
-      "crc32": "ed45317b",
-      "sprites": 143,
-      "equivalent": [
-        "9c0d2b13"
-      ]
-    },
-    "alola": {
-      "index": 6,
-      "bytes": 29094898,
-      "crc32": "15bc4bdf",
-      "sprites": 167,
-      "equivalent": [
-        "2978d379"
-      ]
-    },
-    "galar": {
-      "index": 7,
-      "bytes": 27383884,
-      "crc32": "549d68ea",
-      "sprites": 175
-    },
-    "paldea": {
-      "index": 8,
-      "bytes": 30350014,
-      "crc32": "1d700be9",
-      "sprites": 198
+      "bytes": 1915582,
+      "crc32": "0ef33ef6",
+      "sprites": 35
     }
   }
 }

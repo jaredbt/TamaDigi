@@ -16,7 +16,7 @@ trap 'rm -rf "$TMP"' EXIT
 mkdir -p "$OUT"
 
 # Keep this list in step with the tables in README.md § Screens.
-SHOTS="main region starter starterj btlmenu btlmoves gympick gymsj dexpick gallery gallery2 player player2 box egg lanready pick moves win explore wild"
+SHOTS="main region btlmenu btlmoves gympick gymsj dexpick gallery gallery2 player player2 box egg lanready pick moves win explore wild"
 
 # THE SPRITES HAVE TO BE THERE. tools/sdcard/mons/*.bin is gitignored -- it is a
 # build intermediate -- so a fresh checkout renders every creature as a bare dex
@@ -43,7 +43,7 @@ bash tools/emu/build.sh >/dev/null
 # something that no longer existed, and the script still said it had finished.
 failed=""
 for s in $SHOTS; do
-  tools/emu/tamapoke-emu --shot "$s" --out "$TMP/$s.ppm" >/dev/null 2>&1 || {
+  tools/emu/tamadigi-emu --shot "$s" --out "$TMP/$s.ppm" >/dev/null 2>&1 || {
     echo "  $s: FAILED (is it still a --shot name in main_sdl.cpp?)"
     failed="$failed $s"
     continue; }

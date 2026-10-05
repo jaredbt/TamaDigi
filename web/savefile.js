@@ -7,7 +7,7 @@
 //
 // The format is produced by save.cpp on the board:
 //
-//   # TamaPoke save, N bytes. Paste this whole block back.
+//   # TamaDigi save, N bytes. Paste this whole block back.
 //   # board <efuse MAC>  added by the installer, so a restore can tell boards apart
 //   IMPORT <hex>      one chunk, repeated
 //   IMPORT            the commit line, exactly once, last
@@ -56,7 +56,7 @@ export function hexToBytes(hex) {
   return out;
 }
 
-const HEADER_RE = /^#\s*TamaPoke save,\s*(\d+)\s*bytes/i;
+const HEADER_RE = /^#\s*TamaDigi save,\s*(\d+)\s*bytes/i;
 const BOARD_RE = /^#\s*board\s+([0-9A-Fa-f]{6,16})\s*$/i;
 
 // Splits the text into console commands and pulls out the byte count the board
@@ -112,7 +112,7 @@ export function verifyBackup(text) {
     throw new Error(`backup is too short to be a save (${blob.length} bytes)`);
   }
   const magic = String.fromCharCode(...blob.slice(0, 4));
-  if (magic !== SAVE_MAGIC) throw new Error('this is not a TamaPoke save');
+  if (magic !== SAVE_MAGIC) throw new Error('this is not a TamaDigi save');
   if (blob[4] !== SAVE_VERSION) {
     throw new Error(`save format version ${blob[4]}, this page understands ${SAVE_VERSION}`);
   }
@@ -163,7 +163,7 @@ export function describeBackup(blob) {
   return out;
 }
 
-// "ASH · CHARIZARD Lv.30" from describeBackup(). `dex` is web/dex.json -- the names
+// "ASH · GREYMON Lv.30" from describeBackup(). `dex` is web/dex.json -- the names
 // and the level rule, generated from the firmware -- and may be null, in which
 // case the species is only a number.
 export function saveSummary(described, dex) {
@@ -190,7 +190,7 @@ export function backupFileName(trainer, date = new Date()) {
   const stamp = `${date.getFullYear()}-${two(date.getMonth() + 1)}-${two(date.getDate())}-`
     + `${two(date.getHours())}-${two(date.getMinutes())}-${two(date.getSeconds())}`;
   const who = String(trainer || '').replace(/[^A-Za-z0-9]/g, '') || 'save';
-  return `tamapoke-${who}-${stamp}.tpsave`;
+  return `tamadigi-${who}-${stamp}.tpsave`;
 }
 
 // How long to wait between chunks when the board cannot acknowledge them.

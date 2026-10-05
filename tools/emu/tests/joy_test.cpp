@@ -1,5 +1,5 @@
 // Joy from the ball game, that leaving early still banks it, and that the three
-// trainers raise BOND in proportion to the session.
+// tamers raise BOND in proportion to the session.
 #include "Arduino.h"
 #include "Arduino_GFX_Library.h"
 #include "Preferences.h"
@@ -38,7 +38,7 @@ int main(){
          pet.joy, (int)gameOpen, pet.gameHi);
   int bad = pet.joy > 40 ? 0 : 1;
 
-  // --- the ball game is DEFENCE's trainer now
+  // --- the ball game is DEFENCE's tamer now
   {
     Pet p; p.begin(); p.dbgHatchAs(25, false);
     p.ivAtk = p.ivDef = p.ivSpe = p.ivHp = 31;
@@ -48,7 +48,7 @@ int main(){
     if (!p.trDef) { printf("FAIL: the ball game did not train defence\n"); bad = 1; }
   }
 
-  // --- every trainer bonds, and a bigger session bonds more
+  // --- every tamer bonds, and a bigger session bonds more
   {
     const char *names[3] = { "bag (ATK)", "reaction (SPE)", "ball (DEF)" };
     for (int t = 0; t < 3; t++) {

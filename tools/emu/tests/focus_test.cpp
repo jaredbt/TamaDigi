@@ -137,11 +137,11 @@ int main(){
   // the live pet and the party. A count of two means one was invented; a count
   // below one means one was lost. Both of those shipped before the journal.
   {
-    PartyMon parked; parked.dex=135; parked.level=44;
+    PartyMon parked; parked.dex=13; parked.level=44;
     parked.ivAtk=parked.ivDef=parked.ivSpe=parked.ivHp=21;
     parked.stateVersion=1; parked.joy=51; parked.fullness=52;
     strcpy(parked.nick,"JOLT");
-    const int16_t liveWas = 136, parkedWas = 135;
+    const int16_t liveWas = 14, parkedWas = 13;
 
     // Cut the power mid-swap: one write lands and everything after it fails,
     // which is what losing power part way through actually looks like.
@@ -189,7 +189,7 @@ int main(){
   {
     party.focusEnd();
     for (int i=0;i<PARTY_SLOTS;i++) party.releaseAt(i);
-    PartyMon parked; parked.dex=134; parked.level=40;
+    PartyMon parked; parked.dex=12; parked.level=40;
     parked.stateVersion=1; parked.joy=60;
     strcpy(parked.nick,"VAPOR");
     party.replaceAt(3, parked);
@@ -198,7 +198,7 @@ int main(){
     pet.saveNow();
 
     focusSwap(3);                       // completes, and retracts its journal
-    ck(pet.speciesId==134, "a completed swap put the banked creature in charge");
+    ck(pet.speciesId==12, "a completed swap put the banked creature in charge");
     // The player then plays on: the creature ages and the game saves.
     pet.ageMinutes += 5UL*60;
     pet.saveNow();
@@ -209,7 +209,7 @@ int main(){
     PartyMon bogus; bogus.dex=9; bogus.level=1;
     party.focusBegin(3, bogus, false, parked, 0);
     focusRecover();
-    ck(pet.speciesId==134 && pet.level()==lvlAfter,
+    ck(pet.speciesId==12 && pet.level()==lvlAfter,
        "a stale journal is retracted, not replayed over real play");
     uint8_t slot; PartyMon a,b; bool egg; uint32_t gen;
     ck(!party.focusPending(&slot,&a,&egg,&b,&gen),

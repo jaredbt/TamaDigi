@@ -1,4 +1,4 @@
-// THE VIEW LAYER: the Pokedex filter, and the box's on-screen order.
+// THE VIEW LAYER: the Digidex filter, and the box's on-screen order.
 //
 // Both share one shape and one risk. Neither touches the save -- they change what
 // is DRAWN, not what is stored -- so the thing that can go wrong is not data loss
@@ -69,7 +69,7 @@ void galleryTap(int16_t x, int16_t y);
 // cannot be included.
 uint8_t galleryFilterCount();
 uint8_t boxSortCount();
-enum : uint8_t { GFILT_ALL = 0, GFILT_RAISED, GFILT_CAUGHT, GFILT_SHINY };
+enum : uint8_t { GFILT_ALL = 0, GFILT_RAISED, GFILT_CAUGHT, GFILT_VARIANT };
 enum : uint8_t { BSORT_SLOT = 0, BSORT_DEX, BSORT_LEVEL };
 
 static int bad=0;
@@ -102,54 +102,54 @@ int main(){
   for (int i=0;i<4;i++) render();
   // The names above are this file's, the counts are the firmware's. If they ever
   // disagree, every loop below is silently skipping a mode.
-  ck(galleryFilterCount() == GFILT_SHINY + 1,
-     "this test knows about every Pokedex filter the firmware has");
+  ck(galleryFilterCount() == GFILT_VARIANT + 1,
+     "this test knows about every Digidex filter the firmware has");
   ck(boxSortCount() == BSORT_LEVEL + 1,
      "and about every box order");
   if (pet.awaitingStarter()) pet.chooseStarter(4);
-  if (pet.isEgg()) pet.dbgHatchAs(6,false);
+  if (pet.isEgg()) pet.dbgHatchAs(56,false);
   while (pet.hasLearnOffer()) pet.declineLearn();
 
   // ---------------------------------------------------------------- the filter
-  galleryRegion = 0;            // Kanto: 1..151
+  galleryRegion = 3;            // Ver.4: 54..70, two pages
   galleryPage = 0;
 
-  // A known dex state. CHARIZARD is live and therefore registered; MEW is
-  // registered and shiny; LAPRAS is in the BOX and was NEVER registered, which is
+  // A known dex state. BIYOMON is live and therefore registered; KUWAGAMON is
+  // registered and variant; LEOMON is in the BOX and was NEVER registered, which is
   // the case that makes RAISED and CAUGHT different questions rather than two
   // names for one bit -- registerSpecies() only ever fires for the live creature,
   // so a wild capture sitting in the box is absent from the dex.
-  pet.dexReg[(151-1)>>3] |= 1 << ((151-1)&7);        // MEW raised
-  pet.dexShinyReg[(151-1)>>3] |= 1 << ((151-1)&7);   // ...and shiny
+  pet.dexReg[(61-1)>>3] |= 1 << ((61-1)&7);          // KUWAGAMON raised
+  pet.dexVariantReg[(61-1)>>3] |= 1 << ((61-1)&7);     // ...and in its colour variant
   {
-    PartyMon lap; lap.dex=131; lap.level=40;
+    PartyMon lap; lap.dex=60; lap.level=40;
     party.box[0] = lap;
     party.boxSave();
   }
-  ck(!pet.isRegistered(131), "a box-only creature is genuinely NOT in the dex");
+  ck(!pet.isRegistered(60), "a box-only creature is genuinely NOT in the dex");
 
   galleryFilter = GFILT_ALL;
-  ck(galleryCount() == 151, "ALL shows the whole region");
-  ck(galleryPages() == 10, "across ten pages of sixteen");
-  ck(galleryAt(0) == 1 && galleryAt(150) == 151,
-     "and the grid runs from the first species to the last");
-  ck(galleryAt(151) == 0, "with nothing past the end");
+  ck(galleryCount() == 17, "ALL shows the whole version");
+  ck(galleryPages() == 2, "across two pages of sixteen");
+  ck(galleryAt(0) == 54 && galleryAt(16) == 70,
+     "and the grid runs from the first Digimon to the last");
+  ck(galleryAt(17) == 0, "with nothing past the end");
 
   galleryFilter = GFILT_RAISED;
   {
     const uint16_t n = galleryCount();
     ck(n >= 1, "RAISED shows what has actually been raised");
-    ck(galleryPass(6) && galleryPass(151), "including the live creature and MEW");
-    ck(!galleryPass(131), "but NOT the one that only ever sat in the box");
+    ck(galleryPass(56) && galleryPass(61), "including the live creature and KUWAGAMON");
+    ck(!galleryPass(60), "but NOT the one that only ever sat in the box");
   }
 
   galleryFilter = GFILT_CAUGHT;
-  ck(galleryPass(131), "CAUGHT does show the box-only creature");
-  ck(galleryPass(6), "and the live one");
-  ck(!galleryPass(151), "but not MEW, which is in the dex and not in your hands");
+  ck(galleryPass(60), "CAUGHT does show the box-only creature");
+  ck(galleryPass(56), "and the live one");
+  ck(!galleryPass(61), "but not KUWAGAMON, which is in the dex and not in your hands");
 
-  galleryFilter = GFILT_SHINY;
-  ck(galleryCount() == 1 && galleryAt(0) == 151, "SHINY shows only shiny records");
+  galleryFilter = GFILT_VARIANT;
+  ck(galleryCount() == 1 && galleryAt(0) == 61, "VARIANT shows only colour-variant records");
   ck(galleryPages() == 1, "on a single page");
 
   // THE MISMATCH CHECK. Every filter, and for each one the set the grid would
@@ -170,8 +170,8 @@ int main(){
   // An EMPTY result still has a page, or the screen draws nothing at all and
   // reads as a crash rather than as an empty filter.
   {
-    galleryFilter = GFILT_SHINY;
-    memset(pet.dexShinyReg, 0, sizeof(pet.dexShinyReg));
+    galleryFilter = GFILT_VARIANT;
+    memset(pet.dexVariantReg, 0, sizeof(pet.dexVariantReg));
     ck(galleryCount() == 0, "a filter can legitimately match nothing");
     ck(galleryPages() == 1, "and still has one page to say so on");
     ck(galleryAt(0) == 0, "with no cell to tap");
@@ -180,13 +180,13 @@ int main(){
   // Cycling a filter must not leave the page past the end of a shorter result.
   {
     galleryFilter = GFILT_ALL;
-    galleryPage = 9;                     // the last page of 151
-    galleryFilter = GFILT_SHINY;         // now one page
+    galleryPage = 1;                     // the last page of 17
+    galleryFilter = GFILT_VARIANT;         // now one page
     galleryClampPage();
     ck(galleryPage == 0, "narrowing the filter pulls the page back into range");
   }
 
-  // Every region, so a filter cannot be valid in Kanto and broken in Paldea.
+  // Every version, so a filter cannot be valid in one version and broken in another.
   {
     galleryFilter = GFILT_ALL;
     int wrong = 0;
@@ -310,7 +310,7 @@ int main(){
   // the assertions are: it survives a reload, it survives EVOLVING, it actually
   // reads the stats it claims to, and every trait is reachable.
   {
-    pet.dbgHatchAs(4, false);            // CHARMANDER, so there is room to evolve
+    pet.dbgHatchAs(4, false);            // AGUMON, so there is room to digivolve
     while (pet.hasLearnOffer()) pet.declineLearn();
 
     pet.ivAtk = 31; pet.ivDef = 10; pet.ivSpe = 12; pet.ivHp = 11;
@@ -522,7 +522,7 @@ int main(){
     ensureMon();
     ck(g_emuCryCount == 0, "the first sprite load after boot does not cry");
 
-    // A new creature on the panel speaks. One hook covers hatching, evolving and
+    // A new creature on the panel speaks. One hook covers hatching, digivolving and
     // swapping the focused creature, because all three arrive through here.
     pet.dbgHatchAs(4, false);
     while (pet.hasLearnOffer()) pet.declineLearn();
@@ -543,13 +543,13 @@ int main(){
     ensureMon();
     ck(g_emuCryCount == 0, "an egg does not cry");
 
-    // The Pokedex speaks -- but only for an entry actually filled in. Playing the
+    // The Digidex speaks -- but only for an entry actually filled in. Playing the
     // cry of a silhouette hands over the one thing the "???" is withholding.
     galleryRegion = 0;
     galleryFilter = GFILT_ALL;
     galleryPage = 0;
     galleryDetail = 0;
-    pet.dexReg[(6 - 1) >> 3] |= 1 << ((6 - 1) & 7);       // CHARIZARD registered
+    pet.dexReg[(6 - 1) >> 3] |= 1 << ((6 - 1) & 7);       // TYRANNOMON registered
     const int16_t unknown = 13;                            // and this one is not
     pet.dexReg[(unknown - 1) >> 3] &= (uint8_t)~(1 << ((unknown - 1) & 7));
     ck(pet.isRegistered(6) && !pet.isRegistered(unknown),

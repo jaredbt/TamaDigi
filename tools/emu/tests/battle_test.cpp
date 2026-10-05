@@ -55,55 +55,55 @@ int main() {
 
   // --- type chart drives damage
   Combatant zard, blast, venu;
-  mk(zard, 6, 50); mk(blast, 9, 50); mk(venu, 3, 50);
-  uint8_t flame = findMove("FLAMETHROWER"), surf = findMove("SURF");
+  mk(zard, 5, 50); mk(blast, 10, 50); mk(venu, 47, 50);   // GREYMON, SEADRAMON, KUWAGAMON
+  uint8_t flame = findMove("MEGA FLAME"), surf = findMove("ICE BLAST");
   uint16_t vsGrass = battleDamage(zard, venu, flame, false, 255);
   uint16_t vsWater = battleDamage(zard, blast, flame, false, 255);
-  printf("     FLAMETHROWER: vs VENUSAUR %u, vs BLASTOISE %u\n", vsGrass, vsWater);
-  ck(vsGrass > vsWater * 2, "fire hits grass far harder than water");
+  printf("     MEGA FLAME: vs KUWAGAMON %u, vs SEADRAMON %u\n", vsGrass, vsWater);
+  ck(vsGrass > vsWater * 2, "fire hits plant far harder than water");
 
-  // --- SWORDS DANCE really doubles physical output
+  // --- POWER CHARGE really raises physical output
   Combatant m1, m2;
-  mk(m1, 68, 50); mk(m2, 68, 50);
-  uint8_t chop = findMove("KARATE CHOP");
+  mk(m1, 35, 50); mk(m2, 35, 50);   // OGREMON vs OGREMON
+  uint8_t chop = findMove("PUMMEL WHACK");
   uint16_t before = battleDamage(m1, m2, chop, false, 255);
   TurnLog lg;
-  battleAct(m1, m2, findMove("SWORDS DANCE"), lg);
+  battleAct(m1, m2, findMove("POWER CHARGE"), lg);
   uint16_t after = battleDamage(m1, m2, chop, false, 255);
-  printf("     KARATE CHOP before %u, after SWORDS DANCE %u (stage %d)\n",
+  printf("     PUMMEL WHACK before %u, after POWER CHARGE %u (stage %d)\n",
          before, after, m1.stage[SI_ATK]);
-  ck(m1.stage[SI_ATK] == 2, "SWORDS DANCE sets +2 ATK");
-  ck(after > before * 18 / 10, "and roughly doubles damage");
+  ck(m1.stage[SI_ATK] == 1 && m1.stage[SI_SPA] == 1, "POWER CHARGE sets +1 ATK and SP.ATK");
+  ck(after > before * 14 / 10, "and raises damage by about half");
 
   // --- GROWL lowers the FOE, not the user
   Combatant g1, g2;
-  mk(g1, 6, 50); mk(g2, 9, 50);
+  mk(g1, 5, 50); mk(g2, 10, 50);
   battleAct(g1, g2, findMove("GROWL"), lg);
   ck(g2.stage[SI_ATK] == -1 && g1.stage[SI_ATK] == 0, "GROWL lowers the target's ATK only");
 
-  // --- DRAGON DANCE moves two stats at once
+  // --- GUARD moves two stats at once
   Combatant d1, d2;
-  mk(d1, 6, 50); mk(d2, 9, 50);
-  battleAct(d1, d2, findMove("DRAGON DANCE"), lg);
-  ck(d1.stage[SI_ATK] == 1 && d1.stage[SI_SPE] == 1, "DRAGON DANCE raises ATK and SPE");
+  mk(d1, 5, 50); mk(d2, 10, 50);
+  battleAct(d1, d2, findMove("GUARD"), lg);
+  ck(d1.stage[SI_DEF] == 1 && d1.stage[SI_SPD] == 1, "GUARD raises DEF and SP.DEF");
 
   // --- turn order follows speed, and priority beats it
   Combatant fast, slow;
-  mk(fast, 65, 50);   // Alakazam, 120 base speed
-  mk(slow, 143, 50);  // Snorlax, 30 base speed
+  mk(fast, 9, 50);    // AIRDRAMON, a fast one
+  mk(slow, 24, 50);   // WHAMON, a slow tank
   ck(battleMovesFirst(fast, flame, slow, flame), "the faster creature acts first");
-  uint8_t quick = findMove("QUICK ATTACK");
-  ck(battleMovesFirst(slow, quick, fast, flame), "QUICK ATTACK beats raw speed");
+  uint8_t quick = findMove("QUICK DASH");
+  ck(battleMovesFirst(slow, quick, fast, flame), "QUICK DASH beats raw speed");
 
   // --- paralysis halves speed
   Combatant p1, p2;
-  mk(p1, 65, 50); mk(p2, 65, 50);
+  mk(p1, 9, 50); mk(p2, 9, 50);
   p1.ailment = AIL_PARA;
   ck(!battleMovesFirst(p1, flame, p2, flame), "paralysis loses the speed tie");
 
   // --- a fire type cannot be burned
   Combatant f1, f2;
-  mk(f1, 9, 50); mk(f2, 6, 50);   // Blastoise attacking Charizard with fire
+  mk(f1, 10, 50); mk(f2, 5, 50);   // SEADRAMON attacking GREYMON with fire
   bool burned = false;
   for (int i = 0; i < 400 && !burned; i++) {
     f2.ailment = AIL_NONE;
@@ -115,7 +115,7 @@ int main() {
 
   // --- burn chips and halves physical attack
   Combatant b1, b2;
-  mk(b1, 68, 50); mk(b2, 68, 50);
+  mk(b1, 35, 50); mk(b2, 35, 50);
   uint16_t clean = battleDamage(b1, b2, chop, false, 255);
   b1.ailment = AIL_BURN;
   uint16_t burnt = battleDamage(b1, b2, chop, false, 255);
@@ -124,16 +124,22 @@ int main() {
   battleEndTurn(b1, lg);
   ck(b1.hp < hpWas, "burn chips at end of turn");
 
-  // --- immunity: no damage at all, not chip
-  Combatant gh, norm;
-  mk(gh, 94, 50);    // Gengar, Ghost
-  mk(norm, 143, 50); // Snorlax, Normal
-  uint8_t slam = findMove("BODY SLAM");
-  ck(battleDamage(norm, gh, slam, false, 255) == 0, "NORMAL does nothing to a GHOST");
+  // --- the attribute triangle: Vaccine > Virus > Data > Vaccine
+  ck(battleEffPct(5, T_NEUTRAL, 7) == ATTR_STRONG_PCT, "a Vaccine hits a Virus harder");
+  ck(battleEffPct(5, T_NEUTRAL, 8) == ATTR_WEAK_PCT, "and a Data softer");
+  ck(battleEffPct(7, T_NEUTRAL, 8) == ATTR_STRONG_PCT, "a Virus hits a Data harder");
+  ck(battleEffPct(1, T_NEUTRAL, 7) == 100, "a Free baby is neutral to everyone");
+  // and there are no immunities: every attack lands for something
+  {
+    int zero = 0;
+    for (int a = 0; a < TYPE_COUNT; a++)
+      for (int d = 1; d <= DEX_COUNT; d++) if (typeEffVsDex(a, d) == 0) zero++;
+    ck(zero == 0, "no element is immune to another");
+  }
 
   // --- a full fight terminates and someone wins
   Combatant A, B;
-  mk(A, 6, 50); mk(B, 9, 50);
+  mk(A, 5, 50); mk(B, 10, 50);
   int turn = 0;
   while (!A.fainted() && !B.fainted() && turn < 200) {
     turn++;
@@ -146,14 +152,14 @@ int main() {
     battleEndTurn(A, lg);
     battleEndTurn(B, lg);
   }
-  printf("     fight ended on turn %d: CHARIZARD %u/%u, BLASTOISE %u/%u\n",
+  printf("     fight ended on turn %d: GREYMON %u/%u, SEADRAMON %u/%u\n",
          turn, A.hp, A.maxHp, B.hp, B.maxHp);
   ck(turn < 200, "a fight reaches a conclusion");
   ck(A.fainted() || B.fainted(), "and somebody actually faints");
 
   // --- how long does a fight actually last? 6 matchups x 40 fights.
   {
-    const int16_t roster[] = { 6, 9, 3, 65, 68, 143 };
+    const int16_t roster[] = { 5, 10, 47, 9, 35, 24 };
     int total = 0, fights = 0, shortest = 999, longest = 0;
     for (int i = 0; i < 6; i++)
       for (int j = 0; j < 6; j++) {

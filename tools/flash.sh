@@ -1,5 +1,5 @@
 #!/bin/bash
-# Compile and flash TamaPoke to a connected board.
+# Compile and flash TamaDigi to a connected board.
 #
 #   bash tools/flash.sh            # find the port, compile, upload
 #   bash tools/flash.sh --monitor  # ...then open the serial console
@@ -59,7 +59,7 @@ echo "Uploading..."
 arduino-cli upload -p "$PORT" --fqbn "$FQBN" .
 
 echo
-echo "Done. Firmware v$(grep -o '"[0-9.]*"' TamaPoke.ino | head -1 | tr -d '"') on $PORT"
+echo "Done. Firmware v$(grep -o '"[0-9.]*"' TamaDigi.ino | head -1 | tr -d '"') on $PORT"
 
 if [ "$MONITOR" = "1" ]; then
   echo "Opening the console at 115200 -- ctrl-C to leave."

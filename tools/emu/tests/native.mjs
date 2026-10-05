@@ -21,7 +21,7 @@ async function main() {
   assert(new Set(suites).size === suites.length, 'duplicate native suites');
   const logRoot = process.env.TAMA_TEST_LOG_DIR || tmpdir();
   await mkdir(logRoot, { recursive: true });
-  const directory = await mkdtemp(join(logRoot, 'tamapoke-native-'));
+  const directory = await mkdtemp(join(logRoot, 'tamadigi-native-'));
   console.log(`Native evidence and disposable flash: ${directory}`);
   async function checked(name, command, options = {}) {
     console.log(`CHECK native ${name}`);

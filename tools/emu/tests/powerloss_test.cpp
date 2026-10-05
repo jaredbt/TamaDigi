@@ -85,7 +85,7 @@ static const char *newerSlot(const char *a, const char *b) {
 // back obviously wrong.
 //
 // This is load-bearing, not tidying. Almost every field in the pet record is
-// also mirrored to a legacy key, so an assertion like "speciesId == 143" is
+// also mirrored to a legacy key, so an assertion like "speciesId == 21" is
 // satisfied either way -- and every one of the fixture tests below passed with
 // the checkpoint reader disabled entirely until this existed. That is CLAUDE.md
 // § "A test that proves the transcription rather than the firmware", exactly.
@@ -107,7 +107,7 @@ static void poisonLegacy() {
 
 static void seedDratini(Pet &pet) {
   pet.begin();
-  pet.dbgHatchAs(147, false);
+  pet.dbgHatchAs(25, false);
   pet.ivAtk = pet.ivDef = pet.ivSpe = pet.ivHp = 31;
   pet.ageMinutes = 28UL * MINUTES_PER_LEVEL;
   pet.trAtk = 100;
@@ -118,7 +118,7 @@ static void seedDratini(Pet &pet) {
 }
 
 static void raiseDragonair(Pet &pet) {
-  pet.speciesId = 148;
+  pet.speciesId = 26;
   pet.ageMinutes = 35UL * MINUTES_PER_LEVEL;
   pet.trAtk = pet.trDef = pet.trSpe = 100;
   pet.lastSeenEpoch = 200000;
@@ -143,7 +143,7 @@ int main() {
     loaded.begin();
     printf("      loaded dex=%d age=%lu training=%u/%u/%u\n", loaded.speciesId,
            (unsigned long)loaded.ageMinutes, loaded.trAtk, loaded.trDef, loaded.trSpe);
-    ck(loaded.speciesId == 148 && loaded.ageMinutes == 35UL * MINUTES_PER_LEVEL,
+    ck(loaded.speciesId == 26 && loaded.ageMinutes == 35UL * MINUTES_PER_LEVEL,
        "a cut on the very next write does not devolve the creature");
     ck(loaded.trAtk == 100 && loaded.trDef == 100 && loaded.trSpe == 100,
        "and keeps all three training values together");
@@ -162,7 +162,7 @@ int main() {
 
     Pet loaded;
     loaded.begin();
-    ck(loaded.speciesId == 147 && loaded.ageMinutes == 28UL * MINUTES_PER_LEVEL,
+    ck(loaded.speciesId == 25 && loaded.ageMinutes == 28UL * MINUTES_PER_LEVEL,
        "a cut before commit keeps the complete previous creature");
     ck(loaded.trAtk == 100 && loaded.trDef == 7 && loaded.trSpe == 9,
        "a cut before commit keeps the complete previous training state");
@@ -182,7 +182,7 @@ int main() {
 
     Pet loaded;
     loaded.begin();
-    ck(loaded.speciesId == 147 && loaded.ageMinutes == 28UL * MINUTES_PER_LEVEL,
+    ck(loaded.speciesId == 25 && loaded.ageMinutes == 28UL * MINUTES_PER_LEVEL,
        "a corrupt newest checkpoint falls back to the complete previous one");
     ck(loaded.trAtk == 100 && loaded.trDef == 7 && loaded.trSpe == 9,
        "checksum fallback never assembles a pet from legacy key fragments");
@@ -190,7 +190,7 @@ int main() {
 
   // --- the PLAYER's progress, which the first fix did not cover -------------
   //
-  // Badges, the Pokedex, the streak and the records used to be ~25 keys written
+  // Badges, the Digidex, the streak and the records used to be ~25 keys written
   // one after another, and a cut between the badge arrays and the dex bitmap
   // left a badge won with no record of the creature that earned it: issue #3's
   // exact shape, one layer out. They are ONE blob now, so there is no ordering
@@ -203,8 +203,8 @@ int main() {
     pet.dbgHatchAs(25, false);
     pet.saveNow();                       // baseline: no badges, empty dex
 
-    const int16_t FAR_DEX = 400;         // nowhere near the live creature
-    pet.badgesX[0] = 0x0F;               // four Johto badges
+    const int16_t FAR_DEX = 55;          // nowhere near the live creature
+    pet.badgesX[0] = 0x0F;               // four Ver.2 badges
     pet.dexReg[(FAR_DEX - 1) >> 3] |= 1 << ((FAR_DEX - 1) & 7);
 
     // The pet checkpoint commits (nothing about the creature changed here, but
@@ -216,17 +216,17 @@ int main() {
     Pet cut;
     cut.begin();
     ck(cut.badgesX[0] != 0x0F && !cut.isRegistered(FAR_DEX),
-       "a refused player write commits neither the badge nor the Pokedex bit");
+       "a refused player write commits neither the badge nor the Digidex bit");
 
     // And a save that is allowed to finish carries both together, as one blob.
     pet.saveNow();
     Pet loaded;
     loaded.begin();
     ck(loaded.badgesX[0] == 0x0F && loaded.isRegistered(FAR_DEX),
-       "the player checkpoint keeps badges and the Pokedex in step across a cut");
+       "the player checkpoint keeps badges and the Digidex in step across a cut");
   }
 
-  // Growing the dex, the region table or the gym ladder must not shift anything
+  // Growing the dex, the version table or the boss ladder must not shift anything
   // already stored. The player record carries its own dimensions for that, so a
   // shorter stored array lands in the front and dex bit n keeps its meaning.
   {
@@ -238,7 +238,7 @@ int main() {
     pet.badgesHardX[0] = 0x20;
     pet.streak = 9;
     pet.gameHi = 1234;
-    strncpy(pet.trainerName, "MISTY", sizeof(pet.trainerName) - 1);
+    strncpy(pet.trainerName, "RIVAL", sizeof(pet.trainerName) - 1);
     pet.saveNow();
 
     // Truncate the record as a build with a smaller dex would have written it:
@@ -250,9 +250,9 @@ int main() {
       const size_t FIXED = 42;
       uint16_t storedDex;
       memcpy(&storedDex, small.data() + 12, 2);
-      const size_t shrinkTo = 19;                    // dex 1..152, the Kanto-era size
+      const size_t shrinkTo = 19;                    // dex 1..152, the Ver.1-era size
       std::vector<uint8_t> out(small.begin(), small.begin() + FIXED);
-      // dexReg prefix, then dexShinyReg prefix, then the rest unchanged
+      // dexReg prefix, then dexVariantReg prefix, then the rest unchanged
       out.insert(out.end(), small.begin() + FIXED, small.begin() + FIXED + shrinkTo);
       out.insert(out.end(), small.begin() + FIXED + storedDex,
                  small.begin() + FIXED + storedDex + shrinkTo);
@@ -274,7 +274,7 @@ int main() {
          "a player record from a smaller dex keeps every bit's meaning");
       ck(loaded.badgesHardX[0] == 0x20 && loaded.streak == 9 && loaded.gameHi == 1234,
          "and every field after the shortened arrays still reads correctly");
-      ck(!strcmp(loaded.trainerName, "MISTY"), "including the trainer name at the very end");
+      ck(!strcmp(loaded.trainerName, "RIVAL"), "including the trainer name at the very end");
     }
   }
 
@@ -289,7 +289,7 @@ int main() {
     nvs().clear();
     Pet pet;
     pet.begin();
-    pet.dbgHatchAs(6, false);                  // CHARIZARD
+    pet.dbgHatchAs(6, false);                  // GREYMON
     pet.ageMinutes = 80UL * MINUTES_PER_LEVEL;
     strncpy(pet.nick, "BLAZE", sizeof(pet.nick) - 1);
     pet.saveNow();
@@ -348,7 +348,7 @@ int main() {
     nvs().clear();
     Pet pet;
     pet.begin();
-    pet.dbgHatchAs(143, false);                // SNORLAX
+    pet.dbgHatchAs(21, false);                // WHAMON
     pet.trAtk = 55;
     pet.ageMinutes = 40UL * MINUTES_PER_LEVEL;
     strncpy(pet.nick, "TUBBY", sizeof(pet.nick) - 1);
@@ -371,7 +371,7 @@ int main() {
 
       Pet loaded;
       loaded.begin();
-      ck(loaded.speciesId == 143 && loaded.trAtk == 55 &&
+      ck(loaded.speciesId == 21 && loaded.trAtk == 55 &&
              loaded.ageMinutes == 40UL * MINUTES_PER_LEVEL,
          "a v1 checkpoint from an earlier build still loads");
       ck(!strcmp(loaded.nick, "TUBBY"), "including the last field of the v1 body");
@@ -387,7 +387,7 @@ int main() {
     nvs().clear();
     Pet pet;
     pet.begin();
-    pet.dbgHatchAs(94, false);
+    pet.dbgHatchAs(33, false);
     pet.trSpe = 33;
     pet.saveNow();
 
@@ -405,7 +405,7 @@ int main() {
 
       Pet loaded;
       loaded.begin();
-      ck(loaded.speciesId == 94 && loaded.trSpe == 33,
+      ck(loaded.speciesId == 33 && loaded.trSpe == 33,
          "a record from a later build is read as far as this one understands it");
     }
   }
@@ -422,7 +422,7 @@ int main() {
     nvs().clear();
     Pet pet;
     pet.begin();
-    pet.dbgHatchAs(133, false);
+    pet.dbgHatchAs(11, false);
     pet.trDef = 5;
     pet.saveNow();
     bool held = true;
@@ -440,7 +440,7 @@ int main() {
       nvs()["tdef"] = std::vector<uint8_t>{ 0xEE };
       Pet fallback;
       fallback.begin();
-      if (fallback.speciesId != 133 || fallback.trDef != prev) held = false;
+      if (fallback.speciesId != 11 || fallback.trDef != prev) held = false;
       nvs() = keep;
     }
     ck(held, "a save never overwrites the slot a reload would fall back to");
@@ -452,14 +452,14 @@ int main() {
     nvs().clear();
     Pet a;
     a.begin();
-    a.dbgHatchAs(151, false);                  // MEW: the older record
+    a.dbgHatchAs(29, false);                  // METALETEMON: the older record
     a.saveNow();
     std::vector<uint8_t> older = slotBytes(newerSlot("petA", "petB"));
 
     nvs().clear();
     Pet b;
     b.begin();
-    b.dbgHatchAs(25, false);                   // PIKACHU: the newer one
+    b.dbgHatchAs(25, false);                   // KOROMON: the newer one
     b.saveNow();
     std::vector<uint8_t> newer = slotBytes(newerSlot("petA", "petB"));
 
@@ -489,10 +489,10 @@ int main() {
     nvs().clear();
     Pet pet;
     pet.begin();
-    pet.dbgHatchAs(147, false);
+    pet.dbgHatchAs(25, false);
     pet.trAtk = 7; pet.trDef = 8; pet.trSpe = 9;
     pet.saveNow();
-    pet.speciesId = 148;
+    pet.speciesId = 26;
     pet.trAtk = 70; pet.trDef = 80; pet.trSpe = 90;
     pet.saveNow();
 
@@ -505,8 +505,8 @@ int main() {
       nvs()[newest][i] ^= 0xFF;
       Pet r;
       r.begin();
-      bool isNew = r.speciesId == 148 && r.trAtk == 70 && r.trDef == 80 && r.trSpe == 90;
-      bool isOld = r.speciesId == 147 && r.trAtk == 7 && r.trDef == 8 && r.trSpe == 9;
+      bool isNew = r.speciesId == 26 && r.trAtk == 70 && r.trDef == 80 && r.trSpe == 90;
+      bool isOld = r.speciesId == 25 && r.trAtk == 7 && r.trDef == 8 && r.trSpe == 9;
       if (isNew) sawNew++;
       else if (isOld) sawOld++;
       else mixtures++;

@@ -1,4 +1,4 @@
-// A revived companion is FROZEN: it does not age, cannot evolve, and cannot be
+// A revived companion is FROZEN: it does not age, cannot digivolve, and cannot be
 // lost. Those three are the whole feature, so each is checked directly.
 #include "Arduino.h"
 #include "Preferences.h"
@@ -21,14 +21,14 @@ static void ck(bool ok,const char*w){printf("%s  %s\n",ok?"PASS":"FAIL",w); if(!
 int main(){
   Pet p; p.begin();
   if (p.awaitingStarter()) p.chooseStarter(4);
-  PartyMon m; m.dex=6; m.level=61; m.shiny=1;
+  PartyMon m; m.dex=6; m.level=61; m.variant=1;
   m.ivAtk=m.ivDef=m.ivSpe=m.ivHp=24; m.trAtk=m.trDef=m.trSpe=35;
   m.moves[0]=1; m.moves[1]=2;
   snprintf(m.nick,sizeof(m.nick),"BLAZE");
 
   p.reviveFrom(m);
   ck(p.speciesId==6 && p.level()==61, "comes back at the level it was banked at");
-  ck(p.shiny && !strcmp(p.nick,"BLAZE"), "keeps its shininess and its name");
+  ck(p.variant && !strcmp(p.nick,"BLAZE"), "keeps its shininess and its name");
   ck(p.moves[0]==1 && p.moves[1]==2, "and its moveset");
   ck(p.frozen, "and is marked frozen");
 

@@ -1,4 +1,4 @@
-// TamaPoke desktop emulator: runs the real sketch, draws the real framebuffer,
+// TamaDigi desktop emulator: runs the real sketch, draws the real framebuffer,
 // and feeds mouse clicks in as touch events. Serial commands come from stdin.
 #include <SDL.h>   // sdl2-config puts the SDL2 dir on the include path
 #include "Arduino.h"
@@ -125,7 +125,7 @@ extern uint8_t btlTrainGain, btlTrainWhich;
 extern bool lanWantHost;
 extern bool gShowAllAvatars;
 // Unlocks the emulator-only console commands (MAX). The firmware compiles them
-// and never sets this; see the note beside it in TamaPoke.ino.
+// and never sets this; see the note beside it in TamaDigi.ino.
 extern bool gEmuDebug;
 #define PICK_LAN 0xFF
 uint8_t squadCap(uint8_t, bool);
@@ -178,8 +178,8 @@ static int shotMode(const char *screen, const char *out, int lvl, int iv, int de
                    !strcmp(screen, "region");
   if (pet.awaitingStarter() && !firstBoot) pet.chooseStarter(4);
   if (!strcmp(screen, "egg")) {
-    // a few species registered, so the lottery is past the starter case and the
-    // region pill has something to switch between
+    // a few Digimon registered, so the lottery is past the starter case and the
+    // version pill has something to switch between
     for (int d = 1; d <= 40; d++) pet.dbgHatchAs(d, false);
     pet.newEgg();
   }
@@ -192,14 +192,14 @@ static int shotMode(const char *screen, const char *out, int lvl, int iv, int de
     pet.trAtk = pet.trMaxAtk(); pet.trDef = pet.trMaxDef(); pet.trSpe = pet.trMaxSpe();
   }
   // The learn prompt is modal and would cover whatever screen was asked for.
-  // It started firing for every shot once dex_moves.py gained the cheap early
+  // It started firing for every shot once digimon_data.py gained the cheap early
   // attacks, because a creature now genuinely has moves waiting.
   while (pet.hasLearnOffer()) pet.declineLearn();
-  // "region" is step one of the first boot and "starter" is step two, so the
-  // second one gets there the way a player does: by tapping a region.
-  if (!strcmp(screen, "starter")) onTap(233, 108 + 30);        // KANTO
-  if (!strcmp(screen, "starterj")) onTap(233, 108 + 72 + 30);  // JOHTO
-  for (int i = 0; i < 2; i++) loop();          // pick up the sprite for the new species
+  // "version" is step one of the first boot and "starter" is step two, so the
+  // second one gets there the way a player does: by tapping a version.
+  if (!strcmp(screen, "starter")) onTap(233, 108 + 30);        // VER.1
+  if (!strcmp(screen, "starterj")) onTap(233, 108 + 72 + 30);  // VER.2
+  for (int i = 0; i < 2; i++) loop();          // pick up the sprite for the new Digimon
   cardOpen = galleryOpen = clockOpen = kbOpen = false;
   menuOpen = partyOpen = partyPick = trainOpen = movePickOpen = false;
   if (!strcmp(screen, "battle"))      { cardOpen = true; cardPage = 1; }
@@ -213,7 +213,7 @@ static int shotMode(const char *screen, const char *out, int lvl, int iv, int de
     galleryDirty = true;
     for (int d = 1; d <= 200; d++) pet.dbgHatchAs(d, false);
   }
-  else if (!strcmp(screen, "gallery2")) {   // the second region
+  else if (!strcmp(screen, "gallery2")) {   // the second version
     galleryOpen = true;
     galleryDirty = true;
     galleryRegion = 1;
@@ -246,7 +246,7 @@ static int shotMode(const char *screen, const char *out, int lvl, int iv, int de
   else if (!strcmp(screen, "gymsh")) { gymOpen = true; gymRegion = 2; }
   else if (!strcmp(screen, "lan")) { lanOpen = true; lan.state = LINK_OFF; }
   else if (!strcmp(screen, "lanpick")) {
-    static const int f[]={9,25,143,94,131,3};
+    static const int f[]={10,20,12,7,21,5};
     for(int i=0;i<6;i++){ PartyMon m; m.dex=f[i]; m.level=40+i*5;
       m.ivAtk=m.ivDef=m.ivSpe=m.ivHp=25; party.replaceAt(i,m); }
     lanWantHost = true;
@@ -262,8 +262,8 @@ static int shotMode(const char *screen, const char *out, int lvl, int iv, int de
     // layout, the battle screen, the guest's restrictions -- is the real code.
     pet.renameTrainer("DYLAN");
     lan.begin(true, "DYLAN");
-    snprintf(lan.peerName, sizeof(lan.peerName), "%s", "MISTY");
-    static const int mineDex[] = {9, 25, 143}, theirDex[] = {6, 65, 131};
+    snprintf(lan.peerName, sizeof(lan.peerName), "%s", "RIVAL");
+    static const int mineDex[] = {10, 20, 12}, theirDex[] = {6, 14, 21};
     for (int i = 0; i < 3; i++) {
       Pet t; t.dbgHatchAs(mineDex[i], false);
       t.ivAtk = t.ivDef = t.ivSpe = t.ivHp = 25;
@@ -293,12 +293,12 @@ static int shotMode(const char *screen, const char *out, int lvl, int iv, int de
     else lanOpen = true;
   }
   else if (!strcmp(screen, "box")) {
-    static const int f[]={9,25,143,94,131,3};
+    static const int f[]={10,20,12,7,21,5};
     for(int i=0;i<6;i++){ PartyMon m; m.dex=f[i]; m.level=40+i*5;
       m.ivAtk=m.ivDef=m.ivSpe=m.ivHp=25; party.replaceAt(i,m); }
-    static const int b[]={6,65,68,143,12,131,94,25};
+    static const int b[]={6,14,13,12,26,21,7,20};
     for(int i=0;i<8;i++){ PartyMon m; m.dex=b[i]; m.level=30+i*4;
-      m.ivAtk=m.ivDef=m.ivSpe=m.ivHp=20; m.shiny=(i==3);
+      m.ivAtk=m.ivDef=m.ivSpe=m.ivHp=20; m.variant=(i==3);
       party.box[i]=m; }
     party.boxSave();
     partyOpen=true; boxOpen=true; boxSwapFrom=1;
@@ -309,9 +309,9 @@ static int shotMode(const char *screen, const char *out, int lvl, int iv, int de
     btlTrainGain = 8; btlTrainWhich = 2;
   }
   else if (!strcmp(screen, "pmon")) {
-    Pet t; t.dbgHatchAs(131,false); t.ivAtk=t.ivDef=t.ivSpe=t.ivHp=27;
+    Pet t; t.dbgHatchAs(21,false); t.ivAtk=t.ivDef=t.ivSpe=t.ivHp=27;
     t.ageMinutes=53UL*MINUTES_PER_LEVEL; t.relearnFromLevel();
-    PartyMon m; m.dex=131; m.level=54; m.shiny=1;
+    PartyMon m; m.dex=21; m.level=54; m.variant=1;
     m.ivAtk=m.ivDef=m.ivSpe=m.ivHp=27; m.trAtk=m.trDef=m.trSpe=40;
     for(int k=0;k<MOVE_SLOTS;k++) m.moves[k]=t.moves[k];
     snprintf(m.nick,sizeof(m.nick),"NESSIE");
@@ -319,8 +319,8 @@ static int shotMode(const char *screen, const char *out, int lvl, int iv, int de
     partyOpen = true; partyDetail = 1;
   }
   else if (!strcmp(screen, "pick")) {
-    static const int fill[]={9,25,143,94,131,3};
-    static const int fill6[]={9,25,143,94,131,3};
+    static const int fill[]={10,20,12,7,21,5};
+    static const int fill6[]={10,20,12,7,21,5};
     for(int i=0;i<6;i++){ PartyMon m; m.dex=fill6[i]; m.level=40+i*6;
       m.ivAtk=m.ivDef=m.ivSpe=m.ivHp=25; party.replaceAt(i,m); }
     pickTrainer = 7; pickHard = false; pickPage = 0;
@@ -336,7 +336,7 @@ static int shotMode(const char *screen, const char *out, int lvl, int iv, int de
   else if (!strcmp(screen, "player")) { pet.renameTrainer("DYLAN"); pet.badges = 0xBF; pet.badgesHard = 0x0A; pet.streak = 5; playerOpen = true; }
   else if (!strcmp(screen, "player2")) {
     pet.renameTrainer("DYLAN");
-    pet.badgesX[0] = 0x3F; pet.badgesHardX[0] = 0x05;   // Johto
+    pet.badgesX[0] = 0x3F; pet.badgesHardX[0] = 0x05;   // Ver.2
     playerOpen = true; playerPage = 1;
   }
   else if (!strcmp(screen, "medals2")) { pet.medals = 0x5B; pet.totalMedals = 12; playerOpen = true; playerPage = 1; }
@@ -349,12 +349,12 @@ static int shotMode(const char *screen, const char *out, int lvl, int iv, int de
   }
   else if (!strcmp(screen, "party") || !strcmp(screen, "partyfull")) {
     partyOpen = true;
-    static const int fill[] = { 6, 25, 149, 94, 143, 131 };
+    static const int fill[] = { 6, 20, 26, 7, 12, 21 };
     static const char *nk[] = { "EMBER", "SPARK", "", "SPOOK", "", "" };
     int n = !strcmp(screen, "partyfull") ? 6 : 3;
     for (int i = 0; i < n; i++) {
       PartyMon m;
-      m.dex = fill[i]; m.level = 40 + i * 7; m.shiny = (i == 2);
+      m.dex = fill[i]; m.level = 40 + i * 7; m.variant = (i == 2);
       m.ivAtk = m.ivDef = m.ivSpe = m.ivHp = 25;
       snprintf(m.nick, sizeof(m.nick), "%s", nk[i]);
       party.replaceAt(i, m);
@@ -369,10 +369,10 @@ static int shotMode(const char *screen, const char *out, int lvl, int iv, int de
 int main(int argc, char **argv) {
   int scale = 2;
   g_argv = argv;
-  const char *save = "tamapoke.nvs";
+  const char *save = "tamadigi.nvs";
   const char *shot = nullptr, *shotOut = "shot.ppm";
   const char *wav = nullptr, *demo = nullptr;
-  int shotLvl = 0, shotIv = -1, shotDex = 6;
+  int shotLvl = 0, shotIv = -1, shotDex = 5;
   for (int i = 1; i < argc; i++) {
     if (!strcmp(argv[i], "--scale") && i + 1 < argc) scale = atoi(argv[++i]);
     else if (!strcmp(argv[i], "--fast") && i + 1 < argc) emuSetTimeScale(atoi(argv[++i]));
@@ -399,14 +399,14 @@ int main(int argc, char **argv) {
   nvsLoad(save);
 
   if (SDL_Init(SDL_INIT_VIDEO) != 0) { fprintf(stderr, "SDL: %s\n", SDL_GetError()); return 1; }
-  SDL_Window *win = SDL_CreateWindow("TamaPoke (emulator)", SDL_WINDOWPOS_CENTERED,
+  SDL_Window *win = SDL_CreateWindow("TamaDigi (emulator)", SDL_WINDOWPOS_CENTERED,
                                      SDL_WINDOWPOS_CENTERED, PANEL * scale, PANEL * scale,
                                      SDL_WINDOW_ALLOW_HIGHDPI);
   SDL_Renderer *ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
   SDL_Texture *tex = SDL_CreateTexture(ren, SDL_PIXELFORMAT_RGB888,
                                        SDL_TEXTUREACCESS_STREAMING, PANEL, PANEL);
 
-  printf("TamaPoke emulator — click to touch, drag to swipe, hold 3s to release.\n");
+  printf("TamaDigi emulator — click to touch, drag to swipe, hold 3s to release.\n");
   printf("Type serial commands here (STATS, IV 31 31 31 31, EGG 150 1, LVL 73, WIPE...)\n");
   printf("Time scale x%u (suspended while you touch). Ctrl-C or close the window to quit.\n\n",
          emuTimeScale());

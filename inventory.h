@@ -8,7 +8,7 @@
 // One count per item key rather than a list of stacks: the catalogue is owned
 // by the firmware and small, so a fixed array cannot fragment, cannot run out
 // of slots, and needs no packing. Growing it is the same additive migration the
-// Pokedex bitmaps use -- getBytes() copies only what was stored and the rest of
+// Digidex bitmaps use -- getBytes() copies only what was stored and the rest of
 // the array keeps its zero initialiser, so a blob written before an item
 // existed reads back with that item at zero.
 //

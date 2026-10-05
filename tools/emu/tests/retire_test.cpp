@@ -2,7 +2,7 @@
 //
 // The farewell was only ever OFFERED at final form and three days. Retiring
 // before that is now possible from the menu, and the price is that the NEXT
-// creature evolves a day later -- EVO_PENALTY_LEVELS on top of the same
+// creature digivolves a day later -- EVO_PENALTY_LEVELS on top of the same
 // threshold careMistakes already moves.
 //
 // Three things here can go wrong silently and so are pinned:
@@ -13,7 +13,7 @@
 // And, since it stopped banking: an EARLY retire gives the creature up for good
 // and must not pay like the good ending either. Both halves are pinned, because
 // each is invisible from the other -- the creature vanishing is obvious on the
-// party screen, while lastEnd quietly deciding the next egg's rarity and shiny
+// party screen, while lastEnd quietly deciding the next egg's rarity and variant
 // odds is not visible anywhere at all.
 #include "Arduino.h"
 #include "Preferences.h"
@@ -65,7 +65,7 @@ int main(){
   // --- a young creature can be retired, and it really is banked
   {
     Pet p; Party q; p.begin(); q.begin();
-    young(p, 4, 21);                        // a Charmeleon, nowhere near 3 days
+    young(p, 4, 21);                        // a AGUMON, nowhere near 3 days
     ck(!p.canFarewellNow(), "a young creature is not offered a farewell");
     ck(p.canRetireNow(), "but it can be retired on demand");
     ck(!p.retireIsFree(), "and the game says that costs something");
@@ -79,12 +79,12 @@ int main(){
     ck(q.count() == 0, "an early retire does NOT bank the creature");
     ck(p.endedKind == CER_NONE, "so nothing is left waiting for a party slot");
     ck(p.lastEnd == CER_RELEASE,
-       "and the next egg is neutral, not blessed -- or this is a shiny farm");
+       "and the next egg is neutral, not blessed -- or this is a variant farm");
     ck(p.isEgg(), "and a new egg is waiting");
 
     // THE POINT: the debt is on the new creature
     ck(p.evoPenalty() == EVO_PENALTY_LEVELS, "the next creature owes the day");
-    p.dbgHatchAs(1, false);                 // a Bulbasaur, evolves at 16
+    p.dbgHatchAs(1, false);                 // a BOTAMON, digivolves at 16
     p.fullness=p.joy=p.energy=p.hygiene=100;
     const DexEntry &d = DEX_TBL[1];
     p.ageMinutes = (uint32_t)(d.evolveLevel - 1) * MINUTES_PER_LEVEL;
@@ -96,7 +96,7 @@ int main(){
   // --- retiring one that HAS earned its farewell is free
   {
     Pet p; Party q; p.begin(); q.begin();
-    p.dbgHatchAs(6, false);                 // Charizard: final form
+    p.dbgHatchAs(6, false);                 // GREYMON: final form
     p.ageMinutes = FAREWELL_AGE_MIN + 60;
     p.fullness=p.joy=p.energy=p.hygiene=100;
     ck(p.canFarewellNow() && p.retireIsFree(),
@@ -118,7 +118,7 @@ int main(){
     // Tests share one NVS store within a process, so this Party loads whatever
     // the EARNED-retire block above banked. Start from a known-empty one or the
     // "none of the three was banked" check below reads the previous block's
-    // Charizard and fails for the wrong reason.
+    // GREYMON and fails for the wrong reason.
     for (int i = 0; i < PARTY_SLOTS; i++) q.releaseAt(i);
     for (int i = 0; i < 3; i++) {
       young(p, 4, 10);

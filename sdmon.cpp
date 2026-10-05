@@ -13,10 +13,10 @@ uint32_t sdTransferAt = 0;
 uint16_t sdTransferFiles = 0;
 SdThumbs thumbs;
 
-bool PmdMon::load(int16_t dexNum, bool shiny) {
+bool PmdMon::load(int16_t dexNum, bool variant) {
   // int16_t, NOT uint8_t. The dex reached 386 and this did not follow, so
-  // everything from 256 up wrapped into Kanto: MARSHTOMP (258) opened
-  // p002.bin and drew an IVYSAUR. Same trap that caught DexEntry::evolvesTo
+  // everything from 256 up wrapped into Ver.1: MARSHTOMP (258) opened
+  // p002.bin and drew an KUWAGAMON. Same trap that caught DexEntry::evolvesTo
   // and TrainerMon::dex when the expansion landed.
   // DEX_COUNT, not 999: the emulator's twin was fixed and this was not, so
   // dex 1000-1025 never loaded on a board.
@@ -25,9 +25,9 @@ bool PmdMon::load(int16_t dexNum, bool shiny) {
   if (!sdReady) return false;
 
   char path[28];
-  snprintf(path, sizeof(path), "/mons/p%s%03u.bin", shiny ? "s" : "", (unsigned)dexNum);
+  snprintf(path, sizeof(path), "/mons/p%s%03u.bin", variant ? "s" : "", (unsigned)dexNum);
   File f = SD_MMC.open(path, FILE_READ);
-  if (!f && shiny) {  // sin shiny PMD: usa el normal
+  if (!f && variant) {  // sin variant PMD: usa el normal
     snprintf(path, sizeof(path), "/mons/p%03u.bin", (unsigned)dexNum);
     f = SD_MMC.open(path, FILE_READ);
   }
@@ -130,17 +130,17 @@ const uint8_t *SdThumbs::get(int16_t dex) const {
   return data + off;
 }
 
-// Which regions actually have their sprite pack on the card.
+// Which versions actually have their sprite pack on the card.
 //
-// Three probes per region, not one: the realistic failure is a half-finished
-// copy of a 100 MB pack, and a single probe would call that region present.
+// Three probes per version, not one: the realistic failure is a half-finished
+// copy of a 100 MB pack, and a single probe would call that version present.
 // Start, middle and end, so a copy that stopped partway fails the check.
 //
 // This NARROWS gRegionArt, which starts as everything. A board with no SD is
 // therefore untouched and keeps today's behaviour, which is the documented
 // requirement -- an empty game would be a worse answer than a graceful one.
 void sdScanRegionArt(bool verbose) {
-  if (!sdReady) return;                 // no card: leave every region enabled
+  if (!sdReady) return;                 // no card: leave every version enabled
   uint16_t mask = 0;
   for (uint8_t r = 0; r < REGION_COUNT; r++) {
     if (r == REGION_ALL) continue;      // derived from the others, never probed
@@ -176,15 +176,15 @@ bool sdBegin(bool formatIfUnreadable) {
   return sdReady;
 }
 
-bool SdMon::load(int16_t dexNum, bool shiny) {
+bool SdMon::load(int16_t dexNum, bool variant) {
   if (dexNum < 1 || dexNum > DEX_COUNT) return false;
   unload();
   if (!sdReady) return false;
 
   char path[24];
-  snprintf(path, sizeof(path), "/mons/%s%03u.bin", shiny ? "s" : "", (unsigned)dexNum);
+  snprintf(path, sizeof(path), "/mons/%s%03u.bin", variant ? "s" : "", (unsigned)dexNum);
   File f = SD_MMC.open(path, FILE_READ);
-  if (!f && shiny) {  // sin variante shiny: usa la normal
+  if (!f && variant) {  // sin variante variant: usa la normal
     snprintf(path, sizeof(path), "/mons/%03u.bin", (unsigned)dexNum);
     f = SD_MMC.open(path, FILE_READ);
   }
@@ -255,8 +255,8 @@ void SdMon::unload() {
 //   SUM <ruta>\n                           -> "SUM <crc32> <bytes>" DONE, of the stored file
 //   LS\n                                   -> listado de /mons
 //   PACKS\n                                -> report each pack's state/version
-//   PACK BEGIN <region>\n                  -> invalidate before copying
-//   PACK COMMIT <region> <crc32>\n         -> record version after copying
+//   PACK BEGIN <version>\n                  -> invalidate before copying
+//   PACK COMMIT <version> <crc32>\n         -> record version after copying
 //   SD MOUNT [FORMAT]\n                    -> mount a card; FORMAT one it cannot read
 // Usar con tools/send_sd.py
 // ---------------------------------------------------------------------------
@@ -272,7 +272,7 @@ static bool validPackRegion(int region) {
 static int8_t activePackRegion = -1;
 
 static void invalidatePackMarker(uint8_t region) {
-  // PACK BEGIN already removed the active region's marker, and only COMMIT recreates it.
+  // PACK BEGIN already removed the active version's marker, and only COMMIT recreates it.
   if (!validPackRegion(region) || region == activePackRegion) return;
   char marker[28];
   packMarkerPath(region, marker, sizeof(marker));
@@ -330,7 +330,7 @@ bool sdSerialCommand(const String &line) {
     // Set, never cleared: during a transfer the reload waits, and a later failed PUT
     // must not cancel it.
     if (remaining == 0) sdDirty = true;
-    // A pack file just landed, so which regions are playable may have changed.
+    // A pack file just landed, so which versions are playable may have changed.
     // Flag it rather than rescanning here: this runs between the last data block
     // and the DONE the host is waiting on, and 15 file opens belong nowhere near
     // that. loop() picks it up.

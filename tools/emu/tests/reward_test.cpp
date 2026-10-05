@@ -1,5 +1,5 @@
-// What beating a gym leader is worth. The badge was the whole reward, which
-// made the ladder a one-way checklist -- a leader you can already beat had
+// What beating a boss is worth. The badge was the whole reward, which
+// made the ladder a one-way checklist -- a boss you can already beat had
 // nothing to offer. A win now trains the creature that fought.
 //
 // The rules that matter are the ones that stop it being either useless or a

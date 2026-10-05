@@ -6,7 +6,7 @@ import { parsePak, verifyPak, packIsCurrent, probeSum, installFile } from './pac
 const byId = (id) => document.getElementById(id);
 const enc = new TextEncoder();
 const MB = (bytes) => `${(bytes / 1048576).toFixed(1)} MB`;
-const titleCase = (value) => value.charAt(0).toUpperCase() + value.slice(1);
+const titleCase = (value) => (/^ver\d+$/.test(value) ? 'Ver.' + value.slice(3) : value.charAt(0).toUpperCase() + value.slice(1));
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const sentence = (text) => `${String(text).replace(/[.\s]+$/, '')}.`;
 const PACK_QUERY_TIMEOUT_MS = 20000;
@@ -154,7 +154,7 @@ async function loadReleaseVersions(config) {
       const date = release.published_at ? new Date(release.published_at) : null;
       return {
         id: `release-${release.id}`,
-        name: release.name || `TamaPoke ${release.tag_name}`,
+        name: release.name || `TamaDigi ${release.tag_name}`,
         channel: release.prerelease ? 'Preview' : 'Release',
         manifest: manifestUrl,
         version: normalizeVersion(manifest.version),
@@ -230,7 +230,7 @@ async function loadEditions() {
     version: normalizeVersion(currentManifest.version) || 'unknown',
     description: currentConfig.description || 'The build currently hosted by this GitHub Pages site.',
     notes: currentConfig.notes || 'This build has not been published as an immutable GitHub Release yet.',
-    releaseUrl: `https://github.com/${config.repository || 'eperdeme/TamaPoke'}/releases`,
+    releaseUrl: `https://github.com/${config.repository || 'joop0810/TamaDigi'}/releases`,
   };
 
   let released = [];
@@ -344,9 +344,9 @@ async function loadPacks() {
     renderPacks();
     const count = Object.keys(packs).length;
     const bytes = Object.values(packs).reduce((total, pack) => total + pack.bytes, 0);
-    byId('catalogue-summary').textContent = `${count} published region${count === 1 ? '' : 's'}, ${MB(bytes)} total.`;
+    byId('catalogue-summary').textContent = `${count} published version${count === 1 ? '' : 's'}, ${MB(bytes)} total.`;
   } catch (error) {
-    byId('regions').innerHTML = '<p class="muted">The region catalogue could not be loaded.</p>';
+    byId('regions').innerHTML = '<p class="muted">The version catalogue could not be loaded.</p>';
     byId('catalogue-summary').textContent = error.message;
     log(`Pack catalogue failed: ${error.message}`);
   }
@@ -615,7 +615,7 @@ function refreshSelection() {
   const selected = selectedPacks();
   const bytes = selected.reduce((total, entry) => total + entry[1].bytes, 0);
   byId('selection-title').textContent = selected.length
-    ? `${selected.length} region${selected.length === 1 ? '' : 's'} selected`
+    ? `${selected.length} version${selected.length === 1 ? '' : 's'} selected`
     : 'No packs selected';
   byId('selection-detail').textContent = selected.length
     ? `${MB(bytes)}, ${transferEstimate(bytes)} over USB.`
@@ -647,7 +647,7 @@ function transferEstimate(bytes) {
 }
 
 // STATS names the board and, after v3.25, its firmware version. False when nothing
-// answered at all: a board in download mode, or one not running TamaPoke. Firmware
+// answered at all: a board in download mode, or one not running TamaDigi. Firmware
 // too old to print board= still answers, and a backup with no label is still a backup.
 async function queryStats(timeoutMs) {
   const result = await commandLines('STATS', timeoutMs);
@@ -676,9 +676,9 @@ async function inspectBoard(probeMs = 3000, attempts = 2) {
     answered = await queryStats(probeMs);
   }
   if (!answered) {
-    await releasePort('No TamaPoke firmware answered');
-    log('No TamaPoke firmware answered STATS, so the port was released for the firmware installer.');
-    setStatus('pack', 'warn', 'No TamaPoke firmware answered. If this board is new, or was started in '
+    await releasePort('No TamaDigi firmware answered');
+    log('No TamaDigi firmware answered STATS, so the port was released for the firmware installer.');
+    setStatus('pack', 'warn', 'No TamaDigi firmware answered. If this board is new, or was started in '
       + 'download mode, install the firmware in step 01 first.');
     return false;
   }
@@ -1024,7 +1024,7 @@ async function captureSave() {
     const line = await readLine(deadline - Date.now());
     if (line === null) throw new Error('the board did not finish the export');
     if (line === 'EXPORT FAIL') throw new Error('the firmware could not build a backup');
-    if (line.startsWith('# TamaPoke save') || line.startsWith('IMPORT ')) lines.push(line);
+    if (line.startsWith('# TamaDigi save') || line.startsWith('IMPORT ')) lines.push(line);
     if (line === 'IMPORT') {
       lines.push(line);
       break;
@@ -1077,7 +1077,7 @@ function downloadCapture(capture) {
 // is also written to disk as a file: the file is the backup, and this is the
 // thing that makes restoring a moment's work instead of a search through
 // Downloads. Presenting it as durable would be worse than not having it.
-const DB_NAME = 'tamapoke-saves';
+const DB_NAME = 'tamadigi-saves';
 const DB_STORE = 'backups';
 const HISTORY_LIMIT = 12;
 
@@ -1249,7 +1249,7 @@ async function backupBeforeInstall() {
       log('Connecting to read the current save...');
       await attach(await navigator.serial.requestPort());
       if (!await queryStats(3000) && !await queryStats(3000)) {
-        throw new Error('no TamaPoke firmware answered, so there is no save to back up. '
+        throw new Error('no TamaDigi firmware answered, so there is no save to back up. '
           + 'A new board can go straight to Install firmware');
       }
     }
@@ -1505,7 +1505,7 @@ function diagnostics() {
   const edition = selectedEdition();
   const installed = sortedPacks().map(([region, meta]) => `${region}=${installedPacks.get(meta.index) || '?'}`);
   return [
-    'TamaPoke installer diagnostics',
+    'TamaDigi installer diagnostics',
     `page: ${location.origin}${location.pathname} ${new URL(import.meta.url).search}`,
     `browser: ${navigator.userAgent}`,
     `web serial: ${'serial' in navigator ? 'yes' : 'no'}`,
@@ -1527,7 +1527,7 @@ byId('copy-log').addEventListener('click', async () => {
     await navigator.clipboard.writeText(text);
     log('Diagnostics copied to the clipboard, ready to paste into a bug report.');
   } catch {
-    downloadText('tamapoke-diagnostics.txt', text);
+    downloadText('tamadigi-diagnostics.txt', text);
     log('The clipboard was not available, so the diagnostics were downloaded instead.');
   }
 });

@@ -44,7 +44,7 @@ int main(){
 
   // ---- the intent lives outside the namespace the wipe clears
   //
-  // THE WHOLE DESIGN RESTS ON THIS. If the flag lived in "tamapoke", clear()
+  // THE WHOLE DESIGN RESTS ON THIS. If the flag lived in "tamadigi", clear()
   // would erase the very record saying a wipe was wanted, so a cut between the
   // clear and the acknowledgement would leave a half-wiped save and no intent to
   // finish it.
@@ -69,7 +69,7 @@ int main(){
     resetArm();
     // the clear lands, the acknowledgement does not -- so the intent is still
     // there on the next boot
-    { Preferences g; g.begin("tamapoke", false); g.clear(); g.end(); }
+    { Preferences g; g.begin("tamadigi", false); g.clear(); g.end(); }
     ck(resetArmed(), "the intent survives the wipe it asked for");
     ck(resetRecover(), "so the next boot simply finishes the job");
     ck(!resetArmed(), "and only then acknowledges it");
@@ -111,13 +111,13 @@ int main(){
        "beside the settings it sits with");
 
     Pet p4; p4.begin(); p4.dbgHatchAs(7, false); p4.renameTrainer("SQUIRT");
-    { Preferences g; g.begin("tamapoke", false); g.putUChar("brt", 3); g.end(); }
+    { Preferences g; g.begin("tamadigi", false); g.putUChar("brt", 3); g.end(); }
     static uint8_t buf[SAVE_TRANSFER_MAX];
     size_t n = saveExport(buf, sizeof(buf));
     ck(n > 0, "a save with a brightness setting exports");
-    { Preferences g; g.begin("tamapoke", false); g.putUChar("brt", 9); g.end(); }
+    { Preferences g; g.begin("tamadigi", false); g.putUChar("brt", 9); g.end(); }
     ck(saveImport(buf, n), "and imports");
-    Preferences g; g.begin("tamapoke", true);
+    Preferences g; g.begin("tamadigi", true);
     ck(g.getUChar("brt", 0) == 3, "restoring puts the level back as it was");
     g.end();
   }
@@ -128,7 +128,7 @@ int main(){
   // brightness of zero is a black panel, so the wrong default here is the
   // difference between an upgrade and a brick.
   {
-    Preferences g; g.begin("tamapoke", false);
+    Preferences g; g.begin("tamadigi", false);
     g.remove("brt");
     ck(!g.isKey("brt"), "a save from before the setting existed has no key");
     ck(g.getUChar("brt", 7) == 7, "and reads the default rather than zero");

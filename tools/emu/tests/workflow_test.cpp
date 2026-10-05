@@ -90,7 +90,7 @@ struct Collection {
   std::array<PartyMon, PARTY_SLOTS> members;
   std::array<PartyMon, BOX_SLOTS> box;
   std::array<uint16_t, GYM_REGIONS> easy, hard;
-  std::array<uint8_t, sizeof(pet.dexReg)> dex, shiny;
+  std::array<uint8_t, sizeof(pet.dexReg)> dex, variant;
   std::array<uint8_t, ITEM_COUNT> items;
   char trainer[sizeof(pet.trainerName)] = {};
   uint8_t avatar = 0, region = 0;
@@ -109,7 +109,7 @@ static Collection collection() {
     result.hard[region] = pet.badgeMask(region, true);
   }
   std::copy(std::begin(pet.dexReg), std::end(pet.dexReg), result.dex.begin());
-  std::copy(std::begin(pet.dexShinyReg), std::end(pet.dexShinyReg), result.shiny.begin());
+  std::copy(std::begin(pet.dexVariantReg), std::end(pet.dexVariantReg), result.variant.begin());
   memcpy(result.trainer, pet.trainerName, sizeof(result.trainer));
   result.avatar = pet.avatar; result.region = pet.region;
   result.medals = pet.totalMedals; result.streak = pet.streak; result.bestStreak = pet.bestStreak;
@@ -120,12 +120,12 @@ static Collection collection() {
 
 static bool sameMon(const PartyMon &left, const PartyMon &right) {
   return std::tie(left.dex, left.level, left.medals, left.ivAtk, left.ivDef, left.ivSpe,
-                  left.ivHp, left.trAtk, left.trDef, left.trSpe, left.shiny, left.stateVersion,
+                  left.ivHp, left.trAtk, left.trDef, left.trSpe, left.variant, left.stateVersion,
                   left.fullness, left.joy, left.energy, left.hygiene, left.poops, left.weight,
                   left.bond, left.berryKnown, left.careMistakes, left.evoDeclinedLv,
                   left.lastLearnLevel, left.ageMinutes) ==
          std::tie(right.dex, right.level, right.medals, right.ivAtk, right.ivDef, right.ivSpe,
-                  right.ivHp, right.trAtk, right.trDef, right.trSpe, right.shiny, right.stateVersion,
+                  right.ivHp, right.trAtk, right.trDef, right.trSpe, right.variant, right.stateVersion,
                   right.fullness, right.joy, right.energy, right.hygiene, right.poops, right.weight,
                   right.bond, right.berryKnown, right.careMistakes, right.evoDeclinedLv,
                   right.lastLearnLevel, right.ageMinutes) &&
@@ -135,13 +135,13 @@ static bool sameMon(const PartyMon &left, const PartyMon &right) {
 
 static void compareCollection(const Collection &expected, bool live) {
   Collection actual = collection();
-  if (live) require(sameMon(actual.live, expected.live), "persisted Pokemon or training differs after reboot");
+  if (live) require(sameMon(actual.live, expected.live), "persisted Digimon or training differs after reboot");
   for (unsigned slot = 0; slot < PARTY_SLOTS; slot++)
     require(sameMon(actual.members[slot], expected.members[slot]), "existing party differs after battle/reboot");
   for (unsigned slot = 0; slot < BOX_SLOTS; slot++)
     require(sameMon(actual.box[slot], expected.box[slot]), "existing box differs after battle/reboot");
   require(actual.easy == expected.easy && actual.hard == expected.hard, "persisted badges differ");
-  require(actual.dex == expected.dex && actual.shiny == expected.shiny, "existing Pokedex differs");
+  require(actual.dex == expected.dex && actual.variant == expected.variant, "existing Digidex differs");
   require(actual.items == expected.items, "inventory rewards or spent ball differ after battle/reboot");
   require(actual.sound == expected.sound && actual.volume == expected.volume, "audio settings differ after reboot");
   require(!memcmp(actual.trainer, expected.trainer, sizeof(actual.trainer)) &&
@@ -153,7 +153,7 @@ static void compareCollection(const Collection &expected, bool live) {
 static void fixture(const Case &test) {
   for (size_t index = 0; index < sizeof(pet.dexReg); index++) {
     pet.dexReg[index] = (uint8_t)(0x55 + index);
-    pet.dexShinyReg[index] = (uint8_t)(0xAA - index);
+    pet.dexVariantReg[index] = (uint8_t)(0xAA - index);
   }
   bool losing = test.ending == Ending::Loss;
   pet.dbgHatchAs(losing ? 1 : 9, true);
@@ -180,7 +180,7 @@ static void fixture(const Case &test) {
     pet.badgesX[region - 1] = (uint16_t)(1u << region);
     pet.badgesHardX[region - 1] = (uint16_t)(3u << region);
   }
-  const int16_t species[] = {25, 258, 493, 700, 1025, 892};
+  const int16_t species[] = {3, 19, 34, 45, 61, 52};
   unsigned members = test.boxCapture ? PARTY_SLOTS : PARTY_SLOTS - 1;
   for (unsigned slot = 0; slot < members; slot++) {
     PartyMon member{};
@@ -188,7 +188,7 @@ static void fixture(const Case &test) {
     member.stateVersion = 1; member.ageMinutes = (member.level - 1) * MINUTES_PER_LEVEL;
     member.ivAtk = 13 + slot; member.ivDef = 20; member.ivSpe = 9; member.ivHp = 28;
     member.trAtk = 6; member.trDef = 7; member.trSpe = 8;
-    member.shiny = slot % 2;
+    member.variant = slot % 2;
     snprintf(member.nick, sizeof(member.nick), "PARTY %u", slot);
     require(party.add(member), "could not seed disposable party");
   }
@@ -197,7 +197,7 @@ static void fixture(const Case &test) {
     snprintf(party.box[slot].nick, sizeof(party.box[slot].nick), "BOX %u", slot);
   }
   require(party.savePair(), "could not seed disposable box");
-  if (test.ending == Ending::Capture) require(bag.add(IT_MASTERBALL, 2) == 2, "cannot seed capture balls");
+  if (test.ending == Ending::Capture) require(bag.add(IT_MASTERSCAN, 2) == 2, "cannot seed capture balls");
   pet.saveNow();
   advance();
   require(pet.saveHealthy() && !pet.savePending(), "fixture saving is not healthy");
@@ -218,7 +218,7 @@ static void battleWorkflow(const Case &test, Collection &preserved, const char *
   onSwipe(-1); onSwipe(-1);
   require(gymOpen && gymPick, "gym chooser was not reached through the swipe handler");
   click(uiRegionRowX(), uiRegionRowCenterY(0));
-  require(gymOpen && !gymPick && gymRegion == 0, "Kanto selection did not reach the gym ladder");
+  require(gymOpen && !gymPick && gymRegion == 0, "Ver.1 selection did not reach the gym ladder");
   if (test.hard) click(233, GYMDIF_Y + GYMDIF_H / 2);
   int x, y, width, height;
   gymRowRect(0, &x, &y, &width, &height);
@@ -259,14 +259,14 @@ static void battleWorkflow(const Case &test, Collection &preserved, const char *
     for (uint8_t index = 0; index < bag.distinctCount(); index++) {
       ItemKey key = bag.keyAt(index);
       if (!itemUsableInBattle(key)) continue;
-      if (key == IT_MASTERBALL) ballCell = shown;
+      if (key == IT_MASTERSCAN) ballCell = shown;
       shown++;
     }
     require(ballCell >= 0 && ballCell < 4, "capture ball is not on the first real bag page");
     cell(ballCell);
     require(wildCaught && btlOver && btlWon, "missing milestone: real capture handler");
-    require(bag.count(IT_MASTERBALL) == preserved.items[IT_MASTERBALL] - 1, "capture did not spend its ball");
-    preserved.items[IT_MASTERBALL]--;
+    require(bag.count(IT_MASTERSCAN) == preserved.items[IT_MASTERSCAN] - 1, "capture did not spend its ball");
+    preserved.items[IT_MASTERSCAN]--;
     if (partySlot >= 0) preserved.members[partySlot] = caught;
     else {
       require(boxSlot >= 0, "capture fixture has no box slot");
@@ -367,7 +367,7 @@ static void writeExpected(const Collection &expected) {
 static int scenario(const char *program, const Case &test, const char *sound) {
   {
     Preferences settings;
-    settings.begin("tamapoke", false);
+    settings.begin("tamadigi", false);
     settings.putBool("snd", strcmp(sound, "disabled") != 0);
     settings.putUChar("vol", !strcmp(sound, "muted") ? 0 : 7);
   }
@@ -384,12 +384,12 @@ static int scenario(const char *program, const Case &test, const char *sound) {
     unsigned before = preserved.live.trAtk + preserved.live.trDef + preserved.live.trSpe;
     require(test.gym && test.ending == Ending::Victory ? training > before : training == before,
       "training reward changed unexpectedly before reboot");
-    require(expected.live.dex == preserved.live.dex && expected.live.shiny == preserved.live.shiny &&
+    require(expected.live.dex == preserved.live.dex && expected.live.variant == preserved.live.variant &&
       expected.live.ivAtk == preserved.live.ivAtk && expected.live.ivDef == preserved.live.ivDef &&
       expected.live.ivSpe == preserved.live.ivSpe && expected.live.ivHp == preserved.live.ivHp &&
       !memcmp(expected.live.nick, preserved.live.nick, sizeof(expected.live.nick)) &&
       !memcmp(expected.live.moves, preserved.live.moves, sizeof(expected.live.moves)),
-      "existing Pokemon identity changed during battle/idle");
+      "existing Digimon identity changed during battle/idle");
     if (!strcmp(sound, "disabled")) require(audioRuntime.writes == 0, "disabled audio wrote PCM");
     else {
       require(audioRuntime.battleWrites > 0 && audioRuntime.samples > 0, "vacuous audio coverage: battle never produced PCM");
@@ -424,7 +424,7 @@ static int reload() {
 }
 
 static void runIsolated(const char *program, const Case &test, const char *sound) {
-    char directory[] = "/tmp/tamapoke-workflow-XXXXXX";
+    char directory[] = "/tmp/tamadigi-workflow-XXXXXX";
     require(mkdtemp(directory) != nullptr, "cannot create disposable save directory");
     pid_t child = fork();
     require(child >= 0, "cannot start isolated workflow");

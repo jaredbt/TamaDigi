@@ -1,182 +1,102 @@
 #!/usr/bin/env python3
-"""Real Game Boy music: pret/pokered audio/music/*.asm -> music.h
+"""Original chiptune music for TamaDigi -> music.h
 
     python3 tools/gen_music.py
 
-The .asm files are tracker sequences, not recordings:
+Every note here was written for this project: a driving A-minor battle loop,
+a lighter E-minor one for wild encounters, a march for the bosses and a short
+C-major fanfare for a win. Nothing is transcribed from any game.
 
-    tempo 104
-    duty_cycle 3
-    note_type 12, 11, 3      ; length unit, volume, envelope
-    octave 3
-    note F#, 1
-
-so they convert straight into (frequency, duty, volume, envelope, ms) events for
-the synth in gbsynth.cpp. 15 KB of text becomes a couple of KB of note data.
-
-FREQUENCY. audio/notes.asm holds twelve 16-bit values; the period is
-65536 - value, shifted right by (octave - 1), and the Game Boy register is
-2048 - period. That lands C at octave 3 on 261.6 Hz -- middle C -- which is how
-the mapping was checked rather than assumed.
-
-TEMPO is approximate. The real engine runs a fractional counter at ~59.7 Hz;
-here one length unit is TICK_MS and the result is judged by listening, which is
-what `--wav` exists for.
-
-Source: Nintendo / Game Freak / Creatures, via the pokered disassembly. See
-CREDITS.md -- the same standing as the trainer sprites.
+Notation: NOTE+OCTAVE:length in sixteenths, R = rest. One sixteenth is TICK_MS.
+The synth (gbsynth.cpp) takes Game Boy frequency registers: 2048 - 131072/f.
 """
 import os
-import re
-import subprocess
-import sys
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(HERE, '..', 'music.h')
-BASE = 'https://raw.githubusercontent.com/pret/pokered/master/audio/music/%s.asm'
-NOTES_URL = 'https://raw.githubusercontent.com/pret/pokered/master/audio/notes.asm'
-
-# (file, symbol prefix in music.h, how many channels to keep)
-# Two channels: the synth has two pulse voices, and Ch1/Ch2 are melody and
-# counter-melody. Ch3 is the wave channel and Ch4 percussion; neither is
-# reproduced here yet.
-TUNES = [
-    ('gymleaderbattle', 'GYM',  'Music_GymLeaderBattle'),
-    ('trainerbattle',   'TRN',  'Music_TrainerBattle'),
-    ('wildbattle',      'WILD', 'Music_WildBattle'),
-    # The victory fanfare. Without it a win played another BATTLE theme, which
-    # sounded like the fight had restarted rather than ended.
-    ('defeatedgymleader', 'WIN', 'Music_DefeatedGymLeader'),
-]
-
-NOTE_NAMES = ['C_', 'C#', 'D_', 'D#', 'E_', 'F_', 'F#', 'G_', 'G#', 'A_', 'A#', 'B_']
-
-TICK_MS = 18          # milliseconds per length unit; tuned by ear
-MAX_EVENTS = 2000     # per channel; a battle theme truncated mid-phrase loops badly
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'music.h')
+SEMI = {'C': 0, 'C#': 1, 'D': 2, 'D#': 3, 'E': 4, 'F': 5, 'F#': 6, 'G': 7,
+        'G#': 8, 'A': 9, 'A#': 10, 'B': 11}
 
 
-def fetch(url):
-    r = subprocess.run(['curl', '-fsSL', url], capture_output=True)
-    if r.returncode != 0:
-        raise SystemExit('fetch failed: ' + url)
-    return r.stdout.decode('utf-8', 'replace')
+def reg(note):
+    name, octave = note[:-1], int(note[-1])
+    midi = 12 * (octave + 1) + SEMI[name]
+    f = 440.0 * 2 ** ((midi - 69) / 12)
+    return max(0, min(2047, round(2048 - 131072 / f)))
 
 
-def note_table():
-    """The twelve base periods from audio/notes.asm."""
-    txt = fetch(NOTES_URL)
-    vals = [int(m, 16) for m in re.findall(r'dw \$([0-9A-Fa-f]{4})', txt)][:12]
-    if len(vals) != 12:
-        raise SystemExit('could not read the note table')
-    return [65536 - v for v in vals]      # period at octave 1
-
-
-def gb_freq(periods, name, octave):
-    if name not in NOTE_NAMES:
-        return 0
-    p = periods[NOTE_NAMES.index(name)] >> max(0, octave - 1)
-    if p < 1:
-        p = 1
-    f = 2048 - p
-    return f if 0 <= f < 2048 else 0
-
-
-def parse_channel(text, symbol, periods):
-    """One channel of one tune -> [(freq, duty, vol, envDir, envPeriod, ms)]."""
-    body = text.split(symbol + '::', 1)
-    if len(body) < 2:
-        body = text.split(symbol + ':', 1)
-        if len(body) < 2:
-            return []
-    body = body[1]
-    # stop at the next channel label
-    m = re.search(r'\n\w+_Ch\d+:', body)
-    if m:
-        body = body[:m.start()]
-
-    octave, duty, speed, vol, env = 4, 2, 8, 15, 0
+def seq(text, tick, duty, vol, env, period):
     out = []
-    for line in body.splitlines():
-        line = line.split(';')[0].strip()
-        if not line:
-            continue
-        if line.startswith('octave'):
-            octave = int(line.split()[1])
-        elif line.startswith('duty_cycle_pattern'):
-            duty = int(line.split()[1].rstrip(',')) & 3
-        elif line.startswith('duty_cycle'):
-            duty = int(line.split()[1]) & 3
-        elif line.startswith('note_type'):
-            p = [int(x) for x in re.findall(r'-?\d+', line)]
-            if len(p) >= 1: speed = p[0]
-            if len(p) >= 2: vol = p[1]
-            if len(p) >= 3: env = p[2]
-        elif line.startswith('rest'):
-            n = int(re.findall(r'\d+', line)[0])
-            out.append((0, duty, 0, 0, 0, n * speed * TICK_MS))
-        elif line.startswith('note '):
-            parts = line[5:].split(',')
-            nm = parts[0].strip()
-            ln = int(parts[1]) if len(parts) > 1 else 1
-            f = gb_freq(periods, nm, octave)
-            # env 0..7 fades out, 8..15 fades in; period is the low three bits
-            d, per = (-1, env & 7) if env < 8 else (1, env & 7)
-            if per == 0:
-                d = 0
-            out.append((f, duty, vol, d, per, ln * speed * TICK_MS))
-        if len(out) >= MAX_EVENTS:
-            break
+    for tok in text.split():
+        n, ln = tok.split(':')
+        ms = int(ln) * tick
+        out.append((0, duty, 0, 0, 0, ms) if n == 'R' else (reg(n), duty, vol, env, period, ms))
     return out
 
 
+BASS = lambda *roots: ' '.join(f'{r}3:2 {r}4:2 ' * 4 for r in roots)
+
+TRACKS = {
+    # the boss march: index 0 is what audio.cpp plays for every battle
+    'GYM': (110,
+        'E4:2 E4:1 G4:1 B4:2 A4:2 G4:2 F#4:2 E4:2 B3:2 '
+        'C4:2 C4:1 E4:1 G4:2 F#4:2 E4:2 D4:2 B3:4 '
+        'E4:2 E4:1 G4:1 B4:2 D5:2 C5:2 B4:2 A4:2 G4:2 '
+        'F#4:2 G4:2 A4:2 B4:2 B4:8 '
+        'G4:2 B4:2 E5:2 D5:2 C5:2 B4:2 A4:2 G4:2 '
+        'A4:2 C5:2 E5:2 D5:2 C5:2 B4:2 A4:4 '
+        'B4:2 A4:2 G4:2 F#4:2 G4:2 A4:2 B4:2 D#4:2 '
+        'E4:4 B3:2 E4:2 E4:8',
+        BASS('E', 'C', 'E', 'B', 'E', 'A', 'B', 'E')),
+    'TRN': (105,
+        'A4:2 A4:1 C5:1 E5:2 D5:2 C5:2 B4:2 A4:2 E4:2 '
+        'F4:2 F4:1 A4:1 C5:2 B4:2 A4:2 G4:2 E4:4 '
+        'A4:2 A4:1 C5:1 E5:2 G5:2 F5:2 E5:2 D5:2 C5:2 '
+        'B4:2 C5:2 D5:2 E5:2 E5:8 '
+        'C5:2 E5:2 A5:2 G5:2 F5:2 E5:2 D5:2 C5:2 '
+        'D5:2 F5:2 A5:2 G5:2 F5:2 E5:2 D5:4 '
+        'E5:2 D5:2 C5:2 B4:2 C5:2 D5:2 E5:2 G#4:2 '
+        'A4:4 E4:2 A4:2 A4:8',
+        BASS('A', 'F', 'A', 'E', 'C', 'D', 'E', 'A')),
+    'WILD': (100,
+        'D5:2 R:1 D5:1 F5:2 A5:2 G5:4 F5:2 E5:2 '
+        'D5:2 R:1 D5:1 F5:2 A5:2 C6:4 A5:4 '
+        'A#4:2 D5:2 F5:2 A#5:2 A5:4 G5:2 F5:2 '
+        'E5:2 F5:2 G5:2 E5:2 D5:8',
+        BASS('D', 'D', 'A#', 'A')),
+    'WIN': (95,
+        'G4:1 C5:1 E5:1 G5:3 E5:2 G5:8 '
+        'A5:2 G5:2 F5:2 E5:2 D5:2 E5:2 C5:4 '
+        'C6:12 R:4',
+        'C4:4 E4:4 G4:8 F4:4 G4:4 C4:8 C3:12 R:4'),
+}
+
+
 def main():
-    periods = note_table()
-    sys.stderr.write('middle C check: octave 3 C_ -> %d Hz\n'
-                     % (131072 // (2048 - gb_freq(periods, 'C_', 3))))
-    lines = ['// GENERATED by tools/gen_music.py from pret/pokered - do not edit',
-             '#pragma once', '#include <stdint.h>', '',
-             '// Real Game Boy battle themes, as note events for gbsynth.cpp.',
-             '// Nintendo / Game Freak / Creatures -- see CREDITS.md.',
-             '',
-             'struct MusicNote {',
-             '  uint16_t freq;   // Game Boy frequency register, 0 = rest',
-             '  uint8_t duty;',
-             '  uint8_t vol;',
-             '  int8_t envDir;',
-             '  uint8_t envPeriod;',
-             '  uint16_t ms;',
-             '};', '']
-    index = []
-    for fn, pre, sym in TUNES:
-        txt = fetch(BASE % fn)
-        for ch in (1, 2):
-            ev = parse_channel(txt, '%s_Ch%d' % (sym, ch), periods)
-            if not ev:
-                sys.stderr.write('%s Ch%d: nothing parsed\n' % (fn, ch))
-                ev = [(0, 2, 0, 0, 0, 100)]
-            name = 'MUSIC_%s_CH%d' % (pre, ch)
-            lines.append('static const MusicNote %s[%d] = {' % (name, len(ev)))
-            for f, d, v, ed, ep, ms in ev:
-                lines.append('  { %d, %d, %d, %d, %d, %d },' % (f, d, v, ed, ep, ms))
-            lines.append('};')
-            lines.append('')
-            sys.stderr.write('%-16s Ch%d: %3d events\n' % (fn, ch, len(ev)))
-        index.append((pre, fn))
-    lines.append('struct MusicTrack {')
-    lines.append('  const MusicNote *ch1; uint16_t n1;')
-    lines.append('  const MusicNote *ch2; uint16_t n2;')
-    lines.append('  const char *name;')
-    lines.append('};')
-    lines.append('#define MUSIC_TRACKS %d' % len(index))
-    lines.append('static const MusicTrack MUSIC_TBL[MUSIC_TRACKS] = {')
-    for pre, fn in index:
-        lines.append('  { MUSIC_%s_CH1, sizeof(MUSIC_%s_CH1)/sizeof(MusicNote),'
-                     ' MUSIC_%s_CH2, sizeof(MUSIC_%s_CH2)/sizeof(MusicNote), "%s" },'
-                     % (pre, pre, pre, pre, fn))
-    lines.append('};')
-    lines.append('')
-    open(OUT, 'w').write('\n'.join(lines))
-    sys.stderr.write('wrote %s\n' % os.path.normpath(OUT))
+    o = ['// GENERATED by tools/gen_music.py - do not edit\n#pragma once\n#include <stdint.h>\n\n',
+         '// Original chiptune themes for TamaDigi, as note events for gbsynth.cpp.\n\n',
+         'struct MusicNote {\n  uint16_t freq;   // Game Boy frequency register, 0 = rest\n'
+         '  uint8_t duty;\n  uint8_t vol;\n  int8_t envDir;\n  uint8_t envPeriod;\n  uint16_t ms;\n};\n\n']
+    names = []
+    for tag, (tick, lead, bass) in TRACKS.items():
+        ch1 = seq(lead, tick, 2, 12, -1, 4)
+        ch2 = seq(bass, tick, 1, 9, -1, 2)
+        for ch, data in (('CH1', ch1), ('CH2', ch2)):
+            o.append('static const MusicNote MUSIC_%s_%s[%d] = {\n' % (tag, ch, len(data)))
+            for n in data:
+                o.append('  { %d, %d, %d, %d, %d, %d },\n' % n)
+            o.append('};\n\n')
+        names.append(tag)
+    o.append('struct MusicTrack {\n  const MusicNote *ch1; uint16_t n1;\n'
+             '  const MusicNote *ch2; uint16_t n2;\n  const char *name;\n};\n')
+    o.append('#define MUSIC_TRACKS %d\n' % len(names))
+    o.append('static const MusicTrack MUSIC_TBL[MUSIC_TRACKS] = {\n')
+    for t in names:
+        o.append('  { MUSIC_%s_CH1, sizeof(MUSIC_%s_CH1)/sizeof(MusicNote), '
+                 'MUSIC_%s_CH2, sizeof(MUSIC_%s_CH2)/sizeof(MusicNote), "%s" },\n'
+                 % (t, t, t, t, t.lower()))
+    o.append('};\n')
+    open(OUT, 'w').write(''.join(o))
+    print('music.h: %d tracks' % len(names))
 
 
 if __name__ == '__main__':

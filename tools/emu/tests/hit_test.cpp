@@ -280,14 +280,14 @@ int main(){
     ck(offGlass == 0, "every home icon's hit disc is fully on the glass");
   }
 
-  // The two upper care arcs once ran behind the Pokemon's name. Ask both
+  // The two upper care arcs once ran behind the Digimon's name. Ask both
   // renderers for their real bounds: copying either y here would only prove a
   // transcription. Twelve pixels leaves a visible gap at the bitmap font's
   // actual size rather than merely avoiding a shared pixel.
   {
     int clear = 0, bottom = uiHeaderNameBottom();
     for (int i = 0; i < 4; i++) if (uiCareArcTop(i) >= bottom + 12) clear++;
-    ck(clear == 4, "every care arc clears the Pokemon name band");
+    ck(clear == 4, "every care arc clears the Digimon name band");
   }
 
   // The party ring. Its radius is MEASURED off partySlotAt() rather than read
@@ -332,7 +332,7 @@ int main(){
   }
 
   // THE EGG REGION PILL. Missing it fell through to pet.eggTap(), and three
-  // taps hatch -- so fumbling at the region selector hatched the egg you were
+  // taps hatch -- so fumbling at the version selector hatched the egg you were
   // trying to re-aim. Reported from a board: "i wasnt able to change egg
   // setting. it kept hatching the egg".
   {
@@ -347,9 +347,9 @@ int main(){
     // inside the swallow zone, which is where a fumbled re-aim actually lands.
     //
     // These offsets used to be 8 px, which is INSIDE the hit area (EGGREG_PAD
-    // is 16), so every "near miss" was a direct hit that cycled the region.
-    // The region assertion passed only because 12 taps over REGION_COUNT 4
-    // came full circle back to the start; Sinnoh made it 5 and the coincidence
+    // is 16), so every "near miss" was a direct hit that cycled the version.
+    // The version assertion passed only because 12 taps over REGION_COUNT 4
+    // came full circle back to the start; Pendulum made it 5 and the coincidence
     // died. It never once exercised the guard band it claims to protect --
     // CLAUDE.md trap 3, a test proving the arithmetic rather than the firmware.
     //
@@ -394,7 +394,7 @@ int main(){
   {
     battleOpen = false;
     if (pet.awaitingStarter()) pet.chooseStarter(4);
-    if (pet.isEgg()) pet.dbgHatchAs(147, false);
+    if (pet.isEgg()) pet.dbgHatchAs(25, false);
     while (pet.hasLearnOffer()) pet.declineLearn();
     if (pet.sleeping) pet.toggleLight();
     pet.dbgRunawayReady();
@@ -463,11 +463,11 @@ int main(){
     ck(b2t > b1b, "and they do not overlap");
   }
 
-  // ---- badge art must never be borrowed from another region
+  // ---- badge art must never be borrowed from another version
   //
-  // BADGES_ART was indexed as [region % BADGE_REGIONS]. The upstream badge set
-  // stops at Unova, so the moment Kalos made GYM_REGIONS 6 against
-  // BADGE_REGIONS 5, `5 % 5 == 0` dressed Kalos in KANTO's badges on both the
+  // BADGES_ART was indexed as [version % BADGE_REGIONS]. The upstream badge set
+  // stops at Pendulum, so the moment Pendulum made GYM_REGIONS 6 against
+  // BADGE_REGIONS 5, `5 % 5 == 0` dressed Pendulum in VER.1's badges on both the
   // win screen and the player card -- silently, and no test looked. A wrong
   // badge is worse than a blank one: it claims you won something you did not.
   {
@@ -485,7 +485,7 @@ int main(){
       // With art for every ladder the loop above is EMPTY and proves nothing,
       // so the real invariant is checked separately and is exercisable however
       // the two counts happen to line up: an index past the end is refused
-      // rather than folded back onto region 0 by a modulo.
+      // rather than folded back onto version 0 by a modulo.
       ck(!badgeArtExists(BADGE_REGIONS, 0),
          "one past the badge art is refused, not wrapped to region 0");
       ck(!badgeArtExists(GYM_REGIONS, 0),
@@ -500,7 +500,7 @@ int main(){
   // Four big circles on a ring. Two things can go wrong here and neither shows up
   // in a screenshot: pads that OVERLAP, so one tap is inside two of them and the
   // draw path and the tap path can disagree about which; and pads that reach off
-  // the round glass, which is the mistake the gym ladder made before
+  // the round glass, which is the mistake the boss ladder made before
   // uiSafeHalfWidthFor() existed.
   {
     const int r = uiMemoPadR();

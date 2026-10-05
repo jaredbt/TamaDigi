@@ -1,4 +1,4 @@
-// The trainer's name belongs to the player, not the creature: it must outlive
+// The tamer's name belongs to the player, not the creature: it must outlive
 // every ending, and the shared keyboard must write it to the right place.
 #include "Arduino.h"
 #include "Preferences.h"

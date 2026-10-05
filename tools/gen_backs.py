@@ -13,9 +13,7 @@ The rows are emitted as-is. The drawing side turns them into runs of identical
 indices at draw time -- this art is flat pixel art with long horizontal runs, so
 that is far cheaper than a fillRect per pixel.
 
-Biome mapping is by closest available scene: dex.h has six biomes and the art
-has ten kinds, so forest borrows PATH (a wooded route) and volcano borrows CAVE
-(the only rocky interior). Nothing is volcanic in the set.
+The scenes themselves are drawn by tools/draw_backs.py, one per biome.
 """
 import os
 import struct
@@ -27,12 +25,12 @@ OUT = os.path.join(HERE, '..', 'backs.h')
 
 # biome index in dex.h -> (day file, night file)
 BIOMES = [
-    ('TALL GRASS', 'pradera / meadow'),
-    ('BEACH',      'playa / beach'),
-    ('PATH',       'bosque / forest -- a wooded route is the closest scene'),
-    ('CAVE',       'volcan / volcano -- no volcanic scene exists; rock is closest'),
-    ('MOUNTAIN',   'montana / mountain'),
-    ('SNOW',       'nieve / snow'),
+    ('MEADOW',   'meadow'),
+    ('BEACH',    'beach'),
+    ('FOREST',   'forest'),
+    ('VOLCANO',  'volcano'),
+    ('MOUNTAIN', 'mountain'),
+    ('SNOW',     'snow'),
 ]
 
 

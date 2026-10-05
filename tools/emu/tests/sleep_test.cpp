@@ -1,7 +1,7 @@
 // Putting the device down must not cost you the creature.
 //
 // A player left the board running overnight with the pet awake and came back to
-// a Dratini that had run away. That was reachable because the LIVE tick is the
+// a KOROMON that had run away. That was reachable because the LIVE tick is the
 // only drain path with no floor: offline floors at 15, asleep floors at 30/35/45
 // and skips the neglect check entirely, but a board left RUNNING took an awake
 // creature to zero on all four stats in 100 minutes and to the point of running
@@ -34,7 +34,7 @@ static uint32_t atHour(int h){ return (uint32_t)h * 3600 + 90; }
 // behaviour and a wrong starting point for the next test.
 static void fresh(Pet &p, int hour){
   p.begin();
-  p.dbgHatchAs(147,false);
+  p.dbgHatchAs(25,false);
   p.sleeping = false;
   p.sleepAuto = SLEEP_NONE;
   p.fullness = p.joy = p.energy = p.hygiene = 100;
@@ -97,7 +97,7 @@ int main(){
        "a night asleep never drops below the floors");
     ck(p.energy > 50, "and it wakes rested");
     ck(!p.canRunawayNow(), "NOWHERE NEAR running away");
-    ck(p.speciesId == 147, "the creature is still there");
+    ck(p.speciesId == 25, "the creature is still there");
 
     // AND IT DOES NOT GET UP BY ITSELF. Waking at 06:00 would reopen the hole:
     // from the floors, food empties by 06:15 and everything by 07:40, so anyone
@@ -160,7 +160,7 @@ int main(){
   //     canRunawayNow() used to read that counter alone, so waking the screen
   //     made a creature with 100 energy instantly ready to leave -- and the
   //     runaway button is drawn over the creature, where the tap that says good
-  //     morning lands. It cost a real player a DRAGONAIR.
+  //     morning lands. It cost a real player a AGUMON.
   {
     Pet p; fresh(p, 22);
     p.fullness = p.joy = p.energy = p.hygiene = 0;   // a neglected evening

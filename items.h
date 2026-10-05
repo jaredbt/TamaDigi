@@ -9,34 +9,34 @@
 // trap as § "uint8_t with a dex of 386" in CLAUDE.md: never reinterpret bytes
 // that already exist.
 //
-// 0 is reserved so an empty stack and "POKE BALL" cannot be confused.
+// 0 is reserved so an empty stack and "SCAN CHIP" cannot be confused.
 using ItemKey = uint8_t;
 constexpr ItemKey ITEM_NONE = 0;
 
 enum : uint8_t {
-  IT_POKEBALL = 1,
-  IT_GREATBALL,
-  IT_ULTRABALL,
-  IT_MASTERBALL,
-  IT_POTION,
-  IT_SUPERPOTION,
-  IT_HYPERPOTION,
-  IT_FULLHEAL,
-  IT_PROTEIN,
-  IT_IRON,
-  IT_CARBOS,
+  IT_SCANCHIP = 1,
+  IT_SUPERSCAN,
+  IT_HYPERSCAN,
+  IT_MASTERSCAN,
+  IT_SMRECOVERY,
+  IT_MDRECOVERY,
+  IT_LGRECOVERY,
+  IT_ALLCURE,
+  IT_ATKCHIP,
+  IT_DEFCHIP,
+  IT_SPDCHIP,
   // APPEND-ONLY BELOW HERE
   ITEM_COUNT,
 };
 
 enum ItemCategory : uint8_t {
-  IC_BALL = 0,   // only usable on a WILD foe
+  IC_BALL = 0,   // a scan chip: only usable on a WILD foe, to take its data
   IC_HEAL,       // restores HP, in battle or out
   IC_CURE,       // clears an ailment
   IC_TRAIN,      // permanently raises one training stat, out of battle
 };
 
-// A ball whose param is this catches without rolling. It is a sentinel rather
+// A scan chip whose param is this catches without rolling. It is a sentinel rather
 // than a huge percentage so wildCaptureChance() cannot round it back below 100.
 constexpr int16_t ITEM_CATCH_GUARANTEED = -1;
 
@@ -56,17 +56,17 @@ struct ItemEntry {
 // reference for any key without a bounds decision at every call site.
 static const ItemEntry ITEM_TBL[ITEM_COUNT] = {
   { "-",            IC_BALL,  0,                      0, 0 },
-  { "POKE BALL",    IC_BALL,  100,                    0, 30 },
-  { "GREAT BALL",   IC_BALL,  150,                    0, 15 },
-  { "ULTRA BALL",   IC_BALL,  200,                    0, 6 },
-  { "MASTER BALL",  IC_BALL,  ITEM_CATCH_GUARANTEED,  0, 1 },
-  { "POTION",       IC_HEAL,  20,                     0, 20 },
-  { "SUPER POTION", IC_HEAL,  50,                     0, 10 },
-  { "HYPER POTION", IC_HEAL,  120,                    0, 4 },
-  { "FULL HEAL",    IC_CURE,  0,                      0, 10 },
-  { "PROTEIN",      IC_TRAIN, TRAIN_ATK,              5, 8 },
-  { "IRON",         IC_TRAIN, TRAIN_DEF,              5, 8 },
-  { "CARBOS",       IC_TRAIN, TRAIN_SPE,              5, 8 },
+  { "SCAN CHIP",    IC_BALL,  100,                    0, 30 },
+  { "SUPER SCAN",   IC_BALL,  150,                    0, 15 },
+  { "HYPER SCAN",   IC_BALL,  200,                    0, 6 },
+  { "MASTER SCAN",  IC_BALL,  ITEM_CATCH_GUARANTEED,  0, 1 },
+  { "SM RECOVERY",  IC_HEAL,  20,                     0, 20 },
+  { "MD RECOVERY",  IC_HEAL,  50,                     0, 10 },
+  { "LG RECOVERY",  IC_HEAL,  120,                    0, 4 },
+  { "ALL CURE",     IC_CURE,  0,                      0, 10 },
+  { "ATTACK CHIP",  IC_TRAIN, TRAIN_ATK,              5, 8 },
+  { "DEFENSE CHIP", IC_TRAIN, TRAIN_DEF,              5, 8 },
+  { "SPEED CHIP",   IC_TRAIN, TRAIN_SPE,              5, 8 },
 };
 
 inline bool itemValid(ItemKey k) { return k > ITEM_NONE && k < ITEM_COUNT; }

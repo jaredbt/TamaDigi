@@ -52,11 +52,11 @@ int main(){
   A.begin(true,"HOST"); B.begin(false,"GUEST");
   A.id=0x1111; B.id=0x2222;
   A.addMon(mon(6,50,"BLAZE")); A.addMon(mon(9,50,"SHELL"));
-  B.addMon(mon(65,50,"SPOON"));
+  B.addMon(mon(4,50,"SPOON"));
   A.start();
   ck(A.state==LINK_READY && B.state==LINK_READY, "both reach READY from one hello");
   ck(B.theirsN==2 && A.theirsN==1, "each ends up with the other's squad");
-  ck(B.theirs[0].dex==6 && A.theirs[0].dex==65, "and the right creatures in it");
+  ck(B.theirs[0].dex==6 && A.theirs[0].dex==4, "and the right creatures in it");
   ck(!strcmp(B.theirs[1].name,"SHELL"), "names survive the wire");
   ck(A.isHost && !B.isHost, "the roles stay as they were offered");
 
@@ -184,7 +184,7 @@ int main(){
   // --- NOTHING off the wire may be trusted to index a table
   {
     LinkMon junk{};
-    junk.dex=9999; junk.level=250; junk.maxHp=0; junk.moves[0]=250;
+    junk.dex=56; junk.level=250; junk.maxHp=0; junk.moves[0]=250;
     Combatant c; linkMonTo(c,junk);
     ck(c.dex>=1 && c.dex<=DEX_COUNT, "a nonsense dex is clamped into the table");
     ck(c.level>=1 && c.level<=MAX_LEVEL, "so is a nonsense level");

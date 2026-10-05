@@ -1,154 +1,128 @@
 #!/usr/bin/env python3
-"""Player avatars: pret/pokered overworld sprites -> avatars.h
+"""Generates avatars.h: eight 16x16 tamer sprites for the player card.
 
-    python3 tools/gen_avatars.py
+  python3 tools/gen_avatars.py
 
-Downloads eight 16x16 overworld sprites from the pokered disassembly, takes the
-first (front-facing) frame of each sheet and packs them 8bpp with a four-entry
-RGB565 palette; index 0xFF is transparent.
-
-The sheets are 2bpp greyscale, six frames stacked vertically. Shade 3 is the
-white background and becomes transparent; 0 is the outline, 1 the large fill,
-2 the highlight. Each avatar gets an accent colour on shade 1 -- the same thing
-Pokemon Yellow did when it colourised these sprites for the GBC -- because eight
-identical grey silhouettes are unreadable at a glance in the picker.
-
-SOURCE AND LICENCE -- read CREDITS.md before publishing anything built from
-this. These are Nintendo / Game Freak / Creatures artwork, taken from a
-disassembly. They are NOT licensed for redistribution the way the PMD sprites
-(CC BY-NC) or the badges (CC BY 3.0) are. They are here because the project
-owner asked for the real sprites, and CREDITS.md records that honestly rather
-than leaving it undocumented.
+Hand-drawn here as text (k outline, c clothes/hair colour, s skin, w white),
+so the artwork is this project's own. Four silhouettes x two colourways.
 """
 import os
-import struct
-import sys
-import subprocess
-import zlib
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(HERE, '..', 'avatars.h')
-BASE = 'https://raw.githubusercontent.com/pret/pokered/master/gfx/sprites/%s.png'
-SIZE = 16
+ROOT = os.path.join(os.path.dirname(__file__), '..')
 
-# (file, label shown in the UI, accent for shade 1)
-# Eight, so the stored `avatar` byte still fits comfortably and cycling by tap
-# stays short. Labels are unaccented ASCII: the bitmap font has nothing else.
-PICKS = [
-    ('red',           'RED',      0xEA87),   # the classic player
-    ('blue',          'BLUE',     0x4C98),   # the rival
-    ('girl',          'GIRL',     0xF454),
-    ('cooltrainer_m', 'ACE M',    0x5DCD),
-    ('cooltrainer_f', 'ACE F',    0xC2F0),
-    ('hiker',         'HIKER',    0xB3C8),
-    # NOT swimmer: it is drawn low in its cell (the character is in water),
-    # which reads as a misaligned sprite once it is out of context.
-    ('sailor',        'SAILOR',   0x7E3D),
-    ('youngster',     'YOUNGSTER',0xFECB),
+GOGGLES = [
+    "................",
+    ".....kkkkkk.....",
+    "....kcccccck....",
+    "...kccccccccck..",
+    "...kkkkkkkkkk...",
+    "...kwwkkkkwwk...",
+    "...kkkkkkkkkk...",
+    "....kssssssk....",
+    "....kskssksk....",
+    ".....kssssk.....",
+    "...kkkcccckkk...",
+    "..kccckcckccck..",
+    "..kskcccccckskk.",
+    "...kkcccccckk...",
+    "....kkk..kkk....",
+    "....kkk..kkk....",
+]
+CAP = [
+    "................",
+    "....kkkkkk......",
+    "...kcccccckk....",
+    "..kcccccccccck..",
+    "..kkkkkkkkkkkkk.",
+    "...kssssssk.....",
+    "...kskssksk.....",
+    "...kssssssk.....",
+    "....kssssk......",
+    "...kkcccckk.....",
+    "..kccccccccck...",
+    "..kskcccccksk...",
+    "..kskcccccksk...",
+    "...kkcccccckk...",
+    "....kkk..kkk....",
+    "....kkk..kkk....",
+]
+LONG = [
+    "................",
+    ".....kkkkkk.....",
+    "....kcccccck....",
+    "...kcccccccck...",
+    "...kcckkkkcck...",
+    "..kcckssssskck..",
+    "..kcckskssksck..",
+    "..kccksssssck...",
+    "..kcck.kssk.ck..",
+    "..kck.kcccck.k..",
+    "...k.kccccccck..",
+    "....kskcccccksk.",
+    "....kskwwwwwksk.",
+    ".....kwwwwwwk...",
+    ".....kkk..kkk...",
+    ".....kkk..kkk...",
+]
+SPIKY = [
+    "................",
+    "...k..k..k..k...",
+    "...kckckckkck...",
+    "..kccccccccck...",
+    "..kccccccccck...",
+    "...kcssssssk....",
+    "...kskssksk.....",
+    "...kssssssk.....",
+    "....kssssk......",
+    "...kkwwwwkk.....",
+    "..kcwwwwwwck....",
+    "..kskwwwwwksk...",
+    "..kskcccccksk...",
+    "...kkcccccckk...",
+    "....kkk..kkk....",
+    "....kkk..kkk....",
 ]
 
-OUTLINE = 0x18C4     # same ink as the rest of the UI
-HIGHLIGHT = 0xEF7D   # a soft off-white, so it reads on the cream card
+AVATARS = [
+    ('GOGGLES', GOGGLES, '#2f6fb5'),
+    ('CAP',     CAP,     '#d8483a'),
+    ('LONG',    LONG,    '#8a4fae'),
+    ('SPIKY',   SPIKY,   '#3c8a4c'),
+    ('GOGGLES2', GOGGLES, '#c98a1e'),
+    ('CAP2',    CAP,     '#3a8f9c'),
+    ('LONG2',   LONG,    '#c8507e'),
+    ('SPIKY2',  SPIKY,   '#5b5b8a'),
+]
+NAMES = ['GOGGLES', 'CAP', 'LONG HAIR', 'SPIKY', 'GOLD', 'TEAL', 'ROSE', 'NIGHT']
 
 
-def read_png_2bpp(data, path):
-    """pokered's sprites are 2-bit greyscale; the shared decoder in
-    gen_backs.py only handles 8-bit channels, so this one is separate."""
-    pos, idat, w, h, bd, ct = 8, b'', 0, 0, 0, 0
-    while pos < len(data):
-        ln = struct.unpack('>I', data[pos:pos + 4])[0]
-        typ = data[pos + 4:pos + 8]
-        chunk = data[pos + 8:pos + 8 + ln]
-        if typ == b'IHDR':
-            w, h, bd, ct = struct.unpack('>IIBB', chunk[:10])
-        elif typ == b'IDAT':
-            idat += chunk
-        pos += 12 + ln
-    if bd != 2 or ct != 0:
-        raise SystemExit('%s: expected 2-bit greyscale, got bd=%d ct=%d'
-                         % (path, bd, ct))
-    raw = zlib.decompress(idat)
-    bpr = (w * bd + 7) // 8
-    rows, prev, i = [], bytearray(bpr), 0
-    for _ in range(h):
-        f = raw[i]; i += 1
-        line = bytearray(raw[i:i + bpr]); i += bpr
-        for x in range(len(line)):
-            a = line[x - 1] if x >= 1 else 0
-            b = prev[x]
-            c = prev[x - 1] if x >= 1 else 0
-            if f == 1:   line[x] = (line[x] + a) & 255
-            elif f == 2: line[x] = (line[x] + b) & 255
-            elif f == 3: line[x] = (line[x] + (a + b) // 2) & 255
-            elif f == 4:
-                p = a + b - c
-                pa, pb, pc = abs(p - a), abs(p - b), abs(p - c)
-                pr = a if (pa <= pb and pa <= pc) else (b if pb <= pc else c)
-                line[x] = (line[x] + pr) & 255
-        rows.append(bytes(line)); prev = line
-    px = []
-    for line in rows:
-        px.append([(line[x // 4] >> ((3 - (x % 4)) * 2)) & 3 for x in range(w)])
-    return w, h, px
+def rgb565(h):
+    r, g, b = int(h[1:3], 16), int(h[3:5], 16), int(h[5:7], 16)
+    return (r >> 3) << 11 | (g >> 2) << 5 | (b >> 3)
 
 
 def main():
-    out = ['// GENERATED by tools/gen_avatars.py from pret/pokered - do not edit',
-           '#pragma once',
-           '#include <stdint.h>',
-           '',
-           '// Player avatars: Gen 1 overworld sprites, 16x16, 8bpp indexed with',
-           '// a four-entry RGB565 palette. Index 0xFF is transparent.',
-           '//',
-           '// See CREDITS.md: this is Nintendo / Game Freak artwork from a',
-           '// disassembly, not licensed material like the PMD sprites are.',
-           '']
-    names = []
-    for fn, label, accent in PICKS:
-        url = BASE % fn
-        sys.stderr.write('fetching %s\n' % url)
-        # curl rather than urllib: the stock python.org build on macOS ships
-        # without a usable CA bundle and fails to verify github.com.
-        r = subprocess.run(['curl', '-fsSL', url], capture_output=True)
-        if r.returncode != 0:
-            raise SystemExit('fetch failed (%s): %s'
-                             % (url, r.stderr.decode().strip()))
-        data = r.stdout
-        w, h, px = read_png_2bpp(data, fn)
-        if w != SIZE or h % SIZE:
-            raise SystemExit('%s: expected a %dpx-wide sheet, got %dx%d'
-                             % (fn, SIZE, w, h))
-        pal = [OUTLINE, accent, HIGHLIGHT]
-        idx = []
-        for y in range(SIZE):                 # frame 0 only: front-facing
-            for x in range(SIZE):
-                v = px[y][x]
-                idx.append(0xFF if v == 3 else v)   # 3 = white = transparent
-        sym = 'AV_' + fn.upper()
-        names.append((sym, label))
-        out.append('static const uint16_t %s_PAL[3] = { %s };'
-                   % (sym, ', '.join('0x%04X' % c for c in pal)))
-        out.append('static const uint8_t %s_IDX[%d] = {' % (sym, SIZE * SIZE))
-        for r in range(SIZE):
-            row = idx[r * SIZE:(r + 1) * SIZE]
-            out.append('  ' + ' '.join('0x%02X,' % v for v in row))
-        out.append('};')
-        out.append('')
-
-    out.append('struct AvatarArt {')
-    out.append('  const uint8_t *idx;')
-    out.append('  const uint16_t *pal;')
-    out.append('  const char *name;')
-    out.append('};')
-    out.append('#define AVATAR_PX %d' % SIZE)
-    out.append('#define AVATAR_COUNT %d' % len(names))
-    out.append('static const AvatarArt AVATARS[AVATAR_COUNT] = {')
-    for (sym, label), (fn, _, _) in zip(names, PICKS):
-        out.append('  { %s_IDX, %s_PAL, "%s" },   // %s' % (sym, sym, label, fn))
-    out.append('};')
-    out.append('')
-    open(OUT, 'w').write('\n'.join(out))
-    sys.stderr.write('wrote %s (%d avatars)\n' % (OUT, len(names)))
+    o = ['// GENERATED by tools/gen_avatars.py - do not edit\n#pragma once\n#include <stdint.h>\n\n',
+         '// Player avatars: 16x16, indexed into a four-entry RGB565 palette\n'
+         '// (outline, colour, skin, white). Index 0xFF is transparent.\n\n']
+    for tag, rows, col in AVATARS:
+        assert len(rows) == 16 and all(len(r) == 16 for r in rows), tag
+        pal = [rgb565('#1b1b25'), rgb565(col), rgb565('#f2c9a0'), rgb565('#f4f4f4')]
+        o.append('static const uint16_t AV_%s_PAL[4] = { %s };\n'
+                 % (tag, ', '.join('0x%04X' % p for p in pal)))
+        o.append('static const uint8_t AV_%s_IDX[256] = {\n' % tag)
+        m = {'.': '0xFF', 'k': '0x00', 'c': '0x01', 's': '0x02', 'w': '0x03'}
+        for r in rows:
+            o.append('  ' + ', '.join(m[ch] for ch in r) + ',\n')
+        o.append('};\n\n')
+    o.append('struct AvatarArt {\n  const uint8_t *idx;\n  const uint16_t *pal;\n  const char *name;\n};\n')
+    o.append('#define AVATAR_PX 16\n#define AVATAR_COUNT %d\n' % len(AVATARS))
+    o.append('static const AvatarArt AVATARS[AVATAR_COUNT] = {\n')
+    for (tag, _r, _c), name in zip(AVATARS, NAMES):
+        o.append('  { AV_%s_IDX, AV_%s_PAL, "%s" },\n' % (tag, tag, name))
+    o.append('};\n')
+    open(os.path.join(ROOT, 'avatars.h'), 'w').write(''.join(o))
+    print('avatars.h: %d avatars' % len(AVATARS))
 
 
 if __name__ == '__main__':

@@ -41,5 +41,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" --verify-tag \
-            --title "TamaPoke $GITHUB_REF_NAME" \
+            --title "TamaDigi $GITHUB_REF_NAME" \
             --notes-file "docs/release-notes/$GITHUB_REF_NAME.md"

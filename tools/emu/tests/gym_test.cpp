@@ -1,4 +1,4 @@
-// A whole gym run: squad chaining on both sides, badge award, and the ladder's
+// A whole boss run: squad chaining on both sides, badge award, and the ladder's
 // difficulty curve measured rather than assumed.
 #include "Arduino.h"
 #include "Preferences.h"
@@ -43,7 +43,7 @@ static bool duel(Combatant &you, Combatant &foe) {
 int main(){
   printf("%-10s %-9s %s\n","TRAINER","TEAM","solo win-rate for one L%d creature");
   for (int lvl : {40, 60, 73, 100}) {
-    printf("\n--- your creature: CHARIZARD L%d, perfect IVs ---\n", lvl);
+    printf("\n--- your creature: GREYMON L%d, perfect IVs ---\n", lvl);
     for (int ti=0; ti<TRAINER_COUNT; ti++){
       const Trainer &t=TRAINER_SETS[0].list[ti];
       int wins=0, runs=40;

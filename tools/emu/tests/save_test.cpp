@@ -27,7 +27,7 @@ static void ck(bool ok,const char*w){printf("%s  %s\n",ok?"PASS":"FAIL",w); if(!
 
 int main(){
   // --- a save worth losing: a raised creature, a full party, a filled box,
-  // both ladders, a Pokedex with holes in it, a named trainer
+  // both ladders, a Digidex with holes in it, a named tamer
   Pet pet;
   pet.begin();
   party.begin();
@@ -43,12 +43,12 @@ int main(){
   pet.streak = 12; pet.bestStreak = 19; pet.totalMedals = 41;
   pet.gameHi = 33; pet.strHi = 21; pet.spdHi = 9;
   pet.bond = 77; pet.careMistakes = 2; pet.weight = 55;
-  pet.dexReg[0] = 0x5A; pet.dexReg[9] = 0xC3; pet.dexShinyReg[3] = 0x11;
+  pet.dexReg[0] = 0x5A; pet.dexReg[9] = 0xC3; pet.dexVariantReg[3] = 0x11;
   for (int i=0;i<PARTY_SLOTS;i++){ PartyMon m; m.dex=20+i*7; m.level=40+i;
-    m.ivAtk=m.ivDef=m.ivSpe=m.ivHp=20+i; m.shiny=(i==2);
+    m.ivAtk=m.ivDef=m.ivSpe=m.ivHp=20+i; m.variant=(i==2);
     snprintf(m.nick,sizeof(m.nick),"P%d",i);
     m.moves[0]=1+i; m.moves[1]=9; party.replaceAt(i,m); }
-  for (int i=0;i<BOX_SLOTS;i++){ PartyMon m; m.dex=1+i*3; m.level=10+i;
+  for (int i=0;i<BOX_SLOTS;i++){ PartyMon m; m.dex=1+i; m.level=10+i;
     m.ivAtk=m.ivDef=m.ivSpe=m.ivHp=11; party.box[i]=m; }
   party.boxSave();
   // renameTrainer() persists, and save() writes every field -- so this is also
@@ -119,7 +119,7 @@ int main(){
 
   Pet p2; Party q2;
   p2.begin(); q2.begin();
-  ck(p2.speciesId==6 && p2.shiny, "the creature is back, shiny and all");
+  ck(p2.speciesId==6 && p2.variant, "the creature is back, variant and all");
   ck(p2.ageMinutes==72UL*MINUTES_PER_LEVEL, "at the age it was");
   ck(p2.ivAtk==31 && p2.ivDef==7 && p2.ivSpe==22 && p2.ivHp==19, "with its IVs");
   ck(p2.trAtk==64 && p2.trDef==31 && p2.trSpe==90, "and its training");
@@ -130,12 +130,12 @@ int main(){
   ck(p2.streak==12 && p2.bestStreak==19 && p2.totalMedals==41, "streak and medals");
   ck(p2.gameHi==33 && p2.strHi==21 && p2.spdHi==9, "every minigame record");
   ck(p2.bond==77 && p2.careMistakes==2 && p2.weight==55, "bond, mistakes, weight");
-  // A superset, not an equality: begin() re-registers the LIVE species on every
+  // A superset, not an equality: begin() re-registers the LIVE Digimon on every
   // load (pet.cpp:1011, seeding the dex for saves older than it existed), so
-  // Charizard's bit is set on top of whatever was restored. What the backup
+  // GREYMON's bit is set on top of whatever was restored. What the backup
   // owes us is that no bit is LOST.
   ck((p2.dexReg[0] & 0x5A)==0x5A && p2.dexReg[9]==0xC3 &&
-     (p2.dexShinyReg[3] & 0x11)==0x11, "the Pokedex, holes and all");
+     (p2.dexVariantReg[3] & 0x11)==0x11, "the Digidex, holes and all");
   ck((p2.dexReg[0] & ~0x5A) == 0x20,
      "and the only extra bit is the live creature re-registering itself");
   bool moves = true;
@@ -152,9 +152,9 @@ int main(){
     if (strcmp(m.nick, want)) party_ok = false;
   }
   ck(party_ok, "with every level, moveset and nickname");
-  ck(q2.slots[2].shiny, "and a banked shiny is still shiny");
+  ck(q2.slots[2].variant, "and a banked variant is still variant");
   ck(q2.boxCount()==BOX_SLOTS, "the box comes back full");
-  ck(q2.box[7].dex==1+7*3 && q2.box[7].level==17, "with the right creatures in it");
+  ck(q2.box[7].dex==1+7 && q2.box[7].level==17, "with the right creatures in it");
 
   // --- a restore must not leave anything of whatever was there before
   {

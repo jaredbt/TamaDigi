@@ -1,19 +1,17 @@
 // Which sprite file actually gets opened.
 //
-// PmdMon::load() took a uint8_t while the dex reached 386, so every species
-// from 256 up wrapped into Kanto: a MARSHTOMP (258) opened p002.bin and stood
-// there as an IVYSAUR. Reported from a board, because nothing here looked.
-//
-// It is the third time this exact trap has been sprung -- DexEntry::evolvesTo
-// and TrainerMon::dex were both uint8_t when the expansion landed -- so this
-// checks EVERY species can be asked for and comes back as itself, rather than
-// spot-checking the one that was reported.
+// PmdMon::load() once took a uint8_t, so every creature from 256 up wrapped
+// onto another one's file. The roster is small now, but the trap is the kind
+// that comes back with the next expansion, so this checks EVERY Digimon can be
+// asked for and comes back as itself -- by its PIXELS, since every V-Pet
+// sprite shares one LCD palette and a palette compare would prove nothing.
 #include "Arduino.h"
 #include "Arduino_GFX_Library.h"
 #include "Preferences.h"
 #include "pet.h"
 #include "party.h"
 #include "sdmon.h"
+#include "noart.h"
 #include <cstdio>
 #include <cstring>
 uint32_t g_seed=7; FakeSerial Serial; FakeESP ESP; FakeWire Wire;
@@ -29,58 +27,48 @@ static void ck(bool ok,const char*w){printf("%s  %s\n",ok?"PASS":"FAIL",w); if(!
 int main(){
   emuSetSpriteDir(SPRITE_DIR);
 
-  // the exact creature that was reported, and the exact one it turned into
+  // two different Digimon really are different pictures, and the colour
+  // variant really is a different colouring of the same picture
   {
-    PmdMon a, b;
-    bool okA = a.load(258, false);      // MARSHTOMP
-    bool okB = b.load(2, false);        // IVYSAUR
-    ck(okA, "a Hoenn sprite loads at all");
-    ck(okA && a.dex == 258, "and it is MARSHTOMP, not whatever 258 truncates to");
+    PmdMon a, b, v;
+    bool okA = a.load(59, false), okB = b.load(3, false), okV = v.load(59, true);
+    ck(okA && a.dex == 59, "the last Mega loads and is itself");
     if (okA && okB) {
-      bool same = a.palCount == b.palCount &&
-                  !memcmp(a.pal, b.pal, a.palCount * sizeof(uint16_t));
-      ck(!same, "MARSHTOMP's pixels are not IVYSAUR's");
+      const PmdAct &x = a.acts[PMD_IDLE], &y = b.acts[PMD_IDLE];
+      bool same = x.w == y.w && x.h == y.h && !memcmp(x.data, y.data, x.w * x.h);
+      ck(!same, "H.KABUTERIMON's pixels are not AGUMON's");
     }
-    a.unload(); b.unload();
+    if (okA && okV) {
+      const PmdAct &x = a.acts[PMD_IDLE], &y = v.acts[PMD_IDLE];
+      ck(x.w == y.w && x.h == y.h && !memcmp(x.data, y.data, x.w * x.h),
+         "the colour variant is the same picture");
+      ck(memcmp(a.pal, v.pal, a.palCount * sizeof(uint16_t)) != 0,
+         "in different colours");
+    }
+    a.unload(); b.unload(); v.unload();
   }
 
-  // EVERY species: asked for by number, comes back as itself
+  // EVERY Digimon: asked for by number, comes back as itself, and no two
+  // neighbours draw the same pixels
   {
-    int loaded = 0, wrong = 0, missing = 0;
+    int loaded = 0, wrong = 0, missing = 0, twins = 0;
     for (int16_t d = 1; d <= DEX_COUNT; d++) {
       PmdMon m;
       if (!m.load(d, false)) { missing++; continue; }
       loaded++;
       if (m.dex != d) { wrong++; if (wrong < 4) printf("      asked %d, got %d\n", d, m.dex); }
+      PmdMon n;
+      if (d < DEX_COUNT && n.load(d + 1, false)) {
+        const PmdAct &x = m.acts[PMD_IDLE], &y = n.acts[PMD_IDLE];
+        if (x.w == y.w && x.h == y.h && !memcmp(x.data, y.data, x.w * x.h)) twins++;
+        n.unload();
+      }
       m.unload();
     }
     printf("      %d sprites loaded, %d missing from the pack\n", loaded, missing);
-    ck(loaded > 300, "most of the dex has a sprite to check");
-    ck(wrong == 0, "every species that loads is the species that was asked for");
-  }
-
-  // THE assertion that actually bites. m.dex only records what was ASKED for,
-  // so a truncation inside the filename alone would slip past it -- proven by
-  // putting the bug back and watching that check still pass. This compares the
-  // PIXELS of every species past 255 against the Kanto species it would wrap
-  // onto, which is the thing that was really going wrong on the panel.
-  {
-    int checked = 0, collided = 0;
-    for (int16_t d = 256; d <= DEX_COUNT; d++) {
-      PmdMon hi, lo;
-      if (!hi.load(d, false)) continue;
-      if (!lo.load((int16_t)(d - 256), false)) { hi.unload(); continue; }
-      checked++;
-      if (hi.palCount == lo.palCount &&
-          !memcmp(hi.pal, lo.pal, hi.palCount * sizeof(uint16_t))) {
-        if (collided < 3) printf("      dex %d draws the same pixels as %d\n", d, d - 256);
-        collided++;
-      }
-      hi.unload(); lo.unload();
-    }
-    printf("      compared %d species past 255 against their wrap-around twin\n", checked);
-    ck(checked > 100, "the whole back half of the dex is reachable");
-    ck(collided == 0, "and none of them draws the Kanto species it would truncate to");
+    ck(loaded >= DEX_COUNT - NO_ART_COUNT, "every Digimon with art has a sprite to check");
+    ck(wrong == 0, "every Digimon that loads is the one that was asked for");
+    ck(twins == 0, "and no two neighbours draw the same pixels");
   }
 
   // and nonsense is refused rather than opening some other creature's file

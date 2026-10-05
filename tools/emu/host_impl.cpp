@@ -17,7 +17,7 @@ void emuSetSpriteDir(const char *d) { g_spriteDir = d; }
 
 bool sdReady = true;
 bool sdDirty = false;
-// The firmware rescans region art when a pack lands over PUT. There is no card
+// The firmware rescans version art when a pack lands over PUT. There is no card
 // here and no PUT path, so the flag never sets and the scan is a no-op -- but both
 // symbols are referenced from loop(), so they have to exist to link.
 bool sdArtDirty = false;
@@ -53,22 +53,22 @@ static uint8_t *slurp(const std::string &path, uint32_t *size) {
 //    SdThumbs::load() below, so there is no length to get wrong.
 //
 // 2. `dexNum > 999` -- a literal that did not grow with the dex. DEX_COUNT is
-//    1025, so the last 26 species could never load however long the buffer was.
+//    1025, so the last 26 Digimon could never load however long the buffer was.
 //    CLAUDE.md § "uint8_t with a dex of 386" is a list of exactly this, and this
 //    is the same mistake wearing a different width.
 //
 // sprite_test catches both, and could not run at all until unpack_bundle.py
 // existed -- so a test written to catch a sprite-truncation bug was skipped on
 // every machine while a sprite-truncation bug sat two lines away from it.
-bool PmdMon::load(int16_t dexNum, bool shiny) {
+bool PmdMon::load(int16_t dexNum, bool variant) {
   if (dexNum < 1 || dexNum > DEX_COUNT) return false;
   unload();
   char name[24];
-  snprintf(name, sizeof(name), "/p%s%03u.bin", shiny ? "s" : "", (unsigned)dexNum);
+  snprintf(name, sizeof(name), "/p%s%03u.bin", variant ? "s" : "", (unsigned)dexNum);
   uint32_t size = 0;
   blob = slurp(g_spriteDir + name, &size);
-  if (!blob && shiny) {
-    // No shiny variant packed: fall back to the normal one, as the firmware does.
+  if (!blob && variant) {
+    // No variant variant packed: fall back to the normal one, as the firmware does.
     snprintf(name, sizeof(name), "/p%03u.bin", (unsigned)dexNum);
     blob = slurp(g_spriteDir + name, &size);
   }
@@ -180,7 +180,7 @@ void nvsReport(const char *) {}
 #ifndef TAMA_REAL_AUDIO
 void audioBegin() {}
 void sfxPlay(uint8_t) {}
-// The per-species chirp. Counted rather than discarded, so the tests can prove a
+// The per-Digimon chirp. Counted rather than discarded, so the tests can prove a
 // cry was ASKED FOR at the right moments -- the emulator structurally cannot judge
 // how one SOUNDS (CLAUDE.md is explicit about that), but whether the game requests
 // one is ordinary logic and belongs under test.

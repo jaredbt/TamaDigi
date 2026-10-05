@@ -71,7 +71,7 @@ ck(parsed.fields > 40, `the field count reads back sensibly (${parsed.fields})`)
 
 const described = describeBackup(parsed.blob);
 console.log(`      label from the blob: dex=${described.dex} age=${described.ageMinutes}`);
-ck(described.dex === 6, 'the label reads the species the fixture was built with (CHARIZARD)');
+ck(described.dex === 6, 'the label reads the species the fixture was built with (TYRANNOMON)');
 
 // ---- truncation: the case that used to pass
 // A capture that stops early still ends with a plausible commit line. Dropping a
@@ -132,7 +132,7 @@ ckThrows(() => verifyBackup('IMPORT 544B5053ABC\nIMPORT'), 'odd',
          'an odd-length data line is refused');
 // Long enough to reach the magic check -- a 4-byte blob is refused for being too
 // short, which is a different guard and would have made this assertion a lie.
-ckThrows(() => verifyBackup(`IMPORT ${'aa'.repeat(12)}\nIMPORT`), 'not a TamaPoke save',
+ckThrows(() => verifyBackup(`IMPORT ${'aa'.repeat(12)}\nIMPORT`), 'not a TamaDigi save',
          'a blob with the wrong magic is refused');
 ckThrows(() => verifyBackup('IMPORT 544B5053\nIMPORT'), 'too short',
          'and one too short to hold a header is refused for being short');
@@ -155,7 +155,7 @@ ckThrows(() => verifyBackup('hello\nIMPORT'), 'unrecognised',
 
 // ---- comments and whitespace are tolerated, since a player may paste anything
 {
-  const messy = `# TamaPoke save, ${parsed.blob.length} bytes. Paste this whole block back.\n\n`
+  const messy = `# TamaDigi save, ${parsed.blob.length} bytes. Paste this whole block back.\n\n`
     + parsed.commands.slice(0, -1).map((c) => `  ${c}  `).join('\n\n')
     + '\n# a note the player added\nIMPORT\n';
   const ok = verifyBackup(messy);
@@ -177,14 +177,14 @@ ckThrows(() => verifyBackup('hello\nIMPORT'), 'unrecognised',
 {
   const dex = JSON.parse(readFileSync(join(root, 'web/dex.json'), 'utf8'));
   const summary = saveSummary(described, dex);
-  ck(summary.includes('CHARIZARD Lv.30'),
+  ck(summary.includes('TYRANNOMON Lv.30'),
      `the fixture (EGG 6, LVL 30 on the firmware) is labelled with its species and level: "${summary}"`);
   ck(saveSummary(described, null).includes('dex 6'), 'and without the table it is still a number');
   ck(saveSummary({ dex: -1 }, dex) === 'an egg', 'an egg says so');
   ck(saveSummary({}, dex) === 'no details', 'and a blob with nothing readable does not throw');
-  ck(backupFileName('A.S-H!', new Date(2026, 8, 27, 9, 5, 7)) === 'tamapoke-ASH-2026-09-27-09-05-07.tpsave',
+  ck(backupFileName('A.S-H!', new Date(2026, 8, 27, 9, 5, 7)) === 'tamadigi-ASH-2026-09-27-09-05-07.tpsave',
      'backup files are named in local time, with only letters and digits of the trainer');
-  ck(backupFileName('', new Date(2026, 0, 2, 3, 4, 5)).startsWith('tamapoke-save-2026-01-02'),
+  ck(backupFileName('', new Date(2026, 0, 2, 3, 4, 5)).startsWith('tamadigi-save-2026-01-02'),
      'and a save with no trainer name still gets a name');
 }
 

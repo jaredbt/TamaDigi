@@ -29,11 +29,11 @@ inline std::vector<uint8_t> testNvsScalar(nvs_handle_t handle, const char *key,
 inline NvsStore readTestNvs() {
   NvsStore result;
   nvs_handle_t handle;
-  const esp_err_t opened = nvs_open("tamapoke", NVS_READONLY, &handle);
+  const esp_err_t opened = nvs_open("tamadigi", NVS_READONLY, &handle);
   if (opened == ESP_ERR_NVS_NOT_FOUND) return result;
   requireTestNvs(opened);
   nvs_iterator_t iterator = nullptr;
-  esp_err_t found = nvs_entry_find("nvs", "tamapoke", NVS_TYPE_ANY, &iterator);
+  esp_err_t found = nvs_entry_find("nvs", "tamadigi", NVS_TYPE_ANY, &iterator);
   while (found == ESP_OK) {
     nvs_entry_info_t info;
     requireTestNvs(nvs_entry_info(iterator, &info));

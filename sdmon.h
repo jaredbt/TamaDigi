@@ -12,7 +12,7 @@ struct SdMon {
   uint16_t pal[256];
   uint8_t *data = nullptr;  // frames * w * h indices (0xFF = transparente)
 
-  bool load(int16_t dexNum, bool shiny = false);
+  bool load(int16_t dexNum, bool variant = false);
   void unload();
 };
 
@@ -33,17 +33,17 @@ struct PmdAct {
 // sprite PMD multi-accion cargado de la SD a PSRAM
 struct PmdMon {
   bool loaded = false;
-  // WHICH species is actually in here. It exists so a test can prove the file
+  // WHICH Digimon is actually in here. It exists so a test can prove the file
   // that got opened matches the dex that was asked for: dexNum was a uint8_t,
-  // so every species past 255 wrapped -- 258 MARSHTOMP loaded p002.bin and a
-  // Hoenn creature appeared on screen as IVYSAUR.
+  // so every Digimon past 255 wrapped -- 258 MARSHTOMP loaded p002.bin and a
+  // Ver.3 creature appeared on screen as KUWAGAMON.
   int16_t dex = 0;
   uint16_t palCount = 0;
   uint16_t pal[256];
   uint8_t *blob = nullptr;
   PmdAct acts[PMD_NACTS];
 
-  bool load(int16_t dexNum, bool shiny = false);
+  bool load(int16_t dexNum, bool variant = false);
   void unload();
   bool has(uint8_t a) const { return loaded && a < PMD_NACTS && acts[a].frames > 0; }
 };
@@ -63,7 +63,7 @@ extern SdThumbs thumbs;
 // installer sends after the player confirms. It used to format any such card.
 bool sdBegin(bool formatIfUnreadable = false);
 // Narrows gRegionArt to the packs actually present. `verbose` logs one line per
-// region, which is what the boot report wants; the runtime rescan passes false so
+// version, which is what the boot report wants; the runtime rescan passes false so
 // its output cannot interleave with the PUT transfer protocol the host is parsing.
 void sdScanRegionArt(bool verbose = true);
 bool sdSerialCommand(const String &line);  // Handles USB PUT/SUM/LS/PACK/SD commands.
@@ -71,9 +71,9 @@ extern bool sdReady;
 extern bool sdDirty;  // true tras recibir archivos: recargar sprite
 // thumbs.bin is read once at boot, so a new copy over PUT waits on this for loop().
 extern bool sdThumbsDirty;
-// A region's pack can arrive AFTER the card was mounted -- the web installer
+// A version's pack can arrive AFTER the card was mounted -- the web installer
 // streams it over PUT into the running firmware -- and gRegionArt was computed
-// once in sdBegin(). Without this the region stayed locked reading NEEDS PACK
+// once in sdBegin(). Without this the version stayed locked reading NEEDS PACK
 // until the board was rebooted, which looked exactly like the download failing.
 // The main loop rescans when this is set; the transfer itself is never delayed.
 extern bool sdArtDirty;

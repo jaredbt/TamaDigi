@@ -4,14 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f4f1e8">
-  <title>TamaPoke - Installer</title>
+  <title>TamaDigi - Installer</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="https://github.com/eperdeme/TamaPoke" target="_blank" rel="noreferrer">
+    <a class="brand" href="https://github.com/joop0810/TamaDigi" target="_blank" rel="noreferrer">
       <span class="brand-mark" aria-hidden="true"><span></span></span>
-      <span>TamaPoke</span>
+      <span>TamaDigi</span>
     </a>
     <span class="device-label">ESP32-S3 / 466 AMOLED</span>
   </header>
@@ -20,16 +20,16 @@
     <section class="intro" aria-labelledby="page-title">
       <div class="intro-copy">
         <p class="eyebrow">Firmware and SD manager</p>
-        <h1 id="page-title">Build your TamaPoke.</h1>
-        <p>Flash the board, install only the regions you need, and keep a restorable copy of your trainer, Pokemon, party, box, badges, and settings.</p>
+        <h1 id="page-title">Build your TamaDigi.</h1>
+        <p>Flash the board, install only the V-Pet versions you want, and keep a restorable copy of your tamer, Digimon, party, box, badges, and settings.</p>
         <div class="compatibility">
           <span class="signal signal-ready" aria-hidden="true"></span>
           Chrome or Edge on macOS, Windows, or Linux
         </div>
       </div>
-      <div class="device-preview" aria-label="TamaPoke running on its round display">
-        <img src="../docs/screens/main.png" alt="TamaPoke main pet screen">
-        <img src="../docs/screens/player.png" alt="TamaPoke trainer screen">
+      <div class="device-preview" aria-label="TamaDigi running on its round display">
+        <img src="../docs/screens/main.png" alt="TamaDigi main pet screen">
+        <img src="../docs/screens/player.png" alt="TamaDigi tamer screen">
       </div>
     </section>
 
@@ -69,7 +69,7 @@
           <span slot="unsupported">Use Chrome or Edge to flash this board.</span>
           <span slot="not-allowed">This installer requires HTTPS or localhost.</span>
         </esp-web-install-button>
-        <p class="action-copy" id="edition-summary">Every version includes the whole game and loads region art from microSD.</p>
+        <p class="action-copy" id="edition-summary">Every build includes the whole game and loads the Digimon sprites from microSD.</p>
       </div>
       <div class="status" id="flash-status" role="status" hidden></div>
       <div class="status" id="advice-status" role="status" hidden></div>
@@ -81,7 +81,7 @@
             <p class="eyebrow">Changelog</p>
             <h3 id="release-notes-title">Current Pages build</h3>
           </div>
-          <a id="release-link" href="https://github.com/eperdeme/TamaPoke/releases" target="_blank" rel="noreferrer">All releases</a>
+          <a id="release-link" href="https://github.com/joop0810/TamaDigi/releases" target="_blank" rel="noreferrer">All releases</a>
         </header>
         <pre id="release-notes-body">Loading version notes...</pre>
       </section>
@@ -99,7 +99,7 @@
           <span class="step-number">02</span>
           <div>
             <p class="eyebrow">microSD library</p>
-            <h2 id="packs-title">Sync region packs</h2>
+            <h2 id="packs-title">Sync version packs</h2>
           </div>
         </div>
         <div class="connection" id="connection-state">
@@ -118,7 +118,7 @@
 
       <div class="pack-toolbar">
         <div>
-          <h3>Available regions</h3>
+          <h3>Available versions</h3>
           <p id="catalogue-summary">Loading pack catalogue...</p>
         </div>
         <div class="toolbar-actions">
@@ -172,7 +172,7 @@
       <div class="save-layout">
         <div>
           <h3>Download backup</h3>
-          <p>Exports the complete save from internal flash: the live Pokemon, party, box, Pokedex, badges, inventory, and settings.</p>
+          <p>Exports the complete save from internal flash: the live Digimon, party, box, Digidex, badges, inventory, and settings.</p>
           <button class="button button-secondary" id="backup" disabled>
             <i data-lucide="hard-drive-download" aria-hidden="true"></i>
             Download save
@@ -224,8 +224,8 @@
 
   <footer>
     <span>Personal, non-commercial fan project.</span>
-    <span>Sprites: <a href="https://github.com/PMDCollab/SpriteCollab" target="_blank" rel="noreferrer">PMD SpriteCollab</a> (CC BY-NC)</span>
-    <a href="https://github.com/eperdeme/TamaPoke" target="_blank" rel="noreferrer">Source and game manual</a>
+    <span>Sprites: Digimon Color &copy; Bandai, via <a href="https://github.com/furudbat/wayland-vpets" target="_blank" rel="noreferrer">wayland-vpets</a>. Fan project, non-commercial.</span>
+    <a href="https://github.com/joop0810/TamaDigi" target="_blank" rel="noreferrer">Source and game manual</a>
   </footer>
 
   <!-- Vendored and pinned: whether an update keeps the save depends on code inside

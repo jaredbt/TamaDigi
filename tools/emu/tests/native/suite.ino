@@ -28,7 +28,7 @@ void setup() {
   }
   const auto &suite = NATIVE_SUITES[index];
   Preferences fixture;
-  if (!fixture.begin("tamapoke", false) || !fixture.clear()) {
+  if (!fixture.begin("tamadigi", false) || !fixture.clear()) {
     Serial0.println("FAIL native NVS fixture isolation");
     return;
   }

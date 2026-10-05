@@ -25,7 +25,7 @@ void combatantFromPet(Combatant &c, const Pet &p, uint8_t levelCap) {
   fill(c, stats.dex, (uint8_t)stats.level, party.vitOf(stats), party.atkOf(stats),
     party.defOf(stats), party.spaOf(stats), party.spdOf(stats), party.speOf(stats));
   for (int i = 0; i < MOVE_SLOTS; i++) c.moves[i] = p.moves[i];
-  c.shiny = p.shiny;
+  c.variant = p.variant;
   const char *nm = p.nick[0] ? p.nick : DEX_TBL[p.speciesId].name;
   snprintf(c.name, sizeof(c.name), "%s", nm);
 }
@@ -34,7 +34,7 @@ void combatantFromParty(Combatant &c, const PartyMon &m) {
   fill(c, m.dex, (uint8_t)m.level, party.vitOf(m), party.atkOf(m), party.defOf(m),
        party.spaOf(m), party.spdOf(m), party.speOf(m));
   for (int i = 0; i < MOVE_SLOTS; i++) c.moves[i] = m.moves[i];
-  c.shiny = m.shiny != 0;
+  c.variant = m.variant != 0;
   const char *nm = m.nick[0] ? m.nick : DEX_TBL[m.dex].name;
   snprintf(c.name, sizeof(c.name), "%s", nm);
 }
@@ -86,7 +86,7 @@ uint16_t battleDamage(const Combatant &atk, const Combatant &def, uint8_t mv,
   uint32_t dmg = (2UL * atk.level / 5 + 2) * m.power * A / D / 50 + 2;
   if (crit) dmg *= 2;
   if (hasStab(atk.dex, m.type)) dmg = dmg * 3 / 2;
-  uint16_t eff = typeEffVsDex(m.type, def.dex);
+  uint16_t eff = battleEffPct(atk.dex, m.type, def.dex);
   dmg = dmg * eff / 100;
   if (eff == 0) return 0;               // immune: no chip, no minimum
   dmg = dmg * roll / 255;
@@ -190,7 +190,7 @@ void battleAct(Combatant &atk, Combatant &def, uint8_t mv, TurnLog &log) {
   // --- damage, including multi-hit
   uint8_t hits = (m.effect == EF_MULTI) ? (uint8_t)(2 + random(4)) : 1;
   uint16_t total = 0;
-  log.effPct = typeEffVsDex(m.type, def.dex);
+  log.effPct = battleEffPct(atk.dex, m.type, def.dex);
   if (log.effPct == 0) { log.immune = true; return; }
   for (uint8_t h = 0; h < hits; h++) {
     bool crit = random(16) == 0;                 // ~6%, the series' base rate
@@ -219,8 +219,8 @@ void battleAct(Combatant &atk, Combatant &def, uint8_t mv, TurnLog &log) {
     } else if (def.ailment == AIL_NONE) {
       // a type cannot be given the status it is made of
       bool immune = (m.ailment == AIL_BURN && hasStab(def.dex, T_FIRE)) ||
-                    (m.ailment == AIL_FREEZE && hasStab(def.dex, T_ICE)) ||
-                    (m.ailment == AIL_POISON && hasStab(def.dex, T_POISON)) ||
+                    (m.ailment == AIL_FREEZE && hasStab(def.dex, T_WATER)) ||
+                    (m.ailment == AIL_POISON && hasStab(def.dex, T_DARK)) ||
                     (m.ailment == AIL_PARA && hasStab(def.dex, T_ELECTRIC));
       if (!immune) {
         def.ailment = m.ailment;

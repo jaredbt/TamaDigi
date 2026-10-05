@@ -90,7 +90,7 @@ struct LinkMon {
   uint16_t maxHp;
   uint16_t base[SI_COUNT];
   uint8_t moves[MOVE_SLOTS];
-  uint8_t shiny;
+  uint8_t variant;
   char name[LINK_NAME_LEN];
 };
 

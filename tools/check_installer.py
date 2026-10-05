@@ -4,7 +4,7 @@
 The save lives in the NVS partition, and TWO separate things were destroying it.
 Both are checked here because fixing either one alone still loses the save.
 
-1. WHAT IS WRITTEN. web/firmware/tamapoke.bin was a single image starting at
+1. WHAT IS WRITTEN. web/firmware/tamadigi.bin was a single image starting at
    offset 0, and esptool's merge-bin pads the gaps, so it wrote 0xFF straight
    over NVS at 0x9000. The manifest must ship the four parts at their own
    offsets instead, leaving 0x9000..0xE000 alone.

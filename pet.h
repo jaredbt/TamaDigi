@@ -8,7 +8,7 @@
 // 1 tick = 1 minuto de juego. Baja este valor para probar mas rapido
 // (p. ej. 5000UL = las estadisticas caen 12x mas rapido).
 #define PET_TICK_MS 60000UL
-// Minutos de juego por nivel. Con 60, CHARMANDER evoluciona a las ~16 h
+// Minutos de juego por nivel. Con 60, AGUMON evoluciona a las ~16 h
 // de juego con cuidado perfecto. Baja a 1 para ver evoluciones al momento.
 #define MINUTES_PER_LEVEL 60
 #define MAX_LEVEL 100              // reached at 4d 3h; see level()
@@ -18,7 +18,7 @@
 #define CEREMONY_MS 10000UL                // duracion de la despedida en pantalla
 #define FAREWELL_AGE_MIN (3UL * 24 * 60)   // se despide a los 3 dias de juego (en forma final)
 // Retiring a creature BEFORE it has earned its farewell costs the NEXT one a
-// day's worth of evolution. Derived from MINUTES_PER_LEVEL rather than written
+// day's worth of digivolution. Derived from MINUTES_PER_LEVEL rather than written
 // as 24, so it stays "a day" if the level rate is ever retuned.
 #define EVO_PENALTY_LEVELS ((uint8_t)((24UL * 60) / MINUTES_PER_LEVEL))
 #define RUNAWAY_TICKS 60                   // se escapa tras 1 h con TODO a cero
@@ -102,9 +102,9 @@ enum : uint16_t {
 uint8_t moveUnlockLevel(int16_t dex, uint8_t idx);
 
 // ---------------------------------------------------------------------------
-// Which regions have their sprite pack on the microSD.
+// Which versions have their sprite pack on the microSD.
 //
-// One bit per region and THE DEFAULT IS ALL SET, which is doing two jobs: a
+// One bit per version and THE DEFAULT IS ALL SET, which is doing two jobs: a
 // board with no SD at all keeps today's behaviour rather than presenting an
 // empty game, and pet.cpp stays free of any SD dependency. That second part is
 // not tidiness -- pet.cpp is compiled into all 33 test binaries and none of
@@ -118,27 +118,32 @@ uint8_t moveUnlockLevel(int16_t dex, uint8_t idx);
 extern uint16_t gRegionArt;
 static_assert(REGION_COUNT <= 16, "gRegionArt needs a bit per region");
 
-// Is this region playable? REGION_ALL is available while ANY real region is --
+// Is this version playable? REGION_ALL is available while ANY real version is --
 // it is the mixed pool and must not vanish because one pack is missing.
 bool regionAvailable(uint8_t r);
 
-// Which region a dex number belongs to, or REGION_ALL if somehow none. The
-// regions tile the dex exactly once (dexdata_test pins that), so this is a
+// Which version a dex number belongs to, or REGION_ALL if somehow none. The
+// versions tile the dex exactly once (dexdata_test pins that), so this is a
 // lookup rather than a judgement.
 uint8_t regionOfDex(int16_t d);
 
-// A drawable start/middle/end species for checking whether a region pack is
+// A drawable start/middle/end Digimon for checking whether a version pack is
 // present. Returns 0 for REGION_ALL or invalid input.
 int16_t regionArtProbe(uint8_t region, uint8_t slot);
 
-// The next region the player can actually choose, skipping any whose sprite
-// pack is missing. The egg pill cycles with this rather than (region + 1) %
-// REGION_COUNT, which would land on a locked region and silently do nothing.
+// The next version the player can actually choose, skipping any whose sprite
+// pack is missing. The egg pill cycles with this rather than (version + 1) %
+// REGION_COUNT, which would land on a locked version and silently do nothing.
 uint8_t nextAvailableRegion(uint8_t from);
 
-// Can this species be put on the panel at all: it has art somewhere, and the
-// pack for its region is on the card. THE single answer, asked by the egg pool
-// and by every evolution.
+// Can an egg come from this version: pack present AND its Baby I has art.
+bool regionHatchable(uint8_t r);
+// The next version an egg can come from (the egg pill and first boot use it).
+uint8_t nextHatchableRegion(uint8_t from);
+
+// Can this Digimon be put on the panel at all: it has art somewhere, and the
+// pack for its version is on the card. THE single answer, asked by the egg pool
+// and by every digivolution.
 bool speciesShowable(int16_t d);
 
 class Pet {
@@ -161,11 +166,12 @@ public:
   uint8_t ivAtk = 16, ivDef = 16, ivSpe = 16, ivHp = 16;
   uint8_t trAtk = 0, trDef = 0, trSpe = 0;
   bool berryKnown = false;  // ya descubrio su baya favorita
-  bool shiny = false;       // variante de color rara (se sortea en el huevo)
+  bool variant = false;       // variante de color rara (se sortea en el huevo)
   uint32_t ageMinutes = 0;
-  int16_t speciesId = -1;      // numero de Pokedex (1..DEX_COUNT), -1 = huevo
+  int16_t speciesId = -1;      // numero de Digidex (1..DEX_COUNT), -1 = huevo
   int16_t prevSpeciesId = -1;  // para la animacion de evolucion
-  uint8_t careMistakes = 0;   // descuidos: cada uno retrasa la evolucion 1 nivel
+  uint8_t careMistakes = 0;   // care mistakes this stage: they pick the branch
+  uint8_t wins = 0;           // battles won this stage: Champion -> Ultimate needs them
   bool sleeping = false;
   uint32_t lastSeenEpoch = 0;   // ultima hora RTC vista (para progresion offline)
   uint8_t ceremony = CER_NONE;  // despedida/escapada/liberacion en curso
@@ -176,12 +182,12 @@ public:
   // it; a runaway leaves endedKind at CER_NONE and the pet is simply gone.
   PartyMon endedMon;
   uint8_t endedKind = CER_NONE;
-  // Pokedex bitmaps, one bit per species. Widening these is SAFE on an existing
+  // Digidex bitmaps, one bit per Digimon. Widening these is SAFE on an existing
   // save: getBytes() copies only what was stored, and the array is zeroed by its
-  // initialiser, so a 19-byte blob from the Kanto-only build lands in the front
+  // initialiser, so a 19-byte blob from the Ver.1-only build lands in the front
   // and bits 1-151 keep exactly their old meaning.
   uint8_t dexReg[(DEX_COUNT + 7) / 8] = { 0 };       // criados
-  uint8_t dexShinyReg[(DEX_COUNT + 7) / 8] = { 0 };  // criados en version shiny
+  uint8_t dexVariantReg[(DEX_COUNT + 7) / 8] = { 0 };  // criados en version variant
   // racha de cuidado diario (del jugador: persiste entre crianzas)
   uint16_t streak = 0, bestStreak = 0;
   uint32_t lastCareDay = 0;
@@ -212,10 +218,10 @@ public:
   // No new save field, and none is needed: the IVs are rolled once at hatch and
   // never change again, and they are already persisted -- so anything computed
   // from them is stable across reboots for free. Same trick as lovesBerry()
-  // above, which hides a per-species taste inside speciesId.
+  // above, which hides a per-Digimon taste inside speciesId.
   //
   // Deliberately NOT derived from speciesId: that changes when the creature
-  // evolves, and a companion whose temperament resets the moment it grows up is
+  // digivolves, and a companion whose temperament resets the moment it grows up is
   // worse than having none at all.
   //
   // And deliberately NOT a hash of the IVs. A hash is stable but arbitrary --
@@ -246,10 +252,10 @@ public:
   // The ball game: happiness AND defence training. Returns the DEF gained.
   uint8_t playResult(uint8_t score);
   uint8_t trainStrength(uint16_t hits);  // saco de entrenamiento (entrena FUE)
-  // Reaction test: its own trainer, so the ball game can go back to being purely
+  // Reaction test: its own tamer, so the ball game can go back to being purely
   // about joy instead of doubling as a stat grind.
   uint8_t trainSpeed(uint16_t hits);
-  // What beating a gym leader is worth. Random WHICH stat, but only among the
+  // What beating a boss is worth. Random WHICH stat, but only among the
   // ones with room left -- a random grant that landed on an already-capped stat
   // would silently evaporate, which reads as a bug rather than as luck. Writes
   // the stat into `which` (0 ATK, 1 DEF, 2 SPE) and returns what was actually
@@ -271,9 +277,9 @@ public:
   uint16_t defStat() const;
   uint16_t speStat() const;
   uint16_t vitStat() const;  // vitalidad (bHp): no se entrena, solo IV y nivel
-  // The physical/special split lives on the species (bSpA/bSpD), not the
+  // The physical/special split lives on the Digimon (bSpA/bSpD), not the
   // individual: special attack reuses ivAtk/trAtk and special defence reuses
-  // ivDef/trDef, so no extra IVs and no save migration. See fetch_pokeapi.py.
+  // ivDef/trDef, so no extra IVs and no save migration. See digimon_data.py.
   uint16_t spaStat() const;
   uint16_t spdStat() const;
 
@@ -283,7 +289,7 @@ public:
   uint8_t moves[MOVE_SLOTS] = { 0, 0, 0, 0 };
   uint8_t moveCount() const;
   bool knowsMove(uint8_t mv) const;
-  // The newest MOVE_SLOTS moves this species has learned by its current level,
+  // The newest MOVE_SLOTS moves this Digimon has learned by its current level,
   // newest last. Used on hatch, on a fresh save, and to backfill empty slots.
   void relearnFromLevel();
   // The level at which `dex` may legally use learnset entry `i`. A level-up
@@ -292,16 +298,16 @@ public:
   //
   // It is a free function, not a Pet method, because the move PICKER needs the
   // identical answer for a banked party member. Having its own gate is what let
-  // a level 22 Charmeleon be offered FIRE BLAST.
+  // a level 22 AGUMON be offered FIRE BLAST.
 
   // Moves reachable at this level that are not already known, for the learn
   // prompt. Returns how many were written into out (at most max).
   uint8_t pendingLearnables(uint8_t *out, uint8_t max) const;
 
-  // Player-wide, like the streak and the Pokedex: badges outlive the creature
+  // Player-wide, like the streak and the Digidex: badges outlive the creature
   // that earned them, so newEgg() must never clear this.
   // A creature brought back out of the party or box. It is FROZEN: it does not
-  // age, cannot evolve, and cannot be lost -- a companion rather than a
+  // age, cannot digivolve, and cannot be lost -- a companion rather than a
   // contender. The cost is that its level never rises again, so it stops
   // improving; ageMinutes is simply set to match its banked level, which keeps
   // level() working untouched rather than needing a second source of truth.
@@ -314,7 +320,7 @@ public:
   // happens when three callers each keep their own copy of that.
   PartyMon toPartyMon() const;
   // Make a stored creature the focused one -- the one that ages, levels,
-  // evolves and is cared for. Unlike reviveFrom() it is NOT frozen: it picks up
+  // digivolves and is cared for. Unlike reviveFrom() it is NOT frozen: it picks up
   // its own care state and carries on. A record from before care state existed
   // (stateVersion 0) starts from its banked level with fresh stats, which is
   // the only honest reading of a save that never held them.
@@ -336,14 +342,14 @@ public:
   // Which generation eggs come from. Player-wide, like the badges: it outlives
   // every creature, so newEgg() must never reset it.
   uint8_t region = REGION_ALL;
-  // The species this egg would be in each region. Filled in as the player
-  // looks, cleared by newEgg(). It exists so that switching region and back
+  // The Digimon this egg would be in each version. Filled in as the player
+  // looks, cleared by newEgg(). It exists so that switching version and back
   // shows the SAME creature rather than rolling a fresh one -- without it,
   // toggling would be a re-roll button.
   int16_t eggByRegion[REGION_COUNT] = { 0 };
   void setRegion(uint8_t r);
   const char *regionName() const { return REGIONS[region % REGION_COUNT].name; }
-  // How much of one region's dex is filled in, for the Pokedex header.
+  // How much of one version's dex is filled in, for the Digidex header.
   uint16_t registeredCountIn(uint16_t lo, uint16_t hi) const {
     uint16_t n = 0;
     for (uint16_t d = lo; d <= hi && d <= DEX_COUNT; d++) if (isRegistered(d)) n++;
@@ -351,11 +357,11 @@ public:
   }
 
   uint8_t avatar = 0;       // which player sprite, 0..3
-  // Kanto's ladder, under the keys it has always used. Johto and Hoenn live in
+  // Ver.1's ladder, under the keys it has always used. Ver.2 and Ver.3 live in
   // a SEPARATE array under new keys rather than widening these -- purely
   // additive, so an existing save cannot be misread, exactly the reasoning that
   // put the box under its own key instead of growing the party blob.
-  uint16_t badges = 0;      // bit n = trainer n beaten on easy
+  uint16_t badges = 0;      // bit n = tamer n beaten on easy
   uint16_t badgesHard = 0;  // ... and on hard
   uint16_t badgesX[GYM_REGIONS - 1] = { 0 };
   uint16_t badgesHardX[GYM_REGIONS - 1] = { 0 };
@@ -382,7 +388,7 @@ public:
     while (v) { n += v & 1; v >>= 1; }
     return n;
   }
-  // Every region's badges together, for the player card's running total.
+  // Every version's badges together, for the player card's running total.
   uint8_t badgeCount(bool hard) const {
     uint8_t n = 0;
     for (uint8_t r = 0; r < GYM_REGIONS; r++) n += badgeCountIn(r, hard);
@@ -425,7 +431,7 @@ public:
   void startFarewell();  // tambien usable desde la consola serie (BYE)
   // Retire on demand. Before the farewell is earned this is the SAME ceremony
   // -- the creature is banked exactly as it would be -- but it hands the next
-  // creature EVO_PENALTY_LEVELS on every evolution threshold. Retiring one that
+  // creature EVO_PENALTY_LEVELS on every digivolution threshold. Retiring one that
   // has already earned its farewell costs nothing: it is then just the button.
   void startRetire();
   bool canRetireNow() const;
@@ -457,7 +463,7 @@ public:
   // earned it -- see sleep_test.
   bool inTotalNeglect() const { return !fullness && !joy && !energy && !hygiene; }
   bool canRunawayNow() const;   // abandono total 1h: lista para escaparse (boton triste)
-  // Is there a form this creature could evolve into that this player could be
+  // Is there a form this creature could digivolve into that this player could be
   // SHOWN? Public so a test can drive it without reconstructing canEvolveNow().
   bool evoTargetShowable() const;
   // el usuario decide en un dialogo; "mantener/quedaros" pospone y re-ofrece luego
@@ -465,7 +471,7 @@ public:
   bool wantFarewellButton() const { return canFarewellNow() && ageMinutes >= farDeclinedAge; }
   void declineEvolve() { evoDeclinedLv = level(); }              // re-ofrece al subir de nivel
   void declineFarewell() { farDeclinedAge = ageMinutes + 1440; } // re-ofrece dentro de 1 dia
-  // primera partida: el jugador elige inicial (Bulbasaur/Charmander/Squirtle)
+  // primera partida: el jugador elige inicial (BOTAMON/AGUMON/BETAMON)
   bool awaitingStarter() const { return starterPick; }
   void chooseStarter(int16_t dex) { eggTarget = dex; starterPick = false; save(); }
   // Empties NVS; the caller restarts into a new game (serial command WIPE).
@@ -485,12 +491,12 @@ public:
   }
   void dbgRunawayReady() { fullness = joy = energy = hygiene = 0; neglectTicks = RUNAWAY_TICKS; }  // test
   // test: force what the egg holds and hatch it now (serial command EGG).
-  // The legendary/shiny IV guarantees only fire inside hatch(), so without
+  // The Mega/variant IV guarantees only fire inside hatch(), so without
   // this there is no way to exercise them from outside the class.
-  void dbgHatchAs(int16_t dex, bool wantShiny) {
+  void dbgHatchAs(int16_t dex, bool wantVariant) {
     if (dex < 1 || dex > DEX_COUNT) return;
     eggTarget = dex;
-    eggShiny = wantShiny;
+    eggVariant = wantVariant;
     starterPick = false;
     speciesId = -1;
     eggTaps = 0;
@@ -509,28 +515,25 @@ public:
   bool isRegistered(int16_t dex) const {
     return dex >= 1 && dex <= DEX_COUNT && (dexReg[(dex - 1) >> 3] & (1 << ((dex - 1) & 7)));
   }
-  bool isShinyRegistered(int16_t dex) const {
-    return dex >= 1 && dex <= DEX_COUNT && (dexShinyReg[(dex - 1) >> 3] & (1 << ((dex - 1) & 7)));
+  bool isVariantRegistered(int16_t dex) const {
+    return dex >= 1 && dex <= DEX_COUNT && (dexVariantReg[(dex - 1) >> 3] & (1 << ((dex - 1) & 7)));
   }
   uint16_t registeredCount() const;
   bool lineHasUnregistered(int16_t base) const;
   uint8_t eggRarity() const;       // rareza del huevo actual (sin revelar especie)
   int16_t pickEggSpecies();        // publica para poder simular tiradas (EGGS)
   // What the waiting egg would hatch into. Hidden from the PLAYER, not from the
-  // code: the serial console already simulates rolls, and the region tests have
+  // code: the serial console already simulates rolls, and the version tests have
   // to see which creature a switch landed on.
   int16_t eggPeek() const { return eggTarget; }
   int16_t rollInRegion(uint8_t r, uint8_t tier);
-  // Which of EEVEE's branches this player can actually be handed right now.
-  // THE single answer: evolve() picks from it and lineHasUnregistered() asks it
-  // whether the line is finished, and those two having their own opinions is how
-  // the branch stayed at 134-136 while five more Eeveelutions sat in the dex.
-  //
-  // Filtered by the sprite pack AND by whether the species has art at all --
-  // evolving into something that can only draw as a dex number is the same fault
-  // just removed from the gym rosters, and here it would be permanent. `out`
-  // must hold EEVEE_EVO_COUNT; returns how many were written.
-  uint8_t eeveeOptions(int16_t *out) const;
+  // THE digivolution answer: the first branch in EVO_TBL out of this form whose
+  // conditions (care mistakes, training, wins) hold and whose target can be
+  // shown. 0 = none. canEvolveNow() and digivolve() both ask it.
+  int16_t digiTarget() const;
+  uint8_t trainingTotal() const;   // trAtk + trDef + trSpe, capped at 255
+  uint8_t winsNeeded() const;      // the fewest wins any branch out of here asks
+  void addWin();                   // the live Digimon won a battle
   uint8_t lowestStat() const { return min(min(fullness, joy), min(energy, hygiene)); }
   PetMood mood() const;
   // progreso de la ceremonia de despedida/escapada, 0..1 (para animarla)
@@ -624,7 +627,7 @@ private:
   uint32_t heartUntil = 0;
   uint32_t evolveUntil = 0;
   int16_t eggTarget = 1;       // dex oculto que saldra del huevo
-  bool eggShiny = false;       // sorpresa sorteada al crear el huevo
+  bool eggVariant = false;       // sorpresa sorteada al crear el huevo
   uint8_t eggTaps = 0;
   uint8_t mistakeCooldown = 0;
   uint8_t ticksSinceSave = 0;
@@ -632,7 +635,7 @@ private:
   uint8_t evoDeclinedLv = 0;    // "mantener forma": no ofrecer evolucion hasta subir de nivel
   uint32_t farDeclinedAge = 0;  // "quedaros juntos": no ofrecer despedida hasta esta edad
   bool starterPick = false;     // primera partida: esperando que el jugador elija inicial
-  uint8_t evoPen = 0;           // levels added to this creature's evolution gate
+  uint8_t evoPen = 0;           // levels added to this creature's digivolution gate
   bool retirePending = false;   // an early retire is under way; newEgg() spends it
   uint8_t neglectTicks = 0;
   uint16_t goodTicks = 0;  // racha bien cuidado: forja la DEF
@@ -645,7 +648,7 @@ private:
   void registerCare();   // primer cuidado del dia: racha + vinculo
   void addBond(uint8_t amt);
   uint8_t rollIV(int bonus) const;  // una tirada 8-31 empujada por el cuidado
-  void rollIVs();                   // los 4, con las garantias de legendario/shiny
+  void rollIVs();                   // los 4, con las garantias de legendario/variant
   uint8_t ivFromGene(uint8_t gene) const;  // migracion de guardados con genes
   void defTick(bool resting);       // la calma forja la defensa (ver pet.cpp)
   void snapshotForParty();          // copy into endedMon before newEgg() wipes it
