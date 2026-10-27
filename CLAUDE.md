@@ -22,7 +22,11 @@ non-commercial fan project: the code is MIT, the sprites are Bandai's.
 | `sdmon.cpp/.h` | SD sprite streaming (TPK2) + USB `PUT` transfer |
 | `tools/digimon_data.py` | **THE single source of game data.** Edit here, then regenerate |
 | `tools/emu/` | Desktop emulator: runs the real firmware in an SDL window, plus the test suites |
-| `web/` | ESP Web Tools installer + `sprites-<version>.pak` |
+| `web/` | ESP Web Tools installer + `sprites-<version>.pak`; `web/firmware/` holds the release binaries |
+| `docs/HANDOFF.md` | **Read first.** The Time Stranger rework: every design decision, the firmware change list, what is open |
+| `tools/data/time-stranger/` | Time Stranger stats and evolution requirements for the rework (nothing reads them yet) |
+| `tools/prerender/` | Captures Time Stranger models as TPK2 sprites. Private builds only: never commit its gitignored output |
+| `art/backdrops/` | The original V-Pet-style landscape backdrop (day and night), not drawn by the firmware yet |
 
 ## The data pipeline
 
@@ -43,8 +47,8 @@ wins reset at every digivolution. `wins` lives in the pet checkpoint's former
 padding byte, so the record layout did not change.
 
 A Digimon with no sprite (`noart.h`) never hatches, is never a branch target and
-never appears in the wild. Ver.3 has no Baby I art, so `regionHatchable()` keeps
-its egg locked while its other Digimon still appear in the wild and the ladders.
+never appears in the wild. Every one of the 87 has art today (`NO_ART_COUNT` is 0),
+but `regionHatchable()` still locks a version's egg if its Baby I loses its sprite.
 
 ## Screenshots — and why they went a dozen releases stale
 
@@ -179,7 +183,13 @@ Things that have already bitten, or nearly:
 `git push origin vX.Y` is the whole release: `.github/workflows/publish-release.yml`
 runs `tools/check_release.py` and then publishes. Before tagging:
 
-1. `bash tools/build_web.sh` -- **after the last source edit.** `check_release.py`
+1. The four firmware parts in `web/firmware/` and `web/manifest.json` must be
+   **committed**, built after the last source edit: the tag carries them, and the
+   installer flashes a release straight from the tagged tree. joop0810's commit had
+   untracked them; v1.0.0 put them back. Either run `bash tools/build_web.sh`
+   (needs `arduino-cli` and the ESP32 core), or merge to `main`, wait for the Pages
+   build, and take its `tamadigi-firmware` artifact (`gh run download <run> --name
+   tamadigi-firmware`), which is what v1.0.0 did. `check_release.py`
    verifies each binary's `?v=` hash against its own bytes, not against the
    source, so a stale `app.bin` passes the check and ships anyway. The same run
    computes every JS cache key (each module `installer.js` imports, then
@@ -237,11 +247,14 @@ enum in `i18n.h`, then add the translation at the *same index* in all 6 rows of
 `STRINGS[LANG_COUNT][STR_COUNT]` in `i18n.cpp`. The table is positional — a missing
 entry in one language shifts every string after it in that language.
 
-**Balance changes must update the README.** `README.md` § "Game manual (the actual
-numbers)" documents exact drain rates, spawn odds and thresholds straight from the
-code. It is the project's spec, not decoration — changing a constant in `pet.h`/
-`pet.cpp` without updating that table makes the docs lie. Bump `FW_VERSION` in
-`TamaDigi.ino:27` and the firmware badge at the top of the README in the same commit.
+**Balance changes must be documented.** Upstream's README had a "Game manual (the
+actual numbers)" section with exact drain rates, spawn odds and thresholds straight
+from the code, and it was the project's spec. The Digimon conversion dropped it, and
+it has not been rebuilt (it will be after the Time Stranger rework changes the
+numbers; upstream's is at `git show f7f02f8:README.md`). Until then, a change to a
+constant in `pet.h`/`pet.cpp` goes in the commit message and `docs/HANDOFF.md`.
+Bump `FW_VERSION` in `TamaDigi.ino` and the firmware badge at the top of the README
+in the same commit.
 
 **Everything outside the UI string table is in English**: comments, commit messages,
 serial and tool output, script messages and docs. The original author's source was
@@ -361,6 +374,9 @@ a VALUE that happens to hold rather than to the RULE.
 - Worst, a check phrased as a NEGATIVE ("never rests on a locked region") was
   **vacuously true** when nothing was locked, and survived deleting the gate
   entirely. Only the negative-check caught it.
+
+These two lessons come from TamaPoke's `check_sprites.py`, which the Digimon
+conversion removed; they apply to any coverage tool.
 
 **A DIRECTORY IS NOT COVERAGE.** `check_sprites.py` counted `sprite/NNNN`
 existing as "has art" and reported Ver.4 100%, while `pack_sprites.py` failed on

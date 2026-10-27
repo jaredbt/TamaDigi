@@ -34,6 +34,9 @@ joop0810 published TamaDigi as a single commit with no history. This repo puts t
 
 - **A pre-render pipeline** (`tools/prerender/`) that captures Time Stranger's 3D Digimon models as animated sprites in the firmware's TPK2 format. It uses a locally run copy of Nuffle's [DSTS Model Viewer](https://tangled.org/nuffle.me/dsts-viewer) (MIT). The captured frames cover every action the firmware plays (idle, walk, sleep, eat, hurt, attack, cheer, nod, deep breath) and two new ones (sad and special attack).
 - **Emulator start time:** `EMU_EPOCH=<unix seconds>` sets the virtual clock, for testing day and night.
+- **A baseline release, [v1.0.0](https://github.com/jaredbt/TamaDigi/releases/tag/v1.0.0):** joop0810's game as it was, so there is a known-good firmware to flash first and to roll back to. This fork's installer is live at https://jaredbt.github.io/TamaDigi/web/.
+- **Tests that pass:** the firmware tests had failed since the Digimon conversion (a save-migration test still used Pokémon dex numbers). They pass now, and the old-save upgrade test the conversion deleted is back, with a frozen v1.0.0 save that later builds must keep loading.
+- **The Time Stranger data** the rework needs: every Digimon's stats and evolution requirements (`tools/data/time-stranger/`).
 
 > **Private builds only.** The models, and every frame rendered from them, are Bandai Namco's assets. `tools/prerender/.gitignore` keeps them out of the repo, and they must never be committed or published. A public build would need other art.
 
@@ -182,7 +185,7 @@ The finished packs are already in `web/sprites-ver1.pak` … `ver5.pak`. You onl
 3. Further down, send the **version packs** (sprites) to the SD card: Ver.1–Ver.5, one at a time or all of them.
 4. Done. To change the language on the device: tap the name → SETTINGS → tap the language row (until it shows the one you want).
 
-Every push to `main` rebuilds it: the Pages workflow compiles the firmware in the cloud and publishes the installer. The page offers "Current Pages build" (the latest `main`) plus any GitHub Releases; this fork has none yet.
+Every push to `main` rebuilds it: the Pages workflow compiles the firmware in the cloud and publishes the installer. The page offers "Current Pages build" (the latest `main`) plus every GitHub Release, starting with v1.0.0, the fork's baseline.
 
 **Your own fork of this fork:** replace `jaredbt` with your GitHub name in `web/editions.json`, `web/index.html`, `web/installer.js` and `tools/local_installer.ps1`, choose "GitHub Actions" under **Settings → Pages → Source**, and push to `main`.
 

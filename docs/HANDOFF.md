@@ -1,7 +1,7 @@
 # Handoff: custom TamaDigi (Time Stranger roster)
 
 Status as of 2026-10-27. Supersedes the original notes on the `claude/handoff`
-branch of `jaredbt/Esp-J`.
+branch of `jaredbt/Esp-J` (archived).
 
 ## What this is
 
@@ -26,6 +26,44 @@ credits all four authors.
   rate, static screens, amp gating, light sleep, LiPo curve, safe power-off) and
   **run-merged sprite drawing**; then check the Sep 7 fixes (v1.6-v1.14) one by one.
 
+## Where things stand
+
+- **v1.0.0 is released** ([release](https://github.com/jaredbt/TamaDigi/releases/tag/v1.0.0)):
+  joop0810's game unchanged except English serial logs, as the baseline to flash
+  first when the board arrives and the rollback for later releases. The installer
+  is this fork's own, at <https://jaredbt.github.io/TamaDigi/web/>, rebuilt by
+  GitHub Pages on every push to `main`.
+- **CI is green.** The firmware tests had failed since joop0810's commit because
+  `tools/emu/tests/native/native.ino` used Pokémon dex numbers (PR #1). The
+  old-save upgrade test he deleted is back (PR #2), with a **frozen v1.0.0 save**.
+- **The name stays TamaDigi** (TamaMon, DigiGotchi and TamaDigiv2 were considered;
+  the first two clash with existing projects, the last reads as joop0810's next
+  version). The README calls it "TamaDigi: Time Stranger fork".
+- **Time Stranger data is in the repo**: `tools/data/time-stranger/` (stats,
+  evolution requirements, and the `unlock_check.py` behind the training decision).
+
+### Next, in order
+
+1. Settle the "without versions" questions below (eggs, wild pools, boss ladders,
+   badges -> Agent Rank). They decide the data model and the save layout, so they
+   come before code.
+2. Build the data pipeline: replace the 87-Digimon roster in `tools/digimon_data.py`
+   with the Time Stranger roster and Approach B stats, and regenerate.
+3. Before the board arrives: pull the hardware bring-up notes back from upstream's
+   CLAUDE.md (`git show f7f02f8:CLAUDE.md`: "Hardware bring-up order", "First
+   bring-up, actually done", "Found by hand on the board, not by any test").
+4. After the rework: rebuild the README's "game manual" of exact numbers
+   (upstream's is at `git show f7f02f8:README.md`).
+
+### What joop0810's conversion left out
+
+Checked against eperdeme's v4.1.1 (`f7f02f8`): the CI and release tooling were only
+renamed, not loosened, and no Pokémon leftovers remain in firmware code. Gaps:
+the upgrade test (restored), the committed release binaries (restored), the
+README's game manual and about 1,100 lines of CLAUDE.md notes (still in history),
+per-Digimon base stats (stage x one of six profiles; Approach B replaces it), and
+stale test comments saying Ver.3 has no Baby I art (it has, now).
+
 ## Game design decisions
 
 | # | Decision |
@@ -40,7 +78,7 @@ credits all four authors.
 | Fallback | Every form keeps at least one evolution reachable without battling (Q9) |
 | Stages | Mega+ is a stage after Mega, from 72 h (Q11). Armor, Hybrid and Jogress left out of v1 |
 | Stat mapping (Q12a/b) | HP, ATK, DEF, SPD direct; INT -> Special Attack; SPI -> Special Defense; **SP dropped** |
-| Stat formula (Q12e) | **Approach B**: rebuild TamaDigi's formula on Time Stranger growth. Each species grows linearly from its TS level-1 to its TS max (level 99) stats (Grindosaur data, 475 forms incl. personality), times one scale factor (~0.1), plus training. TamaDigi level = TS level, one per hour. Requirements convert with the same factor; no per-stage scaling. Battle balance must be redone |
+| Stat formula (Q12e) | **Approach B**: rebuild TamaDigi's formula on Time Stranger growth. Each species grows linearly from its TS level-1 to its TS max (level 99) stats (`tools/data/time-stranger/stats.tsv`, 475 forms incl. personality), times one scale factor (~0.1), plus training. TamaDigi level = TS level, one per hour. Requirements convert with the same factor; no per-stage scaling. Battle balance must be redone |
 | HP (Q12c) | **Not trainable**: grows with age only, so HP requirements act as timing gates (e.g. Agumon -> Greymon at ~hour 37, MetalGreymon -> Gaiomon ~hour 84) |
 | Training (Q12d) | **Training is the bridge to late stages**: untrained growth reaches nearly all In-Training/Rookie evolutions, ~31% of Champion->Ultimate and ~6% of Ultimate->Mega. Per-session payout unchanged (up to +18). ATK training also raises Special Attack, DEF training also raises Special Defense (separate INT/SPI mini-games: next version). Examples: MetalGreymon needs ~41 ATK points (3-5 sessions), WarGreymon ~91 (6-10). **No evolution may be unreachable because of IV** (bad IV = train more): today's 70-100 IV-based cap blocked 74 of 308 Mega paths and gated WarGreymon on an ATK IV >= ~22, so the cap is now **255 for every Digimon** (the save field is a byte; the hardest Mega path needs ~192) |
 | IV and training | IV scales each session's gain **70% (IV 0) to 130% (IV 31)**, so an average IV (~15) trains exactly as today. WarGreymon (~91 ATK points): ~13 typical sessions at the worst IV, 10 average, 7 best; MetalGreymon (~41): 6 / 5 / 4. Low IV also means more XP, so more battles. Idea: show it to the player ("trains fast" / "slow learner") on the status card |
@@ -96,6 +134,11 @@ is a candidate).
 
 ## Firmware change list (none made yet)
 
+- **Carry v1.0.0 saves forward.** The Digidex and the move IDs are positional in
+  saved data, so the new roster and move table need a migration from v1.0.0
+  numbering, or a written decision to drop v1.0.0 saves. `upgrade_test` fails
+  until one of the two is done; never regenerate its frozen save to pass it.
+
 - Raise the 24-frames-per-action cap (`PmdAct.ms[24]`) and the 3 MB sprite file
   cap (Greymon is already 2.8 MB).
 - New sprite slots: Sad (sad mood currently plays Hurt) and special attack; play Hop.
@@ -117,9 +160,15 @@ is a candidate).
 - Needs: the dsts-viewer source (`tangled.org/nuffle.me/dsts-viewer`, MIT) running
   `vite` with `DSTS_MODELS=tools/prerender/models`, `playwright-core` + Google
   Chrome, Blender only for the abandoned render.py path.
+- `tools/data/time-stranger/`: stats and evolution requirements (see its README).
 - Emulator: `EMU_EPOCH=<unix secs>` sets the start time (`tools/emu/host_impl.cpp`).
 - The full test suite (`tools/emu/tests/run.sh`) needs `arduino-cli` with the ESP32
-  core and the `esp-emu` native emulator; neither is installed on this machine yet.
+  core and the `esp-emu` native emulator; neither is installed on this machine yet,
+  so CI is the test run. A single host suite can be built by hand with the same
+  `g++` line `run.sh` uses (firmware `.cpp` files plus the test).
+- Releasing: see CLAUDE.md § Releasing. The firmware binaries are committed with
+  each release; without `arduino-cli`, take them from the Pages build's
+  `tamadigi-firmware` artifact.
 - All comments, logs, scripts and docs are in English (see CLAUDE.md); only the UI
   string table keeps its six languages.
 

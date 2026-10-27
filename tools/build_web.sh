@@ -9,7 +9,7 @@ echo "Compilando..."
 arduino-cli compile --fqbn "$FQBN" --export-binaries .
 
 B=build/esp32.esp32.esp32s3
-mkdir -p web/firmware   # not tracked: CI and start.bat fill it
+mkdir -p web/firmware   # committed with each release; see CLAUDE.md § Releasing
 echo "Merging binaries..."
 # esptool is not on PATH; the Arduino core ships one and that is the version
 # that matches the build we just made.
