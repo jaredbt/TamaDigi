@@ -102,7 +102,7 @@ const bytes = (n, seed) => Uint8Array.from({ length: n }, (_, i) => (i * 31 + se
 }
 
 // ---- SUM replies
-ck(JSON.stringify(parseSum(['cargado x', 'SUM 0A0B0C0D 42'])) === '{"crc":"0a0b0c0d","size":42}',
+ck(JSON.stringify(parseSum(['loaded x', 'SUM 0A0B0C0D 42'])) === '{"crc":"0a0b0c0d","size":42}',
    'SUM is read past other console output');
 ck(parseSum(['DONE']) === null, 'and a reply without one is no answer');
 

@@ -6,8 +6,8 @@
 Lang gLang = LANG_DEFAULT;
 static_assert(LANG_COUNT == MOVE_NAME_LANG_COUNT, "move-name language order must match Lang");
 
-// Tabla de cadenas [idioma][id]. Sin acentos ni enes: la fuente bitmap del
-// firmware no los tiene (por eso el espanol ya iba "Esta", "bano", etc.).
+// String table [language][id]. No accents and no n-tildes: the firmware's bitmap
+// font does not have them (which is why the Spanish already read "Esta", "bano", etc.).
 static const char *const STRINGS[LANG_COUNT][STR_COUNT] = {
   // ---------------- ES ----------------
   {
@@ -264,7 +264,7 @@ static const char *const STRINGS[LANG_COUNT][STR_COUNT] = {
     "Usas %s", "Sem efeito", "Encontras %s!", "TORNAR ATIVO", "A CRIAR", "LUZ %u", "REINICIAR", "Apagar tudo?", "cada digimon, medalha e record perde-se", "TODOS", "CRIADOS", "NA MAO", "VARIANTE", "nada com este filtro", "LUGAR", "NUMERO", "NIVEL", "AUDAZ", "FIRME", "AGIL", "RIJO", "ANIMADO", "CALMO", "HOJE", "%u/%u hoje", "cuidado hoje", "bem alimentado", "limpo", "contente", "descansado", "MEMORIA", "SEQUENCIA %u", "OLHA", "E A TUA VEZ", "ANIMO +%u", "PARA A CAIXA", "A RECEBER SPRITES", "%u ficheiros", "o jogo volta no fim", "Treino: %u", "ATRIBUTO", "BEBE I", "BEBE II", "NOVATO", "CAMPEAO", "ULTIMATE", "MEGA", },
 };
 
-// Nombres de medalla en sus tres longitudes [idioma][medalla].
+// Medal names in their three lengths [language][medal].
 static const char *const MED_NAME[LANG_COUNT][MED_COUNT] = {
   { "Nv.10", "Nv.25", "Nv.50", "COMIDA", "RACHA 7", "VINCULO", "FORMA TOPE", "EN FORMA" },
   { "Lv.10", "Lv.25", "Lv.50", "FOOD", "7 STREAK", "BOND", "TOP FORM", "IN SHAPE" },
@@ -308,7 +308,7 @@ const char *medalDesc(int i)  { return MED_DSC[gLang][i]; }
 
 void loadLang() {
   Preferences p;
-  p.begin("tamadigi", true);  // solo lectura
+  p.begin("tamadigi", true);  // read-only
   uint8_t v = p.getUChar("lang", LANG_DEFAULT);
   p.end();
   gLang = (v < LANG_COUNT) ? (Lang)v : LANG_DEFAULT;

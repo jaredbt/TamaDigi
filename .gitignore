@@ -1,7 +1,7 @@
-# artefactos de compilacion
+# build artefacts
 build/
 
-# cacheas y artefactos regenerables del taller
+# caches and regenerable workshop artefacts
 tools/downloads/
 tools/__pycache__/
 __pycache__/

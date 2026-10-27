@@ -243,15 +243,17 @@ code. It is the project's spec, not decoration — changing a constant in `pet.h
 `pet.cpp` without updating that table makes the docs lie. Bump `FW_VERSION` in
 `TamaDigi.ino:27` and the firmware badge at the top of the README in the same commit.
 
-**Comments and commit messages are in English** — as of v1.5. Most of the existing
-source is commented in unaccented Spanish (the original author's convention) and is
-deliberately *not* being back-translated, so the codebase is mixed for now. Do not
-match the surrounding Spanish: any comment you write or edit goes in English, even
-in a file that is Spanish everywhere else. Never rewrite a Spanish comment purely to
-translate it — only when you are already changing that code for another reason.
+**Everything outside the UI string table is in English**: comments, commit messages,
+serial and tool output, script messages and docs. The original author's source was
+commented in unaccented Spanish and joop0810's README and Windows scripts were in
+German; all of it was translated in one pass, so a Spanish or German comment you
+find now was missed. Translate it.
 
-The default *UI* language is English (`LANG_DEFAULT LANG_EN`); UI strings live in
-`i18n.cpp` and are a separate matter from source comments.
+The default *UI* language is English (`LANG_DEFAULT LANG_EN`). The six UI languages in
+`i18n.cpp` (and the localized move names in `move_names.h`) are game content and stay
+as they are. Two pieces of the original Spanish were left on purpose because they
+are interfaces, not prose: the `STATS` console's field names (`nv=`, `fel=`, `desc=`
+...) and identifiers such as `R_COMUN` / `R_RARO`.
 
 ## Traps that have caught us more than once
 

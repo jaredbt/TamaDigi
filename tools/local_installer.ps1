@@ -1,15 +1,14 @@
-# Lokaler TamaDigi-Installer fuer Windows (wird von start.bat aufgerufen).
+# Local TamaDigi installer for Windows (called by start.bat).
 #
-#  1. Holt die fertig kompilierte Firmware von GitHub Pages (das baut der
-#     Workflow bei jedem Push auf main). Ohne Internet bleibt die zuletzt
-#     geladene Firmware liegen.
-#  2. Startet einen kleinen Webserver auf http://localhost:8765 und oeffnet den
-#     Installer in Chrome oder Edge. Web Serial (USB) funktioniert nur auf
-#     https oder localhost, deshalb reicht es nicht, index.html per Doppelklick
-#     zu oeffnen.
+#  1. Fetches the ready-built firmware from GitHub Pages (the workflow builds
+#     it on every push to main). Without internet, the last firmware
+#     downloaded stays in place.
+#  2. Starts a small web server on http://localhost:8765 and opens the
+#     installer in Chrome or Edge. Web Serial (USB) only works over https or
+#     on localhost, which is why double-clicking index.html is not enough.
 #
-# Laeuft mit Windows PowerShell 5.1 (in jedem Windows 10/11 dabei) und
-# PowerShell 7. Kein Python, kein Arduino noetig.
+# Runs on Windows PowerShell 5.1 (included in every Windows 10/11) and
+# PowerShell 7. No Python and no Arduino needed.
 param(
   [int]$Port = 8765,
   [string]$Pages = 'https://joop0810.github.io/TamaDigi/web',
@@ -20,20 +19,20 @@ $ErrorActionPreference = 'Stop'
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $web  = Join-Path $root 'web'
 if (-not (Test-Path (Join-Path $web 'index.html'))) {
-  Write-Host "web\index.html nicht gefunden. start.bat muss im TamaDigi-Ordner liegen." -ForegroundColor Red
+  Write-Host "web\index.html not found. start.bat must be in the TamaDigi folder." -ForegroundColor Red
   exit 1
 }
 
-# ---- 1. Firmware holen -------------------------------------------------------
-# Alle fuenf Dateien muessen zusammenpassen (manifest.json nennt die Hashes der
-# vier Teile), also erst komplett in einen Zwischenordner, dann austauschen.
+# ---- 1. Fetch the firmware ---------------------------------------------------
+# All five files must match each other (manifest.json lists the hashes of the
+# four parts), so download them all into a staging folder first, then swap.
 $fw = Join-Path $web 'firmware'
 $loaded = $null
 New-Item -ItemType Directory -Force -Path $fw | Out-Null
 if (-not $NoDownload) {
-  Write-Host "Lade die aktuelle Firmware von $Pages ..."
+  Write-Host "Downloading the current firmware from $Pages ..."
   try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 } catch {}
-  $tmp = Join-Path $fw '_neu'
+  $tmp = Join-Path $fw '_new'
   if (Test-Path $tmp) { Remove-Item -Recurse -Force $tmp }
   New-Item -ItemType Directory -Path $tmp | Out-Null
   $parts = 'bootloader.bin', 'partitions.bin', 'boot_app0.bin', 'app.bin'
@@ -45,20 +44,20 @@ if (-not $NoDownload) {
     foreach ($p in $parts) { Move-Item -Force (Join-Path $tmp $p) (Join-Path $fw $p) }
     Move-Item -Force (Join-Path $tmp 'manifest.json') (Join-Path $web 'manifest.json')
     $ver = (Get-Content -Raw (Join-Path $web 'manifest.json') | ConvertFrom-Json).version
-    Write-Host "  Firmware $ver geladen." -ForegroundColor Green
+    Write-Host "  Firmware $ver downloaded." -ForegroundColor Green
     $loaded = $true
   } catch {
-    Write-Host "  GitHub Pages nicht erreichbar ($($_.Exception.Message))." -ForegroundColor Yellow
+    Write-Host "  GitHub Pages not reachable ($($_.Exception.Message))." -ForegroundColor Yellow
     $loaded = $false
   } finally {
     if (Test-Path $tmp) { Remove-Item -Recurse -Force $tmp }
   }
 }
 
-# ---- 1b. ...oder aus tamadigi-firmware.zip ------------------------------------
-# Bei einem privaten Repo ohne GitHub Pro gibt es keine Pages-Seite. Dann:
-# GitHub -> Actions -> letzter Lauf -> Artifacts -> tamadigi-firmware laden und
-# neben start.bat legen (oder im Download-Ordner lassen).
+# ---- 1b. ...or from tamadigi-firmware.zip -------------------------------------
+# A private repo without GitHub Pro has no Pages site. In that case:
+# GitHub -> Actions -> latest run -> Artifacts -> download tamadigi-firmware and
+# put it next to start.bat (or leave it in the Downloads folder).
 if ($NoDownload -or ($loaded -eq $false)) {
   $zips = @(
     (Join-Path $root 'tamadigi-firmware.zip'),
@@ -72,27 +71,27 @@ if ($NoDownload -or ($loaded -eq $false)) {
       Expand-Archive -LiteralPath $zip -DestinationPath $tmp -Force
       $parts = 'bootloader.bin', 'partitions.bin', 'boot_app0.bin', 'app.bin'
       foreach ($p in $parts) {
-        if (-not (Test-Path (Join-Path $tmp "firmware/$p"))) { throw "$p fehlt im Zip" }
+        if (-not (Test-Path (Join-Path $tmp "firmware/$p"))) { throw "$p is missing from the zip" }
       }
-      if (-not (Test-Path (Join-Path $tmp 'manifest.json'))) { throw "manifest.json fehlt im Zip" }
+      if (-not (Test-Path (Join-Path $tmp 'manifest.json'))) { throw "manifest.json is missing from the zip" }
       foreach ($p in $parts) { Move-Item -Force (Join-Path $tmp "firmware/$p") (Join-Path $fw $p) }
       Move-Item -Force (Join-Path $tmp 'manifest.json') (Join-Path $web 'manifest.json')
       $ver = (Get-Content -Raw (Join-Path $web 'manifest.json') | ConvertFrom-Json).version
-      Write-Host "  Firmware $ver aus $zip uebernommen." -ForegroundColor Green
+      Write-Host "  Firmware $ver taken from $zip." -ForegroundColor Green
     } catch {
-      Write-Host "  $zip ist nicht brauchbar: $($_.Exception.Message)" -ForegroundColor Yellow
+      Write-Host "  $zip is not usable: $($_.Exception.Message)" -ForegroundColor Yellow
     } finally {
       if (Test-Path $tmp) { Remove-Item -Recurse -Force $tmp }
     }
   } elseif (-not (Test-Path (Join-Path $fw 'app.bin'))) {
-    Write-Host "  Kein tamadigi-firmware.zip gefunden. Laden: GitHub -> Actions -> letzter Lauf -> Artifacts."
+    Write-Host "  No tamadigi-firmware.zip found. Download it: GitHub -> Actions -> latest run -> Artifacts."
   }
 }
 if (-not (Test-Path (Join-Path $fw 'app.bin'))) {
-  Write-Host "  Hinweis: Noch keine Firmware vorhanden, der Knopf 'Firmware installieren' geht erst danach." -ForegroundColor Yellow
+  Write-Host "  Note: no firmware yet; the 'Install firmware' button only works once there is." -ForegroundColor Yellow
 }
 
-# ---- 2. Webserver -------------------------------------------------------------
+# ---- 2. Web server ------------------------------------------------------------
 $mime = @{
   '.html' = 'text/html; charset=utf-8'; '.js' = 'text/javascript; charset=utf-8'
   '.mjs' = 'text/javascript; charset=utf-8'; '.css' = 'text/css; charset=utf-8'
@@ -103,16 +102,16 @@ $mime = @{
 $listener = New-Object System.Net.HttpListener
 $listener.Prefixes.Add("http://localhost:$Port/")
 try { $listener.Start() } catch {
-  Write-Host "Port $Port ist belegt. Laeuft der Installer schon in einem anderen Fenster?" -ForegroundColor Red
+  Write-Host "Port $Port is in use. Is the installer already running in another window?" -ForegroundColor Red
   exit 1
 }
 $url = "http://localhost:$Port/web/"
 Write-Host ""
-Write-Host "TamaDigi-Installer laeuft: $url" -ForegroundColor Cyan
-Write-Host "Zum Beenden dieses Fenster schliessen (oder Strg+C)."
+Write-Host "TamaDigi installer running: $url" -ForegroundColor Cyan
+Write-Host "To stop it, close this window (or press Ctrl+C)."
 
 if (-not $NoBrowser) {
-  # Web Serial gibt es nur in Chrome und Edge, nicht in Firefox.
+  # Web Serial only exists in Chrome and Edge, not in Firefox.
   $opened = $false
   foreach ($b in 'chrome', 'msedge') {
     if (-not $opened) { try { Start-Process $b $url; $opened = $true } catch {} }

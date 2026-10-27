@@ -3,45 +3,45 @@
 
 No Digimon are drawn here -- every creature comes from the SD card.
 
-Los sprites 32x32 se CONSTRUYEN con primitivas (elipses con sombreado
-automatico en el borde inferior-derecho, contorno automatico de silueta)
-y detalles a pixel (ojos, boca, manchas). El script valida, renderiza un
-contact-sheet PNG para revision visual, y emite los arrays C y JS:
+The 32x32 sprites are BUILT from primitives (ellipses with automatic
+shading on the bottom-right edge, an automatic silhouette outline)
+and pixel details (eyes, mouth, spots). The script validates, renders a
+contact-sheet PNG for visual review, and emits the C and JS arrays:
 
-  python3 tools/sprites.py        # valida + renderiza tools/sheet.png
-  python3 tools/sprites.py emit   # regenera species.h y emitted_sprites.js
+  python3 tools/sprites.py        # validates + renders tools/sheet.png
+  python3 tools/sprites.py emit   # regenerates species.h and emitted_sprites.js
 """
 # Pillow is imported inside render(), the only thing that needs it: at module
 # level it made `emit` fail outright on a machine without PIL, for a header that
 # is pure text.
 
 PALETTE = {
-    'k': '#1b1b25',  # contorno / ojos
-    'w': '#ffffff',  # brillo de ojo
-    'y': '#f8d990',  # crema (barriga, placa caparazon)
-    'Y': '#e0b860',  # crema sombra
-    'o': '#f5863d',  # naranja
-    'O': '#d65f28',  # naranja sombra
-    'r': '#e8503a',  # rojo (llama, charmeleon)
-    'R': '#b53224',  # rojo sombra
-    'f': '#ffd95e',  # amarillo llama
-    't': '#8fd6b4',  # menta (bulbasaur)
-    'T': '#5fae8c',  # menta sombra
-    'g': '#58b868',  # verde bulbo
-    'G': '#3c8a4c',  # verde bulbo sombra
-    'd': '#3f7e62',  # manchas bulbasaur
-    'p': '#f08aa4',  # rosa flor
-    'P': '#c75f80',  # rosa sombra
-    'b': '#7cc4ea',  # azul (squirtle)
-    'B': '#4f93c4',  # azul sombra
-    'N': '#3a6fa0',  # azul blastoise
-    'M': '#2a5278',  # azul blastoise sombra
-    'c': '#b07a45',  # marron caparazon
-    'C': '#7e5530',  # marron sombra
-    'l': '#9aa9e0',  # lavanda (wartortle)
-    'L': '#6f7cb8',  # lavanda sombra
-    's': '#aab0bc',  # gris canon
-    'S': '#787e8c',  # gris sombra
+    'k': '#1b1b25',  # outline / eyes
+    'w': '#ffffff',  # eye shine
+    'y': '#f8d990',  # cream (belly, shell plate)
+    'Y': '#e0b860',  # cream shadow
+    'o': '#f5863d',  # orange
+    'O': '#d65f28',  # orange shadow
+    'r': '#e8503a',  # red (flame, charmeleon)
+    'R': '#b53224',  # red shadow
+    'f': '#ffd95e',  # flame yellow
+    't': '#8fd6b4',  # mint (bulbasaur)
+    'T': '#5fae8c',  # mint shadow
+    'g': '#58b868',  # bulb green
+    'G': '#3c8a4c',  # bulb green shadow
+    'd': '#3f7e62',  # bulbasaur spots
+    'p': '#f08aa4',  # flower pink
+    'P': '#c75f80',  # pink shadow
+    'b': '#7cc4ea',  # blue (squirtle)
+    'B': '#4f93c4',  # blue shadow
+    'N': '#3a6fa0',  # blastoise blue
+    'M': '#2a5278',  # blastoise blue shadow
+    'c': '#b07a45',  # shell brown
+    'C': '#7e5530',  # brown shadow
+    'l': '#9aa9e0',  # lavender (wartortle)
+    'L': '#6f7cb8',  # lavender shadow
+    's': '#aab0bc',  # cannon grey
+    'S': '#787e8c',  # grey shadow
 }
 
 W = H = 32
@@ -92,7 +92,7 @@ class G:
         self.g = out
 
     def eye(self, x, y):
-        # ojo 3x4 con brillo
+        # 3x4 eye with shine
         self.rect(x, y, x + 2, y + 3, 'k')
         self.px(x, y + 1, 'w')
         self.px(x + 1, y, 'w')
@@ -152,7 +152,7 @@ def heart():
     ]
 
 
-# ------------------------------------------------------------ iconos botones
+# ------------------------------------------------------------ button icons
 
 def icon_food():
     """Meat on the bone, the V-Pet's own food icon."""
@@ -290,7 +290,7 @@ def render(path="tools/sheet.png", scale=10, percol=3):
                                     fill=PALETTE[ch])
             d.text((ox, oy + H * scale + 3), name, fill='#000')
     img.save(path)
-    print(f"guardado {path}")
+    print(f"saved {path}")
 
 
 def rgb565(hexcol):
@@ -330,7 +330,7 @@ def emit_c(path="species.h"):
     for name, hexcol in UI_COLORS.items():
         out.append(f"#define {name} 0x{rgb565(hexcol):04X}  // {hexcol}\n")
     out.append("\n")
-    out.append("// caracter de sprite -> RGB565\n")
+    out.append("// sprite character -> RGB565\n")
     out.append("static inline uint16_t spriteColor(char ch) {\n  switch (ch) {\n")
     for ch, hexcol in PALETTE.items():
         out.append(f"    case '{ch}': return 0x{rgb565(hexcol):04X};  // {hexcol}\n")
@@ -341,27 +341,27 @@ def emit_c(path="species.h"):
             out.append(f'  "{row}",\n')
         out.append("};\n\n")
     open(path, 'w').write(''.join(out))
-    print(f"guardado {path}")
+    print(f"saved {path}")
 
 
 def emit_js(path="tools/emitted_sprites.js"):
     import json
     data = {'palette': PALETTE, 'sprites': SPRITES}
     open(path, 'w').write("const SPRITE_DATA=" + json.dumps(data, separators=(',', ':')) + ";\n")
-    print(f"guardado {path}")
+    print(f"saved {path}")
 
 
 if __name__ == '__main__':
     import sys
     if not validate():
-        print("-- errores de validacion --")
+        print("-- validation errors --")
         sys.exit(1)
     # The preview sheet is a nicety; regenerating species.h is not. Without this
     # a missing Pillow took the header down with it.
     try:
         render()
     except ImportError:
-        print("PIL no instalado: se omite tools/sheet.png (pip install pillow)")
+        print("PIL not installed: skipping tools/sheet.png (pip install pillow)")
     if 'emit' in sys.argv:
         emit_c()
         emit_js()

@@ -1,7 +1,7 @@
 @echo off
-rem TamaDigi: lokaler Web-Installer (Firmware, Sprites, Spielstand).
-rem Doppelklick genuegt. Laedt die Firmware von GitHub Pages und oeffnet den
-rem Installer in Chrome/Edge unter http://localhost:8765/web/
+rem TamaDigi: local web installer (firmware, sprites, save file).
+rem Just double-click it. Downloads the firmware from GitHub Pages and opens the
+rem installer in Chrome/Edge at http://localhost:8765/web/
 title TamaDigi Installer
 cd /d "%~dp0"
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0tools\local_installer.ps1" %*

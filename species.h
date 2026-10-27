@@ -29,7 +29,7 @@
 #define UI_CARE_HYG 0x4C7A  // #4b8ed1
 #define UI_WHITE 0xFFFF  // #ffffff
 
-// caracter de sprite -> RGB565
+// sprite character -> RGB565
 static inline uint16_t spriteColor(char ch) {
   switch (ch) {
     case 'k': return 0x18C4;  // #1b1b25

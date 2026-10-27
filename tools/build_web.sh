@@ -1,5 +1,5 @@
 #!/bin/bash
-# Regenera web/firmware/tamadigi.bin (firmware combinado) para el instalador web.
+# Regenerates web/firmware/tamadigi.bin (the merged firmware) for the web installer.
 # Uso: bash tools/build_web.sh
 set -e
 cd "$(dirname "$0")/.."
@@ -10,7 +10,7 @@ arduino-cli compile --fqbn "$FQBN" --export-binaries .
 
 B=build/esp32.esp32.esp32s3
 mkdir -p web/firmware   # not tracked: CI and start.bat fill it
-echo "Fusionando binarios..."
+echo "Merging binaries..."
 # esptool is not on PATH; the Arduino core ships one and that is the version
 # that matches the build we just made.
 ESPTOOL="$(ls ~/Library/Arduino15/packages/esp32/tools/esptool_py/*/esptool ~/.arduino15/packages/esp32/tools/esptool_py/*/esptool 2>/dev/null | head -1)"
@@ -159,7 +159,7 @@ echo "Empaquetando sprites..."
 if compgen -G "tools/sdcard/mons/*.bin" >/dev/null; then
     python3 tools/pack_bundle.py
 else
-    echo "Sin fuentes de sprites; conservando los .pak y regenerando su indice..."
+    echo "No sprite sources; keeping the .pak files and regenerating their index..."
     python3 - <<'PYEOF'
 from tools.pack_bundle import write_index
 write_index()

@@ -2,26 +2,26 @@
 
 ![Firmware](https://img.shields.io/badge/firmware-v1.0.0-8A2BE2) ![Board](https://img.shields.io/badge/board-ESP32--S3%20round%20AMOLED-E7352C) ![Code](https://img.shields.io/badge/code-MIT-blue)
 
-Ein **Digimon-V-Pet** für das **Waveshare ESP32-S3-Touch-AMOLED-1.75**: rundes 466×466-AMOLED, Touch, Akku, Lautsprecher.
-Du ziehst ein Digimon aus dem **Digi-Ei** groß. Wie gut du es pflegst und trainierst und wie viele Kämpfe es gewinnt, entscheidet, **zu welchem Digimon es digitiert**.
+A **Digimon V-Pet** for the **Waveshare ESP32-S3-Touch-AMOLED-1.75**: a round 466×466 AMOLED with touch, battery and speaker.
+You raise a Digimon from a **Digi-Egg**. How well you care for and train it, and how many battles it wins, decides **which Digimon it digivolves into**.
 
-> **Herkunft:** Das Projekt basiert auf der TamaPoke-Engine (Original von **Quique Tortosa** – [socquique/TamaPoke](https://github.com/socquique/TamaPoke), Fork von [DylanPDao](https://github.com/DylanPDao/TamaPoke) und [eperdeme](https://github.com/eperdeme/TamaPoke)). Display, Touch, Sound, Speicherstände, Kampfsystem, Emulator und Web-Installer stammen von dort. TamaDigi ersetzt die Pokémon-Inhalte vollständig durch Digimon-Inhalte und Digimon-Regeln.
+> **Origin:** The project is built on the TamaPoke engine (original by **Quique Tortosa** – [socquique/TamaPoke](https://github.com/socquique/TamaPoke), forked by [DylanPDao](https://github.com/DylanPDao/TamaPoke) and [eperdeme](https://github.com/eperdeme/TamaPoke)). The display, touch, sound, save files, battle system, emulator and web installer come from there. TamaDigi replaces the Pokémon content entirely with Digimon content and Digimon rules.
 >
-> **Nicht-kommerzielles Fan-Projekt.** Der Code steht unter MIT. Digimon, alle Namen und die Pixelgrafiken (aus *Digimon Color*) sind © Bandai / Toei Animation. Siehe [CREDITS.md](CREDITS.md).
+> **Non-commercial fan project.** The code is MIT licensed. Digimon, all names and the pixel art (from *Digimon Color*) are © Bandai / Toei Animation. See [CREDITS.md](CREDITS.md).
 
-## Bildschirme
+## Screens
 
-Alle Bilder stammen direkt aus dem Emulator (`bash tools/make_screens.sh`) und zeigen genau das, was das Display zeichnet.
+Every image comes straight from the emulator (`bash tools/make_screens.sh`) and shows exactly what the display draws.
 
-| Dein Digimon | Digi-Ei | Version wählen |
+| Your Digimon | Digi-Egg | Choose a version |
 |---|---|---|
 | <img src="docs/screens/main.png" width="220"> | <img src="docs/screens/egg.png" width="220"> | <img src="docs/screens/region.png" width="220"> |
 
-| Kampf | Attacke wählen | Wildes Digimon | Erkunden |
+| Battle | Choose an attack | Wild Digimon | Explore |
 |---|---|---|---|
 | <img src="docs/screens/btlmenu.png" width="200"> | <img src="docs/screens/btlmoves.png" width="200"> | <img src="docs/screens/wild.png" width="200"> | <img src="docs/screens/explore.png" width="200"> |
 
-| Boss-Leitern | Ver.2-Bosse | Sieg | Team wählen |
+| Boss ladders | Ver.2 bosses | Victory | Choose a party |
 |---|---|---|---|
 | <img src="docs/screens/gympick.png" width="200"> | <img src="docs/screens/gymsj.png" width="200"> | <img src="docs/screens/win.png" width="200"> | <img src="docs/screens/pick.png" width="200"> |
 
@@ -29,166 +29,166 @@ Alle Bilder stammen direkt aus dem Emulator (`bash tools/make_screens.sh`) und z
 |---|---|---|---|
 | <img src="docs/screens/dexpick.png" width="200"> | <img src="docs/screens/gallery.png" width="200"> | <img src="docs/screens/gallery2.png" width="200"> | <img src="docs/screens/box.png" width="200"> |
 
-| Tamer-Karte | Abzeichen | Attacken | LAN-Kampf |
+| Tamer card | Badges | Attacks | LAN battle |
 |---|---|---|---|
 | <img src="docs/screens/player.png" width="200"> | <img src="docs/screens/player2.png" width="200"> | <img src="docs/screens/moves.png" width="200"> | <img src="docs/screens/lanready.png" width="200"> |
 
-## Was anders ist als bei Pokémon
+## How it differs from Pokémon
 
 | | TamaPoke | **TamaDigi** |
 |---|---|---|
-| Wachstum | Entwicklung nach Level, alle Werte ≥ 40 | **Digitation** nach Alter; die *Pflege* wählt den Zweig |
-| Stufen | Basis → Phase 1 → Phase 2 | **Digi-Ei → Baby I → Baby II → Rookie → Champion → Ultra → Mega** |
-| Typen | 18 Pokémon-Typen | **9 Elemente** + **Attribut-Dreieck** Impfstoff > Virus > Daten > Impfstoff |
-| Regionen | Kanto, Johto … | **V-Pet-Versionen**: Ver.1 bis Ver.5 |
-| Fangen | Pokébälle | **Scan-Chips** (Scan, Super, Hyper, Meister) |
-| Heilen/Training | Tränke, Protein … | **Heil-Disks** (S/M/L), Allheil-Disk, Angriffs-/Verteidigungs-/Tempo-Chip |
-| Futter | Beeren, Süßigkeit | **Fleisch, Fisch, Pilz** (jedes Digimon hat ein Lieblingsessen), **Protein** |
-| Arenen | Arenaleiter + Orden | **Boss-Leitern** je Version + eigene Abzeichen |
-| Shiny | Shiny-Pokémon | seltene **Farbvariante** |
-| Grafik/Musik | Nintendo-Material | farbige Digimon-Color-Sprites; Musik, Abzeichen, Avatare und Hintergründe sind **eigene Werke** |
+| Growth | Evolution by level, all stats ≥ 40 | **Digivolution** by age; *care* picks the branch |
+| Stages | Basic → Stage 1 → Stage 2 | **Digi-Egg → Baby I → Baby II → Rookie → Champion → Ultimate → Mega** |
+| Types | 18 Pokémon types | **9 elements** + the **attribute triangle** Vaccine > Virus > Data > Vaccine |
+| Regions | Kanto, Johto … | **V-Pet versions**: Ver.1 to Ver.5 |
+| Catching | Poké Balls | **Scan chips** (Scan, Super, Hyper, Master) |
+| Healing/training | Potions, Protein … | **Recovery disks** (S/M/L), Full Recovery disk, Attack/Defence/Speed chip |
+| Food | Berries, candy | **Meat, fish, mushroom** (every Digimon has a favourite food), **protein** |
+| Gyms | Gym leaders + badges | **Boss ladders** per version + their own badges |
+| Shiny | Shiny Pokémon | a rare **colour variant** |
+| Art/music | Nintendo material | coloured Digimon Color sprites; the music, badges, avatars and backgrounds are **original work** |
 
-## Digitation – so funktioniert sie
+## Digivolution – how it works
 
-Ein Level entspricht einer Stunde Echtzeit. Ist die Zeit einer Stufe um, erscheint der **Digitations-Knopf**. Tippst du ihn an, siehst du die Digitation; mit „Form behalten“ verschiebst du sie. **Welches** Digimon herauskommt, entscheidet der erste passende Zweig:
+One level equals one hour of real time. When a stage's time is up, the **digivolution button** appears. Tap it to watch the digivolution; "Keep form" postpones it. **Which** Digimon comes out is decided by the first matching branch:
 
-| Stufe | Digitiert ab | Was den Zweig bestimmt |
+| Stage | Digivolves from | What decides the branch |
 |---|---|---|
 | Baby I → Baby II | Lv. 2 (1 h) | – |
-| Baby II → Rookie | Lv. 7 (6 h) | **Pflegefehler:** 0–2 → erster Rookie, sonst der zweite |
-| Rookie → Champion | Lv. 25 (24 h) | **Pflegefehler** (0–2 / 3–5 / mehr) × **Training** (≥ 40 / weniger) |
-| Champion → Ultra | Lv. 49 (48 h) | **5 gewonnene Kämpfe** in dieser Stufe |
-| Ultra → Mega | Lv. 61 (60 h) | **15 gewonnene Kämpfe** in dieser Stufe |
+| Baby II → Rookie | Lv. 7 (6 h) | **Care mistakes:** 0–2 → the first Rookie, otherwise the second |
+| Rookie → Champion | Lv. 25 (24 h) | **Care mistakes** (0–2 / 3–5 / more) × **training** (≥ 40 / less) |
+| Champion → Ultimate | Lv. 49 (48 h) | **5 battles won** in this stage |
+| Ultimate → Mega | Lv. 61 (60 h) | **15 battles won** in this stage |
 
-- **Pflegefehler**: Ein Bedürfniswert (Essen, Freude, Energie, Hygiene) fällt auf 10 oder darunter (höchstens einer pro Stunde).
-- **Training**: die Summe aus Stärke, Abwehr und Tempo (Boxsack, Reaktionstest, Ball-Spiel, Siege, Chips).
-- Pflegefehler und Siege **zählen ab jeder Digitation neu**, wie beim echten V-Pet.
-- Ein Champion ohne Siege bleibt Champion. Das Lebensende erreicht er trotzdem: Nach 3 Tagen kann sich jedes Digimon ab Champion **verabschieden** und kommt dann ins Team.
-- Die Karte **FORTSCHRITT** (auf der Statuskarte nach oben wischen) zeigt Pflegefehler, Training, die Stunden bis zur Digitation und fehlende Siege.
+- **Care mistake**: a need (food, joy, energy, hygiene) drops to 10 or below (at most one per hour).
+- **Training**: the sum of strength, defence and speed (punching bag, reaction test, ball game, victories, chips).
+- Care mistakes and victories **start counting again after every digivolution**, as on the real V-Pet.
+- A Champion with no victories stays a Champion. It still reaches the end of its life: after 3 days any Digimon from Champion up can **say goodbye**, and it then joins the party.
+- The **PROGRESS** card (swipe up on the status card) shows care mistakes, training, the hours until digivolution and the victories still missing.
 
-Beispiel Ver.1 – **Agumon** wird zu:
+Example, Ver.1 – **Agumon** becomes:
 
 | | Training ≥ 40 | Training < 40 |
 |---|---|---|
-| **0–2 Pflegefehler** | Greymon | Tyrannomon |
-| **3–5 Pflegefehler** | Devimon | Meramon |
-| **mehr** | Numemon | Numemon |
+| **0–2 care mistakes** | Greymon | Tyrannomon |
+| **3–5 care mistakes** | Devimon | Meramon |
+| **more** | Numemon | Numemon |
 
-Greymon, Devimon und Airdramon werden mit 5 Siegen zu **MetalGreymon**, Tyrannomon, Meramon und Seadramon zu **Mamemon**, Numemon zu **Monzaemon**. Mit 15 weiteren Siegen werden daraus die Megas **BlitzGreymon**, **BanchoMamemon** und **ShinMonzaemon**.
+With 5 victories, Greymon, Devimon and Airdramon become **MetalGreymon**; Tyrannomon, Meramon and Seadramon become **Mamemon**; Numemon becomes **Monzaemon**. With 15 more victories these become the Megas **BlitzGreymon**, **BanchoMamemon** and **ShinMonzaemon**.
 
-## Die Versionen
+## The versions
 
-| Version | Digi-Ei | Digimon | Megas |
+| Version | Digi-Egg | Digimon | Megas |
 |---|---|---|---|
 | **Ver.1** | Botamon | 17 | BlitzGreymon, BanchoMamemon, ShinMonzaemon |
 | **Ver.2** | Punimon | 17 | SkullMammon, CresGarurumon, Ebemon |
 | **Ver.3** | Poyomon | 19 | HiAndromon, Gokumon, BanchoLeomon, **Millenniumon** |
 | **Ver.4** | Yuramon | 17 | Darkdramon, BloomLordmon, Gankoomon |
 | **Ver.5** | Zurumon | 17 | Machinedramon, Raidenmon, Gaioumon |
-| **ALL** | eins der fünf | gemischt | |
+| **ALL** | one of the five | mixed | |
 
-Zusammen sind das **87 Digimon**, jedes mit eigener farbiger Grafik. Die Bäume folgen den V-Pets bzw. *Digimon Color*. Die Bedingungen der Zweige sind an das Stundentempo dieses Spiels angepasst. Alles steht in einer Datei: [`tools/digimon_data.py`](tools/digimon_data.py).
+That makes **87 Digimon** in all, each with its own coloured art. The trees follow the V-Pets and *Digimon Color*. The branch conditions are adapted to this game's one-level-per-hour pace. It is all in one file: [`tools/digimon_data.py`](tools/digimon_data.py).
 
-**Ver.3-Sonderweg:** Sukamon wird mit 10 Siegen zu **Chimairamon**, sonst mit 5 zu Etemon. Chimairamon wird mit 20 Siegen zu **Millenniumon**, mit 15 zu BanchoLeomon.
+**Ver.3 special route:** with 10 victories Sukamon becomes **Chimairamon**, otherwise with 5 it becomes Etemon. With 20 victories Chimairamon becomes **Millenniumon**, with 15 BanchoLeomon.
 
-## Kampf
+## Battle
 
-- Rundenbasiert mit 4 Attacken. Signatur-Attacken kommen mit der Digitation (Pepper Breath, Mega Flame, Giga Destroyer …).
-- **Element-Tabelle** (Feuer, Wasser, Pflanze, Elektro, Wind, Erde, Licht, Dunkel, Neutral) mit 2×/½× und ohne Immunitäten.
-- **Attribut-Dreieck:** Impfstoff schlägt Virus, Virus schlägt Daten, Daten schlägt Impfstoff (×1,3 bzw. ×0,8). Babys sind *Frei* und neutral.
-- **Erkunden:** wilde Digimon passend zu deinem Level (Level 10 → Rookies, ab Level 25 auch Champions). Schwäch sie und nutz einen **Scan-Chip**, um ihre Daten in Team oder Box zu übernehmen.
-- **Boss-Leitern:** je Version 8 Gebiete, 4 Elite-Bosse und ein Champion, auf Leicht und Schwer. Siege trainieren dein Digimon und zählen für die Digitation.
-- **LAN-Kampf** zwischen zwei Geräten per ESP-NOW.
+- Turn-based with 4 attacks. Signature attacks come with digivolution (Pepper Breath, Mega Flame, Giga Destroyer …).
+- **Element table** (Fire, Water, Plant, Electric, Wind, Earth, Light, Dark, Neutral) with 2×/½× and no immunities.
+- **Attribute triangle:** Vaccine beats Virus, Virus beats Data, Data beats Vaccine (×1.3 or ×0.8). Babies are *Free* and neutral.
+- **Explore:** wild Digimon matched to your level (level 10 → Rookies, from level 25 Champions too). Weaken them and use a **scan chip** to take their data into your party or box.
+- **Boss ladders:** per version, 8 areas, 4 elite bosses and a champion, on Easy and Hard. Victories train your Digimon and count toward digivolution.
+- **LAN battle** between two devices over ESP-NOW.
 
 ## Hardware
 
-- [Waveshare ESP32-S3-Touch-AMOLED-1.75](https://www.waveshare.com/wiki/ESP32-S3-Touch-AMOLED-1.75): die **Standard**- oder **-G**-Version, **nicht „-B“**
-- 466×466 AMOLED (CO5300, QSPI), Touch CST9217, AXP2101 (Akku/PWR), PCF85063 (RTC), microSD, ES8311 (Sound)
-- microSD-Karte im Slot (die Sprites liegen dort)
+- [Waveshare ESP32-S3-Touch-AMOLED-1.75](https://www.waveshare.com/wiki/ESP32-S3-Touch-AMOLED-1.75): the **standard** or **-G** version, **not "-B"**
+- 466×466 AMOLED (CO5300, QSPI), CST9217 touch, AXP2101 (battery/PWR), PCF85063 (RTC), microSD, ES8311 (sound)
+- A microSD card in the slot (the sprites live there)
 
 ## Installation
 
-### Variante A: Web-Installer (empfohlen, nichts installieren)
+### Option A: web installer (recommended, nothing to install)
 
-1. **https://joop0810.github.io/TamaDigi/web/** in **Chrome oder Edge** öffnen (Firefox und Safari können kein Web Serial).
-2. Board per USB-C anstecken, **Install firmware** klicken und den Port wählen.
-3. Weiter unten die **Versions-Packs** (Sprites) auf die SD-Karte senden: Ver.1–Ver.5, einzeln oder alle.
-4. Fertig. Sprache am Gerät: Namen antippen → SETTINGS → Sprachzeile antippen (bis „DE“).
+1. Open **https://joop0810.github.io/TamaDigi/web/** in **Chrome or Edge** (Firefox and Safari cannot do Web Serial).
+2. Plug the board in over USB-C, click **Install firmware** and choose the port.
+3. Further down, send the **version packs** (sprites) to the SD card: Ver.1–Ver.5, one at a time or all of them.
+4. Done. To change the language on the device: tap the name → SETTINGS → tap the language row (until it shows the one you want).
 
-**Eigener Fork:** Repo forken, in `web/editions.json`, `web/index.html` und `web/installer.js` `joop0810` durch deinen GitHub-Namen ersetzen, unter **Settings → Pages → Source** „GitHub Actions“ wählen und auf `main` pushen. Der Workflow kompiliert die Firmware in der Cloud und veröffentlicht deinen eigenen Installer.
+**Your own fork:** fork the repo, replace `joop0810` with your GitHub name in `web/editions.json`, `web/index.html` and `web/installer.js`, choose "GitHub Actions" under **Settings → Pages → Source**, and push to `main`. The workflow compiles the firmware in the cloud and publishes your own installer.
 
-### Variante A2: `start.bat` (Windows, lokal)
+### Option A2: `start.bat` (Windows, local)
 
-Doppelklick auf **`start.bat`** im TamaDigi-Ordner. Das Skript
+Double-click **`start.bat`** in the TamaDigi folder. The script
 
-- lädt die zuletzt von GitHub gebaute Firmware von der Pages-Seite herunter, oder
-- nimmt sie aus **`tamadigi-firmware.zip`**, falls es keine Pages-Seite gibt (z. B. ein privater Fork). Die Datei bekommst du unter **GitHub → Actions → letzter Lauf → Artifacts → tamadigi-firmware**. Lass sie im Download-Ordner oder leg sie neben `start.bat`.
-- Danach startet es einen kleinen lokalen Server und öffnet den Installer unter `http://localhost:8765/web/` in Chrome oder Edge.
+- downloads the firmware GitHub built most recently from the Pages site, or
+- takes it from **`tamadigi-firmware.zip`** if there is no Pages site (for example a private fork). You get that file under **GitHub → Actions → latest run → Artifacts → tamadigi-firmware**. Leave it in your Downloads folder or put it next to `start.bat`.
+- Then it starts a small local server and opens the installer at `http://localhost:8765/web/` in Chrome or Edge.
 
-Alles Weitere (Firmware flashen, Sprites auf die SD, Spielstand sichern) geht dort wie in Variante A. Python oder Arduino brauchst du dafür nicht, nur die PowerShell, die in Windows dabei ist. Zum Beenden das schwarze Fenster schließen.
+Everything else (flashing the firmware, sprites to the SD, backing up the save) works there as in option A. You need neither Python nor Arduino for this, only the PowerShell that comes with Windows. Close the black window to stop it.
 
-### Variante B: Arduino lokal
+### Option B: Arduino, locally
 
 - Board: **ESP32S3 Dev Module** · Flash **16MB** · PSRAM **OPI PSRAM** · Partition Scheme **16M Flash (3MB APP/9MB FATFS)** · USB CDC On Boot **Enabled**
-- Bibliotheken: GFX Library for Arduino 1.6.7, SensorLib 0.4.1, XPowersLib 0.3.3, ESP32-Core 3.3.11
+- Libraries: GFX Library for Arduino 1.6.7, SensorLib 0.4.1, XPowersLib 0.3.3, ESP32 core 3.3.11
 
 ```bash
 FQBN="esp32:esp32:esp32s3:CDCOnBoot=cdc,FlashSize=16M,PSRAM=opi,PartitionScheme=app3M_fat9M_16MB"
 arduino-cli compile --fqbn "$FQBN" .
 arduino-cli upload -p COM5 --fqbn "$FQBN" .
-python3 tools/unpack_bundle.py   # Sprites aus web/sprites-*.pak auspacken
-python3 tools/send_sd.py         # und per USB auf die SD schicken
+python3 tools/unpack_bundle.py   # unpack the sprites from web/sprites-*.pak
+python3 tools/send_sd.py         # and send them to the SD over USB
 ```
 
 ## Sprites
 
-Die Digimon sind die **farbigen Pixel-Sprites aus *Digimon Color*** (Bandai), wie sie das Projekt [furudbat/wayland-vpets](https://github.com/furudbat/wayland-vpets) (`assets/dmc/`) sammelt. Jedes Digimon hat dort ein Blatt mit 9–13 Bildern: Stehen, Freude, Wut, Essen, Schlafen, Verweigern, Traurig, Niederlage und Angriff. Daraus entstehen die Animationen (Laufen, Essen, Schlafen, Treffer, Angriff, Nicken). Ein heller Rand hält die Figur auch nachts auf dunklem Himmel sichtbar. Die seltene **Farbvariante** ist dieselbe Grafik mit verschobenem Farbton.
+The Digimon are the **coloured pixel sprites from *Digimon Color*** (Bandai), as collected by the [furudbat/wayland-vpets](https://github.com/furudbat/wayland-vpets) project (`assets/dmc/`). Each Digimon there has a sheet of 9–13 images: standing, happy, angry, eating, sleeping, refusing, sad, defeated and attacking. The animations (walking, eating, sleeping, hit, attack, nodding) are built from those. A light rim keeps the figure visible against the dark sky at night too. The rare **colour variant** is the same art with a shifted hue.
 
 ```bash
-python3 tools/pack_sprites.py   # holt die Quellbilder (einmal), erzeugt tools/sdcard/mons/*.bin + noart.h
-python3 tools/make_thumbs.py    # Digidex-Miniaturen
-python3 tools/pack_bundle.py    # web/sprites-<version>.pak für den Installer
+python3 tools/pack_sprites.py   # fetches the source images (once), produces tools/sdcard/mons/*.bin + noart.h
+python3 tools/make_thumbs.py    # Digidex thumbnails
+python3 tools/pack_bundle.py    # web/sprites-<version>.pak for the installer
 ```
 
-Die fertigen Packs liegen schon in `web/sprites-ver1.pak` … `ver5.pak`. Du musst die Befehle nur ausführen, wenn du Digimon hinzufügst oder die Grafik änderst. Ein Digimon ohne Grafik landet in `noart.h` und schlüpft dann nie und ist kein Digitationsziel.
+The finished packs are already in `web/sprites-ver1.pak` … `ver5.pak`. You only need to run these commands if you add Digimon or change the art. A Digimon without art goes into `noart.h`; it then never hatches and is never a digivolution target.
 
-## So spielst du
+## How to play
 
-- **Unten**: 🍖 Füttern (Fleisch/Fisch/Pilz oder Protein) · 🌙 Licht/Schlafen · 🫧 Baden · 🏋 Training (Boxsack → Stärke, Reaktion → Tempo, Ball → Abwehr, Gedächtnisspiel → Freude)
-- **Wischen**: horizontal durch `TAMER · TEAM · [DIGIMON] · ERKUNDEN · BOSSE · DIGIDEX`, hoch = Statuskarte, runter = zurück, am Rand ziehen = blättern
-- **Name antippen** = Menü (Beutel, Einstellungen, Verabschieden); **Digimon antippen** = streicheln; **3 s halten** = freilassen
-- **Nachts** (0–6 Uhr, Bildschirm aus) schläft dein Digimon von selbst, damit es nicht über Nacht wegläuft. Dafür muss die Uhrzeit in den Einstellungen gestellt sein.
-- **PWR kurz** = Bildschirm an/aus, **lang (4 s)** = ausschalten (die Uhr läuft weiter, dein Digimon altert also auch ausgeschaltet)
-- Sprache: Englisch (Standard), **Deutsch**, Spanisch, Französisch, Italienisch, Portugiesisch – in den Einstellungen
+- **Bottom**: 🍖 Feed (meat/fish/mushroom or protein) · 🌙 Light/sleep · 🫧 Bath · 🏋 Training (punching bag → strength, reaction → speed, ball → defence, memory game → joy)
+- **Swipe**: horizontally through `TAMER · PARTY · [DIGIMON] · EXPLORE · BOSSES · DIGIDEX`, up = status card, down = back, drag at the edge = turn pages
+- **Tap the name** = menu (bag, settings, say goodbye); **tap the Digimon** = pet it; **hold for 3 s** = release it
+- **At night** (0–6 h, screen off) your Digimon falls asleep on its own so it does not run away overnight. This needs the time to be set in the settings.
+- **PWR short press** = screen on/off, **long press (4 s)** = power off (the clock keeps running, so your Digimon ages while switched off too)
+- Language: English (default), German, Spanish, French, Italian, Portuguese – in the settings
 
-## Am PC ausprobieren: Emulator
+## Try it on a PC: the emulator
 
-`tools/emu/` übersetzt die **echte Firmware** in ein Desktop-Programm, nur die Hardware wird nachgebildet.
+`tools/emu/` compiles the **real firmware** into a desktop program; only the hardware is simulated.
 
 ```bash
 sudo apt install libsdl2-dev          # macOS: brew install sdl2
 python3 tools/unpack_bundle.py
 bash tools/emu/build.sh
-tools/emu/tamadigi-emu --scale 2 --fast 60   # 60x Zeitraffer: ein Leben in ~1 h
+tools/emu/tamadigi-emu --scale 2 --fast 60   # 60x time-lapse: a whole life in ~1 h
 ```
 
 ## Tests
 
 ```bash
-TAMA_TEST_BACKEND=host bash tools/emu/tests/run.sh           # alle Suiten im Emulator
-TAMA_TEST_BACKEND=host bash tools/emu/tests/run.sh digivolve # nur eine
+TAMA_TEST_BACKEND=host bash tools/emu/tests/run.sh           # every suite in the emulator
+TAMA_TEST_BACKEND=host bash tools/emu/tests/run.sh digivolve # just one
 ```
 
-48 Suiten, darunter `digivolve_test` (alle Zweige von Ver.1, Siege, Stufenuhr, Megas in jeder Version, kein Zweig zu einem Digimon ohne Sprite), Kampf, Speichern bei Stromausfall, Web-Installer und Touch. GitHub Actions führt sie bei jedem Push aus und kompiliert dabei auch die echte ESP32-Firmware.
+48 suites, including `digivolve_test` (every Ver.1 branch, victories, the stage clock, Megas in every version, no branch to a Digimon without a sprite), battle, saving through a power cut, the web installer and touch. GitHub Actions runs them on every push and also compiles the real ESP32 firmware.
 
-## Serielle Konsole (115200)
+## Serial console (115200)
 
-`STATS` · `SPEC <dex>` · `LVL <n>` · `MISS <n>` (Pflegefehler) · `TR <atk> <def> <spe>` · `HATCH` · `EGG <dex>` · `VARIANT` · `WILD` · `BATTLE <dex> <lvl>` · `BYE` · `RUN` · `WIPE` · `EXPORT` / `IMPORT` (Spielstand sichern) · `LS` / `PUT` (SD-Dateien)
+`STATS` · `SPEC <dex>` · `LVL <n>` · `MISS <n>` (care mistakes) · `TR <atk> <def> <spe>` · `HATCH` · `EGG <dex>` · `VARIANT` · `WILD` · `BATTLE <dex> <lvl>` · `BYE` · `RUN` · `WIPE` · `EXPORT` / `IMPORT` (back up the save) · `LS` / `PUT` (SD files)
 
-## Lizenz
+## Licence
 
-- **Code** (Firmware + Tools): MIT, © 2026 Quique Tortosa und Mitwirkende, Digimon-Umbau © 2026 Dennis.
-- **Digimon, Namen, Sprites**: © Bandai / Toei Animation. Nur private, nicht-kommerzielle Nutzung.
-- **Musik, Abzeichen, Avatare, Kampfhintergründe, UI-Icons**: in diesem Projekt erzeugt (siehe `tools/gen_music.py`, `gen_ladders.py`, `gen_avatars.py`, `draw_backs.py`, `sprites.py`), MIT.
+- **Code** (firmware + tools): MIT, © 2026 Quique Tortosa and contributors, Digimon conversion © 2026 Dennis.
+- **Digimon, names, sprites**: © Bandai / Toei Animation. Private, non-commercial use only.
+- **Music, badges, avatars, battle backgrounds, UI icons**: made in this project (see `tools/gen_music.py`, `gen_ladders.py`, `gen_avatars.py`, `draw_backs.py`, `sprites.py`), MIT.
 
-Inoffizielles Fan-Projekt. Nicht mit Bandai oder Toei verbunden oder von ihnen unterstützt.
+Unofficial fan project. Not affiliated with or endorsed by Bandai or Toei.
