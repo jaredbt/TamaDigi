@@ -1,0 +1,17 @@
+# Everything that comes out of the game stays on this machine. Bandai Namco's
+# models, textures, animations and archives, and anything rendered from them,
+# must never be committed or published.
+game/
+extracted/
+models/
+renders/
+*.mvgl
+*.geom
+*.anim
+*.skel
+*.img
+*.dds
+*.blend
+*.blend1
+preview/sheets/
+preview/work/
