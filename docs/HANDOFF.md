@@ -19,7 +19,7 @@ socquique's first) plus joop0810's commit re-parented onto `f7f02f8` (tree
 identical to joop0810's `4c2a48d`; author and date kept). `git blame -C -M`
 credits all four authors.
 
-- Remotes: `joop0810`, `eperdeme`, `dylan`, `socquique` (no `origin` yet).
+- Remotes: `origin` (jaredbt/TamaDigi, public), `joop0810`, `eperdeme`, `dylan`, `socquique`.
 - `joop0810-original` = the untouched single-commit version.
 - socquique made 64 commits after the June 14 fork point that no fork merged
   (48 never copied either). Worth porting: **v1.18 battery work** (adaptive frame
@@ -30,8 +30,8 @@ credits all four authors.
 
 | # | Decision |
 |---|---|
-| Roster | Time Stranger's (~448 forms), limited to Digimon with art |
-| Evolution | Time Stranger style: when a stage's timer is up, choose among branches whose conditions are met. Conditions rescaled to TamaDigi stats |
+| Roster | Time Stranger's (~448 forms), limited to Digimon with art. **One single roster**: no "versions" (joop0810's term is dropped). The first egg hatches a random In-Training I; de-digivolution then makes every Digimon reachable in principle. Open: later eggs, wild-encounter pools and boss ladders without versions |
+| Evolution | Time Stranger style: choose among branches whose conditions are met. TamaDigi's stage timers (6/24/48/60/72 h) are **minimums**; evolution is offered, never forced ("keep form" re-offers next level) |
 | De-digivolve | Allowed (Q5): into any form that evolves into the current one, if it is in the Digidex. The earlier form then waits out its stage again (Q8) |
 | Level | Stays as age (Q4); no XP-based level |
 | Bond | Sets how much training carries over on (de-)digivolution (Q6) |
@@ -39,7 +39,11 @@ credits all four authors.
 | Agent Rank | Boss-badge count mapped to ranks 1-10, player-wide (Q7). Revisit for balance: little to do at rank 10 once stats cap |
 | Fallback | Every form keeps at least one evolution reachable without battling (Q9) |
 | Stages | Mega+ is a stage after Mega, from 72 h (Q11). Armor, Hybrid and Jogress left out of v1 |
-| Stats | **Open (Q12)**: proposed HP/ATK/DEF/SPD direct, INT->Sp.Atk, SPI->Sp.Def, SP dropped |
+| Stat mapping (Q12a/b) | HP, ATK, DEF, SPD direct; INT -> Special Attack; SPI -> Special Defense; **SP dropped** |
+| Stat formula (Q12e) | **Approach B**: rebuild TamaDigi's formula on Time Stranger growth. Each species grows linearly from its TS level-1 to its TS max (level 99) stats (Grindosaur data, 475 forms incl. personality), times one scale factor (~0.1), plus training. TamaDigi level = TS level, one per hour. Requirements convert with the same factor; no per-stage scaling. Battle balance must be redone |
+| HP (Q12c) | **Not trainable**: grows with age only, so HP requirements act as timing gates (e.g. Agumon -> Greymon at ~hour 37, MetalGreymon -> Gaiomon ~hour 84) |
+| Training (Q12d) | **Training is the bridge to late stages**: untrained growth reaches nearly all In-Training/Rookie evolutions, ~31% of Champion->Ultimate and ~6% of Ultimate->Mega. Per-session payout unchanged (up to +18). ATK training also raises Special Attack, DEF training also raises Special Defense (separate INT/SPI mini-games: next version). Examples: MetalGreymon needs ~41 ATK points (3-5 sessions), WarGreymon ~91 (6-10). **No evolution may be unreachable because of IV** (bad IV = train more): today's 70-100 IV-based cap blocked 74 of 308 Mega paths and gated WarGreymon on an ATK IV >= ~22, so the cap is now **255 for every Digimon** (the save field is a byte; the hardest Mega path needs ~192) |
+| IV and training | IV scales each session's gain **70% (IV 0) to 130% (IV 31)**, so an average IV (~15) trains exactly as today. WarGreymon (~91 ATK points): ~13 typical sessions at the worst IV, 10 average, 7 best; MetalGreymon (~41): 6 / 5 / 4. Low IV also means more XP, so more battles. Idea: show it to the player ("trains fast" / "slow learner") on the status card |
 
 ## Art: pre-rendered Time Stranger frames (private builds only)
 
@@ -113,13 +117,15 @@ is a candidate).
 - Needs: the dsts-viewer source (`tangled.org/nuffle.me/dsts-viewer`, MIT) running
   `vite` with `DSTS_MODELS=tools/prerender/models`, `playwright-core` + Google
   Chrome, Blender only for the abandoned render.py path.
-- Emulator: `EMU_EPOCH=<unix secs>` sets the start time (uncommitted change to
-  `tools/emu/host_impl.cpp`).
+- Emulator: `EMU_EPOCH=<unix secs>` sets the start time (`tools/emu/host_impl.cpp`).
+- The full test suite (`tools/emu/tests/run.sh`) needs `arduino-cli` with the ESP32
+  core and the `esp-emu` native emulator; neither is installed on this machine yet.
+- All comments, logs, scripts and docs are in English (see CLAUDE.md); only the UI
+  string table keeps its six languages.
 
 ## Still open
 
-- Q12 stat mapping.
-- How eggs/versions divide the roster.
+- How evolution is offered, and how the 72-hour farewell is offered (revisit later).
+- Without versions: later eggs, wild-encounter pools, boss ladders, badges -> Agent Rank.
 - Battle timing (above).
 - Public-build art.
-- Repo visibility and first push; archiving `jaredbt/Esp-J`.
