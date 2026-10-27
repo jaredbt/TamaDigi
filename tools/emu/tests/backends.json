@@ -27,6 +27,7 @@
     "stats_test",
     "synth_test",
     "trainer_test",
+    "upgrade_test",
     "wild_test"
   ],
   "host": {
