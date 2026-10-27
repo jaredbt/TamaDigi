@@ -6,6 +6,7 @@
 #include "audio.h"
 #include "linknow.h"
 #include <cstdio>
+#include <cstdlib>
 #include <string>
 
 // Baked in by build.sh from the repo location; --sprites <dir> overrides it.
@@ -145,7 +146,12 @@ bool sdSerialCommand(const String &) { return false; }
 
 // --- RTC / battery / PMU ---
 static uint32_t g_epoch = 0;
-bool rtcBegin() { return true; }
+// EMU_EPOCH=<unix seconds> starts the virtual RTC there, so a screenshot can be
+// taken at a chosen hour (day sky vs night). Unset, the RTC reads 0 (unset).
+bool rtcBegin() {
+  if (const char *e = getenv("EMU_EPOCH")) g_epoch = (uint32_t)strtoul(e, nullptr, 10);
+  return true;
+}
 uint32_t rtcEpoch() { return g_epoch + millis() / 1000; }
 void rtcSetEpoch(uint32_t e) { g_epoch = e - millis() / 1000; }
 bool batBegin() { return true; }
