@@ -1,0 +1,11387 @@
+{
+ "CresGarurumon": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Omnimon Alter-S",
+    {
+     "Agent Rank": 8,
+     "HP": 2620,
+     "ATK": 2620,
+     "SPD": 1650,
+     "Jogress": [
+      "BlitzGreymon (Zealous)",
+      "CresGarurumon (Zealous)"
+     ]
+    }
+   ]
+  ]
+ },
+ "Parallelmon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Omnimon Zwart Defeat": {
+  "stage": "Mega +",
+  "evolves_into": [
+   [
+    "Omnimon Alter-B",
+    {
+     "Agent Rank": 8,
+     "ATK": 2280,
+     "INT": 2190,
+     "SPD": 1730
+    }
+   ]
+  ]
+ },
+ "BlitzGreymon": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Omnimon Alter-S",
+    {
+     "Agent Rank": 8,
+     "HP": 2620,
+     "ATK": 2620,
+     "SPD": 1650,
+     "Jogress": [
+      "BlitzGreymon (Zealous)",
+      "CresGarurumon (Zealous)"
+     ]
+    }
+   ]
+  ]
+ },
+ "Omnimon Alter-B": {
+  "stage": "Mega +",
+  "evolves_into": [
+   [
+    "Omnimon Alter-S",
+    {
+     "Agent Rank": 8,
+     "HP": 2620,
+     "ATK": 2620,
+     "SPD": 1650
+    }
+   ]
+  ]
+ },
+ "Omnimon Alter-S": {
+  "stage": "Mega +",
+  "evolves_into": [
+   [
+    "Omnimon Alter-B",
+    {
+     "Agent Rank": 8,
+     "ATK": 2280,
+     "INT": 2190,
+     "SPD": 1730
+    }
+   ]
+  ]
+ },
+ "BanchoMamemon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "BanchoLillymon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "BanchoGolemon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "BanchoStingmon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Omnimon MM": {
+  "stage": "Mega +",
+  "evolves_into": []
+ },
+ "Gallantmon (X Antibody)": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Gallantmon",
+    {
+     "Agent Rank": 7,
+     "ATK": 1800,
+     "SPI": 2240
+    }
+   ]
+  ]
+ },
+ "Jesmon (X Antibody)": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Jesmon",
+    {
+     "Agent Rank": 7,
+     "ATK": 1730,
+     "DEF": 1730,
+     "SPD": 1650
+    }
+   ]
+  ]
+ },
+ "Magnamon (X Antibody)": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Magnamon",
+    {
+     "Agent Rank": 7,
+     "Req. Item": "Digi-Egg of Miracles"
+    }
+   ]
+  ]
+ },
+ "Omnimon (X Antibody)": {
+  "stage": "Mega +",
+  "evolves_into": [
+   [
+    "Omnimon",
+    {
+     "Agent Rank": 8
+    }
+   ]
+  ]
+ },
+ "UlforceVeedramon (X Antibody)": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "UlforceVeedramon",
+    {
+     "Agent Rank": 7,
+     "HP": 2960,
+     "SPD": 1980
+    }
+   ]
+  ]
+ },
+ "Kuramon": {
+  "stage": "In-Training I",
+  "evolves_into": [
+   [
+    "Pagumon",
+    {
+     "Agent Rank": 1,
+     "SP": 280
+    }
+   ],
+   [
+    "Tsumemon",
+    {
+     "Agent Rank": 1,
+     "SP": 260,
+     "ATK": 170
+    }
+   ]
+  ]
+ },
+ "Choromon": {
+  "stage": "In-Training I",
+  "evolves_into": [
+   [
+    "Kapurimon",
+    {
+     "Agent Rank": 1,
+     "SPI": 140
+    }
+   ]
+  ]
+ },
+ "Dodomon": {
+  "stage": "In-Training I",
+  "evolves_into": [
+   [
+    "Wanyamon",
+    {
+     "Agent Rank": 1,
+     "SP": 250
+    }
+   ],
+   [
+    "Dorimon",
+    {
+     "Agent Rank": 1,
+     "HP": 350,
+     "ATK": 180
+    }
+   ]
+  ]
+ },
+ "Pabumon": {
+  "stage": "In-Training I",
+  "evolves_into": [
+   [
+    "Motimon",
+    {
+     "Agent Rank": 1,
+     "HP": 400
+    }
+   ],
+   [
+    "Yokomon",
+    {
+     "Agent Rank": 1,
+     "INT": 160
+    }
+   ],
+   [
+    "Tanemon",
+    {
+     "Agent Rank": 1,
+     "HP": 370,
+     "INT": 140
+    }
+   ]
+  ]
+ },
+ "Punimon": {
+  "stage": "In-Training I",
+  "evolves_into": [
+   [
+    "Tsunomon",
+    {
+     "Agent Rank": 1,
+     "ATK": 200
+    }
+   ],
+   [
+    "Nyaromon",
+    {
+     "Agent Rank": 1,
+     "SP": 160,
+     "SPD": 150
+    }
+   ]
+  ]
+ },
+ "Botamon": {
+  "stage": "In-Training I",
+  "evolves_into": [
+   [
+    "Koromon",
+    {
+     "Agent Rank": 1,
+     "HP": 350,
+     "ATK": 150
+    }
+   ]
+  ]
+ },
+ "Poyomon": {
+  "stage": "In-Training I",
+  "evolves_into": [
+   [
+    "Bukamon",
+    {
+     "Agent Rank": 1,
+     "SP": 360,
+     "INT": 180
+    }
+   ],
+   [
+    "Tokomon",
+    {
+     "Agent Rank": 1,
+     "SP": 400,
+     "SPD": 150
+    }
+   ]
+  ]
+ },
+ "Kapurimon": {
+  "stage": "In-Training II",
+  "evolves_into": [
+   [
+    "Hagurumon",
+    {
+     "Agent Rank": 1,
+     "DEF": 200
+    }
+   ],
+   [
+    "Kokuwamon",
+    {
+     "Agent Rank": 1,
+     "HP": 420,
+     "ATK": 160
+    }
+   ],
+   [
+    "ToyAgumon",
+    {
+     "Agent Rank": 1,
+     "HP": 460
+    }
+   ],
+   [
+    "Solarmon",
+    {
+     "Agent Rank": 1,
+     "SP": 290,
+     "SPI": 200
+    }
+   ]
+  ]
+ },
+ "Koromon": {
+  "stage": "In-Training II",
+  "evolves_into": [
+   [
+    "Agumon",
+    {
+     "Agent Rank": 1,
+     "HP": 530
+    }
+   ],
+   [
+    "Guilmon",
+    {
+     "Agent Rank": 1,
+     "ATK": 280
+    }
+   ],
+   [
+    "Dracomon",
+    {
+     "Agent Rank": 1,
+     "ATK": 270,
+     "SPD": 170
+    }
+   ],
+   [
+    "Kotemon",
+    {
+     "Agent Rank": 1,
+     "DEF": 220,
+     "SPI": 140
+    }
+   ],
+   [
+    "Betamon",
+    {
+     "Agent Rank": 1,
+     "SP": 200
+    }
+   ],
+   [
+    "Shoutmon",
+    {
+     "Agent Rank": 1,
+     "HP": 500,
+     "ATK": 270
+    }
+   ]
+  ]
+ },
+ "Tanemon": {
+  "stage": "In-Training II",
+  "evolves_into": [
+   [
+    "FunBeemon",
+    {
+     "Agent Rank": 1,
+     "INT": 200,
+     "SPD": 170
+    }
+   ],
+   [
+    "Lalamon",
+    {
+     "Agent Rank": 1,
+     "HP": 500,
+     "SPI": 160
+    }
+   ],
+   [
+    "Palmon",
+    {
+     "Agent Rank": 1,
+     "ATK": 220,
+     "INT": 220
+    }
+   ],
+   [
+    "Mushroomon",
+    {
+     "Agent Rank": 1,
+     "DEF": 200
+    }
+   ],
+   [
+    "Floramon",
+    {
+     "Agent Rank": 1,
+     "SP": 280,
+     "INT": 200
+    }
+   ]
+  ]
+ },
+ "Tsunomon": {
+  "stage": "In-Training II",
+  "evolves_into": [
+   [
+    "Goblimon",
+    {
+     "Agent Rank": 1,
+     "HP": 500,
+     "DEF": 200
+    }
+   ],
+   [
+    "Veemon",
+    {
+     "Agent Rank": 1,
+     "ATK": 280,
+     "SPD": 170
+    }
+   ],
+   [
+    "Gabumon",
+    {
+     "Agent Rank": 1,
+     "SP": 230,
+     "ATK": 250
+    }
+   ],
+   [
+    "Ryudamon",
+    {
+     "Agent Rank": 1,
+     "HP": 520,
+     "ATK": 250
+    }
+   ],
+   [
+    "Elecmon",
+    {
+     "Agent Rank": 1,
+     "SP": 200,
+     "INT": 160
+    }
+   ],
+   [
+    "Zubamon",
+    {
+     "Agent Rank": 1,
+     "ATK": 280,
+     "DEF": 200
+    }
+   ]
+  ]
+ },
+ "Tsumemon": {
+  "stage": "In-Training II",
+  "evolves_into": [
+   [
+    "Dracmon",
+    {
+     "Agent Rank": 1,
+     "SP": 230,
+     "ATK": 270
+    }
+   ],
+   [
+    "Shamamon",
+    {
+     "Agent Rank": 1,
+     "SP": 230,
+     "SPD": 230
+    }
+   ],
+   [
+    "Keramon",
+    {
+     "Agent Rank": 1,
+     "HP": 530,
+     "SP": 260
+    }
+   ],
+   [
+    "Agumon (Black)",
+    {
+     "Agent Rank": 1,
+     "ATK": 490
+    }
+   ],
+   [
+    "Gabumon (Black)",
+    {
+     "Agent Rank": 1,
+     "ATK": 360
+    }
+   ]
+  ]
+ },
+ "Tokomon": {
+  "stage": "In-Training II",
+  "evolves_into": [
+   [
+    "Patamon",
+    {
+     "Agent Rank": 1,
+     "SP": 600,
+     "INT": 360
+    }
+   ],
+   [
+    "Coronamon",
+    {
+     "Agent Rank": 1,
+     "ATK": 220,
+     "DEF": 190
+    }
+   ],
+   [
+    "Terriermon",
+    {
+     "Agent Rank": 1,
+     "HP": 380,
+     "ATK": 180
+    }
+   ],
+   [
+    "Armadillomon",
+    {
+     "Agent Rank": 1,
+     "SP": 400,
+     "SPD": 250
+    }
+   ],
+   [
+    "Lucemon",
+    {
+     "Agent Rank": 5,
+     "INT": 430,
+     "Talent": 30
+    }
+   ]
+  ]
+ },
+ "Dorimon": {
+  "stage": "In-Training II",
+  "evolves_into": [
+   [
+    "Dorumon",
+    {
+     "Agent Rank": 1,
+     "ATK": 260
+    }
+   ],
+   [
+    "Monodramon",
+    {
+     "Agent Rank": 1,
+     "HP": 530,
+     "ATK": 240
+    }
+   ],
+   [
+    "SnowGoblimon",
+    {
+     "Agent Rank": 1,
+     "SP": 300
+    }
+   ],
+   [
+    "Lopmon",
+    {
+     "Agent Rank": 1,
+     "SP": 280,
+     "DEF": 170
+    }
+   ]
+  ]
+ },
+ "Nyaromon": {
+  "stage": "In-Training II",
+  "evolves_into": [
+   [
+    "Lunamon",
+    {
+     "Agent Rank": 1,
+     "SPI": 240
+    }
+   ],
+   [
+    "Kudamon",
+    {
+     "Agent Rank": 1,
+     "SP": 480,
+     "INT": 250
+    }
+   ],
+   [
+    "Salamon",
+    {
+     "Agent Rank": 1,
+     "INT": 280
+    }
+   ],
+   [
+    "Huckmon",
+    {
+     "Agent Rank": 1,
+     "HP": 420
+    }
+   ]
+  ]
+ },
+ "Pagumon": {
+  "stage": "In-Training II",
+  "evolves_into": [
+   [
+    "Impmon",
+    {
+     "Agent Rank": 1,
+     "SP": 400,
+     "INT": 270
+    }
+   ],
+   [
+    "DemiDevimon",
+    {
+     "Agent Rank": 1,
+     "ATK": 230,
+     "INT": 350
+    }
+   ],
+   [
+    "Gazimon",
+    {
+     "Agent Rank": 1,
+     "HP": 400,
+     "SPD": 230
+    }
+   ],
+   [
+    "Otamamon",
+    {
+     "Agent Rank": 1,
+     "ATK": 150,
+     "DEF": 140
+    }
+   ]
+  ]
+ },
+ "Bukamon": {
+  "stage": "In-Training II",
+  "evolves_into": [
+   [
+    "Kamemon",
+    {
+     "Agent Rank": 1,
+     "HP": 400,
+     "DEF": 180
+    }
+   ],
+   [
+    "Crabmon",
+    {
+     "Agent Rank": 1,
+     "ATK": 150,
+     "DEF": 160
+    }
+   ],
+   [
+    "Gomamon",
+    {
+     "Agent Rank": 1,
+     "HP": 750
+    }
+   ],
+   [
+    "Gizamon",
+    {
+     "Agent Rank": 1,
+     "SP": 400,
+     "SPI": 210
+    }
+   ],
+   [
+    "Syakomon",
+    {
+     "Agent Rank": 1,
+     "HP": 440,
+     "DEF": 180
+    }
+   ]
+  ]
+ },
+ "Motimon": {
+  "stage": "In-Training II",
+  "evolves_into": [
+   [
+    "Chuumon",
+    {
+     "Agent Rank": 1,
+     "SP": 280,
+     "SPD": 180
+    }
+   ],
+   [
+    "Tentomon",
+    {
+     "Agent Rank": 1,
+     "DEF": 170,
+     "INT": 250
+    }
+   ],
+   [
+    "Wormmon",
+    {
+     "Agent Rank": 1,
+     "ATK": 190,
+     "SPI": 190
+    }
+   ],
+   [
+    "Gotsumon",
+    {
+     "Agent Rank": 1,
+     "DEF": 170,
+     "SPI": 190
+    }
+   ]
+  ]
+ },
+ "Wanyamon": {
+  "stage": "In-Training II",
+  "evolves_into": [
+   [
+    "Gaomon",
+    {
+     "Agent Rank": 1,
+     "ATK": 210,
+     "SPD": 210
+    }
+   ],
+   [
+    "Tapirmon",
+    {
+     "Agent Rank": 1,
+     "SP": 360,
+     "INT": 220
+    }
+   ],
+   [
+    "Bearmon",
+    {
+     "Agent Rank": 1,
+     "ATK": 220
+    }
+   ],
+   [
+    "Renamon",
+    {
+     "Agent Rank": 1,
+     "SP": 380,
+     "INT": 230
+    }
+   ]
+  ]
+ },
+ "Agumon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Raptordramon",
+    {
+     "Agent Rank": 3,
+     "HP": 1090
+    }
+   ],
+   [
+    "GeoGreymon",
+    {
+     "Agent Rank": 3,
+     "HP": 1100
+    }
+   ],
+   [
+    "Numemon",
+    {
+     "Agent Rank": 3,
+     "SP": 330
+    }
+   ],
+   [
+    "Greymon",
+    {
+     "Agent Rank": 3,
+     "HP": 1120
+    }
+   ],
+   [
+    "Coredramon (Green)",
+    {
+     "Agent Rank": 3,
+     "ATK": 830
+    }
+   ],
+   [
+    "Agumon (Bond of Bravery)",
+    {
+     "Agent Rank": 8,
+     "ATK": 3630,
+     "Valor(Agent Skills)": 46
+    }
+   ]
+  ]
+ },
+ "Kudamon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Airdramon",
+    {
+     "Agent Rank": 3,
+     "SPD": 380
+    }
+   ],
+   [
+    "Reppamon",
+    {
+     "Agent Rank": 3,
+     "HP": 820,
+     "SPI": 540
+    }
+   ],
+   [
+    "Angemon",
+    {
+     "Agent Rank": 3,
+     "SP": 730,
+     "INT": 540
+    }
+   ],
+   [
+    "Ginryumon",
+    {
+     "Agent Rank": 3,
+     "DEF": 460
+    }
+   ],
+   [
+    "Lobomon",
+    {
+     "Agent Rank": 3,
+     "Req. Item": "Human Spirit of Light"
+    }
+   ],
+   [
+    "Sorcermon",
+    {
+     "Agent Rank": 3,
+     "INT": 640,
+     "SPI": 480
+    }
+   ]
+  ]
+ },
+ "Gomamon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Mojyamon",
+    {
+     "Agent Rank": 3,
+     "HP": 1200
+    }
+   ],
+   [
+    "Ikkakumon",
+    {
+     "Agent Rank": 3,
+     "HP": 1120,
+     "ATK": 440
+    }
+   ],
+   [
+    "Frigimon",
+    {
+     "Agent Rank": 3,
+     "HP": 960,
+     "SPI": 300
+    }
+   ],
+   [
+    "Hyogamon",
+    {
+     "Agent Rank": 3,
+     "HP": 1010,
+     "ATK": 380
+    }
+   ],
+   [
+    "IceDevimon",
+    {
+     "Agent Rank": 3,
+     "ATK": 400,
+     "SPI": 300
+    }
+   ]
+  ]
+ },
+ "Yokomon": {
+  "stage": "In-Training II",
+  "evolves_into": [
+   [
+    "Biyomon",
+    {
+     "Agent Rank": 1,
+     "SP": 270,
+     "INT": 240
+    }
+   ],
+   [
+    "Penmon",
+    {
+     "Agent Rank": 1,
+     "INT": 260
+    }
+   ],
+   [
+    "Falcomon",
+    {
+     "Agent Rank": 1,
+     "INT": 230,
+     "SPD": 180
+    }
+   ],
+   [
+    "Hawkmon",
+    {
+     "Agent Rank": 1,
+     "ATK": 180,
+     "SPD": 180
+    }
+   ],
+   [
+    "Hyokomon",
+    {
+     "Agent Rank": 1,
+     "ATK": 200,
+     "SPD": 170
+    }
+   ],
+   [
+    "Muchomon",
+    {
+     "Agent Rank": 1,
+     "HP": 500,
+     "SP": 270
+    }
+   ]
+  ]
+ },
+ "Coronamon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Firamon",
+    {
+     "Agent Rank": 3,
+     "ATK": 700
+    }
+   ],
+   [
+    "Meramon",
+    {
+     "Agent Rank": 3,
+     "ATK": 530,
+     "SPI": 450
+    }
+   ],
+   [
+    "Growlmon",
+    {
+     "Agent Rank": 3,
+     "HP": 1100
+    }
+   ],
+   [
+    "BaoHuckmon",
+    {
+     "Agent Rank": 3,
+     "ATK": 700,
+     "SPI": 540
+    }
+   ],
+   [
+    "Birdramon",
+    {
+     "Agent Rank": 3,
+     "SP": 540,
+     "INT": 540
+    }
+   ],
+   [
+    "Agunimon",
+    {
+     "Agent Rank": 3,
+     "Req. Item": "Human Spirit of Flame"
+    }
+   ]
+  ]
+ },
+ "Zubamon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Musyamon",
+    {
+     "Agent Rank": 3,
+     "SPI": 560
+    }
+   ],
+   [
+    "Buraimon",
+    {
+     "Agent Rank": 3,
+     "SP": 400,
+     "ATK": 530
+    }
+   ],
+   [
+    "Tankmon",
+    {
+     "Agent Rank": 3,
+     "DEF": 430,
+     "SPI": 300
+    }
+   ],
+   [
+    "ZubaEagermon",
+    {
+     "Agent Rank": 3,
+     "ATK": 540
+    }
+   ],
+   [
+    "Ankylomon",
+    {
+     "Agent Rank": 3,
+     "DEF": 450,
+     "SPI": 420
+    }
+   ],
+   [
+    "Guardromon (Gold)",
+    {
+     "Agent Rank": 3,
+     "DEF": 500,
+     "SPI": 380
+    }
+   ]
+  ]
+ },
+ "Solarmon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Starmon",
+    {
+     "Agent Rank": 3,
+     "SP": 420
+    }
+   ],
+   [
+    "GoldNumemon",
+    {
+     "Agent Rank": 3,
+     "INT": 300,
+     "SPI": 300
+    }
+   ],
+   [
+    "Meramon",
+    {
+     "Agent Rank": 3,
+     "ATK": 530,
+     "SPI": 450
+    }
+   ],
+   [
+    "Guardromon (Gold)",
+    {
+     "Agent Rank": 3,
+     "DEF": 500,
+     "SPI": 380
+    }
+   ]
+  ]
+ },
+ "Terriermon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Mojyamon",
+    {
+     "Agent Rank": 3,
+     "HP": 1200
+    }
+   ],
+   [
+    "Lekismon",
+    {
+     "Agent Rank": 3,
+     "SP": 470,
+     "SPD": 640
+    }
+   ],
+   [
+    "Gawappamon",
+    {
+     "Agent Rank": 3,
+     "HP": 940,
+     "SPI": 450
+    }
+   ],
+   [
+    "Gargomon",
+    {
+     "Agent Rank": 3,
+     "SP": 530
+    }
+   ],
+   [
+    "Rapidmon (Armor)",
+    {
+     "Agent Rank": 7,
+     "Req. Item": "Digi-Egg of Destiny"
+    }
+   ]
+  ]
+ },
+ "ToyAgumon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Blimpmon",
+    {
+     "Agent Rank": 3,
+     "HP": 1000
+    }
+   ],
+   [
+    "Deputymon",
+    {
+     "Agent Rank": 3,
+     "SPI": 560
+    }
+   ],
+   [
+    "Raremon",
+    {
+     "Agent Rank": 3,
+     "HP": 900
+    }
+   ],
+   [
+    "Tankmon",
+    {
+     "Agent Rank": 3,
+     "DEF": 430,
+     "SPI": 300
+    }
+   ],
+   [
+    "Gargomon",
+    {
+     "Agent Rank": 3,
+     "SP": 530
+    }
+   ]
+  ]
+ },
+ "Tentomon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Kabuterimon",
+    {
+     "Agent Rank": 3,
+     "SP": 380
+    }
+   ],
+   [
+    "Sunflowmon",
+    {
+     "Agent Rank": 3,
+     "SP": 360,
+     "INT": 630,
+     "SPI": 480
+    }
+   ],
+   [
+    "Kuwagamon",
+    {
+     "Agent Rank": 3,
+     "ATK": 550
+    }
+   ],
+   [
+    "Waspmon",
+    {
+     "Agent Rank": 3,
+     "HP": 800,
+     "ATK": 520
+    }
+   ],
+   [
+    "Snimon",
+    {
+     "Agent Rank": 3,
+     "SPD": 530
+    }
+   ]
+  ]
+ },
+ "Tapirmon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Meramon",
+    {
+     "Agent Rank": 3,
+     "ATK": 530,
+     "SPI": 450
+    }
+   ],
+   [
+    "Garurumon",
+    {
+     "Agent Rank": 3,
+     "DEF": 300,
+     "SPD": 400
+    }
+   ],
+   [
+    "Bakemon",
+    {
+     "Agent Rank": 3,
+     "SPI": 400
+    }
+   ],
+   [
+    "Unimon",
+    {
+     "Agent Rank": 3,
+     "SPI": 250,
+     "SPD": 300
+    }
+   ],
+   [
+    "Kyubimon",
+    {
+     "Agent Rank": 3,
+     "INT": 730
+    }
+   ]
+  ]
+ },
+ "Hyokomon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Peckmon",
+    {
+     "Agent Rank": 3,
+     "SPD": 540
+    }
+   ],
+   [
+    "Birdramon",
+    {
+     "Agent Rank": 3,
+     "SP": 540,
+     "INT": 540
+    }
+   ],
+   [
+    "Dinohyumon",
+    {
+     "Agent Rank": 3,
+     "HP": 1740,
+     "ATK": 530
+    }
+   ],
+   [
+    "Buraimon",
+    {
+     "Agent Rank": 3,
+     "SP": 400,
+     "ATK": 530
+    }
+   ]
+  ]
+ },
+ "Biyomon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Aquilamon",
+    {
+     "Agent Rank": 3,
+     "DEF": 300,
+     "SPD": 470
+    }
+   ],
+   [
+    "Birdramon",
+    {
+     "Agent Rank": 3,
+     "SP": 540,
+     "INT": 540
+    }
+   ],
+   [
+    "Unimon",
+    {
+     "Agent Rank": 3,
+     "SPI": 250,
+     "SPD": 300
+    }
+   ],
+   [
+    "Wizardmon",
+    {
+     "Agent Rank": 3,
+     "SP": 500,
+     "INT": 630
+    }
+   ]
+  ]
+ },
+ "Falcomon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Peckmon",
+    {
+     "Agent Rank": 3,
+     "SPD": 540
+    }
+   ],
+   [
+    "Ginryumon",
+    {
+     "Agent Rank": 3,
+     "DEF": 460
+    }
+   ],
+   [
+    "Kiwimon",
+    {
+     "Agent Rank": 3,
+     "SP": 510
+    }
+   ]
+  ]
+ },
+ "Salamon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Gatomon",
+    {
+     "Agent Rank": 3,
+     "HP": 820,
+     "SPI": 540
+    }
+   ],
+   [
+    "Sangloupmon",
+    {
+     "Agent Rank": 3,
+     "SPD": 620
+    }
+   ],
+   [
+    "Dobermon",
+    {
+     "Agent Rank": 3,
+     "SPD": 620
+    }
+   ],
+   [
+    "Ikkakumon",
+    {
+     "Agent Rank": 3,
+     "HP": 1120,
+     "ATK": 440
+    }
+   ],
+   [
+    "Veedramon",
+    {
+     "Agent Rank": 3,
+     "SP": 380,
+     "ATK": 480,
+     "SPI": 390
+    }
+   ],
+   [
+    "Drimogemon",
+    {
+     "Agent Rank": 3,
+     "SP": 450,
+     "DEF": 300
+    }
+   ]
+  ]
+ },
+ "Bearmon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Grizzlymon",
+    {
+     "Agent Rank": 3,
+     "DEF": 460
+    }
+   ],
+   [
+    "Gaogamon",
+    {
+     "Agent Rank": 3,
+     "SPI": 470
+    }
+   ],
+   [
+    "Mojyamon",
+    {
+     "Agent Rank": 3,
+     "HP": 1200
+    }
+   ],
+   [
+    "Leomon",
+    {
+     "Agent Rank": 3,
+     "ATK": 510
+    }
+   ],
+   [
+    "Garurumon (Black)",
+    {
+     "Agent Rank": 3,
+     "SPD": 580
+    }
+   ]
+  ]
+ },
+ "Penmon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Peckmon",
+    {
+     "Agent Rank": 3,
+     "SPD": 540
+    }
+   ],
+   [
+    "Buraimon",
+    {
+     "Agent Rank": 3,
+     "SP": 400,
+     "ATK": 530
+    }
+   ],
+   [
+    "Kiwimon",
+    {
+     "Agent Rank": 3,
+     "SP": 510
+    }
+   ],
+   [
+    "Aquilamon",
+    {
+     "Agent Rank": 3,
+     "DEF": 300,
+     "SPD": 470
+    }
+   ]
+  ]
+ },
+ "Monodramon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Strikedramon",
+    {
+     "Agent Rank": 3,
+     "HP": 1090
+    }
+   ],
+   [
+    "Raptordramon",
+    {
+     "Agent Rank": 3,
+     "HP": 1090
+    }
+   ],
+   [
+    "Deltamon",
+    {
+     "Agent Rank": 3,
+     "HP": 1100
+    }
+   ],
+   [
+    "Kurisarimon",
+    {
+     "Agent Rank": 3,
+     "HP": 1170
+    }
+   ],
+   [
+    "Cyclonemon",
+    {
+     "Agent Rank": 3,
+     "HP": 1020,
+     "SPI": 460
+    }
+   ]
+  ]
+ },
+ "Ryudamon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Reppamon",
+    {
+     "Agent Rank": 3,
+     "HP": 820,
+     "SPI": 540
+    }
+   ],
+   [
+    "Coelamon",
+    {
+     "Agent Rank": 3,
+     "HP": 1060
+    }
+   ],
+   [
+    "Ginryumon",
+    {
+     "Agent Rank": 3,
+     "DEF": 460
+    }
+   ],
+   [
+    "Greymon",
+    {
+     "Agent Rank": 3,
+     "HP": 1120
+    }
+   ],
+   [
+    "Monochromon",
+    {
+     "Agent Rank": 3,
+     "ATK": 510
+    }
+   ]
+  ]
+ },
+ "Lucemon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Lucemon CM",
+    {
+     "Agent Rank": 7,
+     "SP": 920,
+     "INT": 1820
+    }
+   ]
+  ]
+ },
+ "Gaomon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Strikedramon",
+    {
+     "Agent Rank": 3,
+     "HP": 1090
+    }
+   ],
+   [
+    "Gaogamon",
+    {
+     "Agent Rank": 3,
+     "SPI": 470
+    }
+   ],
+   [
+    "Leomon",
+    {
+     "Agent Rank": 3,
+     "ATK": 510
+    }
+   ],
+   [
+    "Nanimon",
+    {
+     "Agent Rank": 3,
+     "HP": 840,
+     "DEF": 280
+    }
+   ],
+   [
+    "Turuiemon",
+    {
+     "Agent Rank": 3,
+     "HP": 820,
+     "SP": 380,
+     "ATK": 530
+    }
+   ]
+  ]
+ },
+ "Elecmon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Aegiomon",
+    {
+     "Agent Rank": 9,
+     "SP": 470,
+     "Valor(Agent Skills)": 46
+    }
+   ],
+   [
+    "Seadramon",
+    {
+     "Agent Rank": 3,
+     "HP": 890,
+     "INT": 420
+    }
+   ],
+   [
+    "Unimon",
+    {
+     "Agent Rank": 3,
+     "SPI": 250,
+     "SPD": 300
+    }
+   ],
+   [
+    "Kuwagamon",
+    {
+     "Agent Rank": 3,
+     "ATK": 550
+    }
+   ],
+   [
+    "Gekomon",
+    {
+     "Agent Rank": 3,
+     "INT": 490
+    }
+   ]
+  ]
+ },
+ "Crabmon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Gawappamon",
+    {
+     "Agent Rank": 3,
+     "HP": 940,
+     "SPI": 450
+    }
+   ],
+   [
+    "Octomon",
+    {
+     "Agent Rank": 3,
+     "HP": 1010,
+     "DEF": 430
+    }
+   ],
+   [
+    "Shellmon",
+    {
+     "Agent Rank": 3,
+     "SP": 460,
+     "DEF": 430
+    }
+   ],
+   [
+    "Raremon",
+    {
+     "Agent Rank": 3,
+     "HP": 900
+    }
+   ],
+   [
+    "Snimon",
+    {
+     "Agent Rank": 3,
+     "SPD": 530
+    }
+   ],
+   [
+    "Coelamon",
+    {
+     "Agent Rank": 3,
+     "HP": 1060
+    }
+   ]
+  ]
+ },
+ "Gabumon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Garurumon",
+    {
+     "Agent Rank": 3,
+     "DEF": 300,
+     "SPD": 400
+    }
+   ],
+   [
+    "Ikkakumon",
+    {
+     "Agent Rank": 3,
+     "HP": 1120,
+     "ATK": 440
+    }
+   ],
+   [
+    "Drimogemon",
+    {
+     "Agent Rank": 3,
+     "SP": 450,
+     "DEF": 300
+    }
+   ],
+   [
+    "Kyubimon",
+    {
+     "Agent Rank": 3,
+     "INT": 730
+    }
+   ],
+   [
+    "Geremon",
+    {
+     "Agent Rank": 3,
+     "HP": 750
+    }
+   ],
+   [
+    "Gabumon (Bond of Friendship)",
+    {
+     "Agent Rank": 8,
+     "DEF": 2260,
+     "Amicability(Agent Skills)": 46
+    }
+   ]
+  ]
+ },
+ "Kamemon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Gawappamon",
+    {
+     "Agent Rank": 3,
+     "HP": 940,
+     "SPI": 450
+    }
+   ],
+   [
+    "Octomon",
+    {
+     "Agent Rank": 3,
+     "HP": 1010,
+     "DEF": 430
+    }
+   ],
+   [
+    "Shellmon",
+    {
+     "Agent Rank": 3,
+     "SP": 460,
+     "DEF": 430
+    }
+   ],
+   [
+    "ShellNumemon",
+    {
+     "Agent Rank": 3,
+     "SP": 390,
+     "DEF": 300
+    }
+   ],
+   [
+    "Dinohyumon",
+    {
+     "Agent Rank": 3,
+     "HP": 1740,
+     "ATK": 530
+    }
+   ],
+   [
+    "Sorcermon",
+    {
+     "Agent Rank": 3,
+     "INT": 640,
+     "SPI": 480
+    }
+   ]
+  ]
+ },
+ "Kokuwamon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Centarumon",
+    {
+     "Agent Rank": 3,
+     "ATK": 550,
+     "SPD": 330
+    }
+   ],
+   [
+    "Kuwagamon",
+    {
+     "Agent Rank": 3,
+     "ATK": 550
+    }
+   ],
+   [
+    "Clockmon",
+    {
+     "Agent Rank": 3,
+     "SP": 450
+    }
+   ],
+   [
+    "Waspmon",
+    {
+     "Agent Rank": 3,
+     "HP": 800,
+     "ATK": 520
+    }
+   ],
+   [
+    "Mekanorimon",
+    {
+     "Agent Rank": 3,
+     "HP": 870,
+     "DEF": 430
+    }
+   ]
+  ]
+ },
+ "Kotemon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Turuiemon",
+    {
+     "Agent Rank": 3,
+     "HP": 820,
+     "SP": 380,
+     "ATK": 530
+    }
+   ],
+   [
+    "Musyamon",
+    {
+     "Agent Rank": 3,
+     "SPI": 560
+    }
+   ],
+   [
+    "Deputymon",
+    {
+     "Agent Rank": 3,
+     "SPI": 560
+    }
+   ],
+   [
+    "Dinohyumon",
+    {
+     "Agent Rank": 3,
+     "HP": 1740,
+     "ATK": 530
+    }
+   ],
+   [
+    "Coredramon (Blue)",
+    {
+     "Agent Rank": 3,
+     "HP": 1060
+    }
+   ]
+  ]
+ },
+ "Shoutmon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "OmniShoutmon",
+    {
+     "Agent Rank": 5,
+     "HP": 1070,
+     "SP": 320
+    }
+   ],
+   [
+    "ZubaEagermon",
+    {
+     "Agent Rank": 3,
+     "ATK": 540
+    }
+   ],
+   [
+    "Gargomon",
+    {
+     "Agent Rank": 3,
+     "SP": 530
+    }
+   ],
+   [
+    "Guardromon (Gold)",
+    {
+     "Agent Rank": 3,
+     "DEF": 500,
+     "SPI": 380
+    }
+   ]
+  ]
+ },
+ "Gotsumon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Starmon",
+    {
+     "Agent Rank": 3,
+     "SP": 420
+    }
+   ],
+   [
+    "Guardromon",
+    {
+     "Agent Rank": 3,
+     "DEF": 440
+    }
+   ],
+   [
+    "Golemon",
+    {
+     "Agent Rank": 3,
+     "DEF": 480
+    }
+   ],
+   [
+    "Monochromon",
+    {
+     "Agent Rank": 3,
+     "ATK": 510
+    }
+   ],
+   [
+    "Icemon",
+    {
+     "Agent Rank": 3,
+     "ATK": 460,
+     "SPI": 620
+    }
+   ],
+   [
+    "MudFrigimon",
+    {
+     "Agent Rank": 3,
+     "SP": 380
+    }
+   ]
+  ]
+ },
+ "Dracomon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Coredramon (Green)",
+    {
+     "Agent Rank": 3,
+     "ATK": 830
+    }
+   ],
+   [
+    "Coredramon (Blue)",
+    {
+     "Agent Rank": 3,
+     "HP": 1060
+    }
+   ],
+   [
+    "Deltamon",
+    {
+     "Agent Rank": 3,
+     "HP": 1100
+    }
+   ],
+   [
+    "Veedramon",
+    {
+     "Agent Rank": 3,
+     "SP": 380,
+     "ATK": 480,
+     "SPI": 390
+    }
+   ],
+   [
+    "Seadramon",
+    {
+     "Agent Rank": 3,
+     "HP": 890,
+     "INT": 420
+    }
+   ],
+   [
+    "Tyrannomon",
+    {
+     "Agent Rank": 3,
+     "ATK": 840
+    }
+   ]
+  ]
+ },
+ "Dorumon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Raptordramon",
+    {
+     "Agent Rank": 3,
+     "HP": 1090
+    }
+   ],
+   [
+    "Airdramon",
+    {
+     "Agent Rank": 3,
+     "SPD": 380
+    }
+   ],
+   [
+    "Sangloupmon",
+    {
+     "Agent Rank": 3,
+     "SPD": 620
+    }
+   ],
+   [
+    "ExVeemon",
+    {
+     "Agent Rank": 3,
+     "SPD": 610
+    }
+   ],
+   [
+    "Drimogemon",
+    {
+     "Agent Rank": 3,
+     "SP": 450,
+     "DEF": 300
+    }
+   ],
+   [
+    "Dorugamon",
+    {
+     "Agent Rank": 3,
+     "HP": 1060
+    }
+   ]
+  ]
+ },
+ "Patamon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Angemon",
+    {
+     "Agent Rank": 3,
+     "SP": 730,
+     "INT": 540
+    }
+   ],
+   [
+    "Pegasusmon",
+    {
+     "Agent Rank": 3,
+     "Req. Item": "Digi-Egg of Hope"
+    }
+   ],
+   [
+    "Unimon",
+    {
+     "Agent Rank": 3,
+     "SPI": 250,
+     "SPD": 300
+    }
+   ],
+   [
+    "Centarumon",
+    {
+     "Agent Rank": 3,
+     "ATK": 550,
+     "SPD": 330
+    }
+   ]
+  ]
+ },
+ "Huckmon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Gatomon",
+    {
+     "Agent Rank": 3,
+     "HP": 820,
+     "SPI": 540
+    }
+   ],
+   [
+    "GeoGreymon",
+    {
+     "Agent Rank": 3,
+     "HP": 1100
+    }
+   ],
+   [
+    "Growlmon",
+    {
+     "Agent Rank": 3,
+     "HP": 1100
+    }
+   ],
+   [
+    "BaoHuckmon",
+    {
+     "Agent Rank": 3,
+     "ATK": 700,
+     "SPI": 540
+    }
+   ],
+   [
+    "Greymon",
+    {
+     "Agent Rank": 3,
+     "HP": 1120
+    }
+   ]
+  ]
+ },
+ "Palmon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Mojyamon",
+    {
+     "Agent Rank": 3,
+     "HP": 1200
+    }
+   ],
+   [
+    "Vegiemon",
+    {
+     "Agent Rank": 3,
+     "HP": 800
+    }
+   ],
+   [
+    "Togemon",
+    {
+     "Agent Rank": 3,
+     "HP": 840,
+     "DEF": 410
+    }
+   ],
+   [
+    "Woodmon",
+    {
+     "Agent Rank": 3,
+     "HP": 1100
+    }
+   ],
+   [
+    "Kurisarimon",
+    {
+     "Agent Rank": 3,
+     "HP": 1170
+    }
+   ],
+   [
+    "PlatinumSukamon",
+    {
+     "Agent Rank": 3,
+     "DEF": 550
+    }
+   ]
+  ]
+ },
+ "Muchomon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Airdramon",
+    {
+     "Agent Rank": 3,
+     "SPD": 380
+    }
+   ],
+   [
+    "Peckmon",
+    {
+     "Agent Rank": 3,
+     "SPD": 540
+    }
+   ],
+   [
+    "Birdramon",
+    {
+     "Agent Rank": 3,
+     "SP": 540,
+     "INT": 540
+    }
+   ],
+   [
+    "Fugamon",
+    {
+     "Agent Rank": 3,
+     "SP": 380,
+     "ATK": 640
+    }
+   ]
+  ]
+ },
+ "Floramon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Vegiemon",
+    {
+     "Agent Rank": 3,
+     "HP": 800
+    }
+   ],
+   [
+    "Togemon",
+    {
+     "Agent Rank": 3,
+     "HP": 840,
+     "DEF": 410
+    }
+   ],
+   [
+    "Woodmon",
+    {
+     "Agent Rank": 3,
+     "HP": 1100
+    }
+   ],
+   [
+    "Sunflowmon",
+    {
+     "Agent Rank": 3,
+     "SP": 360,
+     "INT": 630,
+     "SPI": 480
+    }
+   ],
+   [
+    "Kiwimon",
+    {
+     "Agent Rank": 3,
+     "SP": 510
+    }
+   ]
+  ]
+ },
+ "Lalamon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Sunflowmon",
+    {
+     "Agent Rank": 3,
+     "SP": 360,
+     "INT": 630,
+     "SPI": 480
+    }
+   ],
+   [
+    "Togemon",
+    {
+     "Agent Rank": 3,
+     "HP": 840,
+     "DEF": 410
+    }
+   ],
+   [
+    "Deputymon",
+    {
+     "Agent Rank": 3,
+     "SPI": 560
+    }
+   ],
+   [
+    "MudFrigimon",
+    {
+     "Agent Rank": 3,
+     "SP": 380
+    }
+   ],
+   [
+    "Turuiemon",
+    {
+     "Agent Rank": 3,
+     "HP": 820,
+     "SP": 380,
+     "ATK": 530
+    }
+   ]
+  ]
+ },
+ "Lunamon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Lekismon",
+    {
+     "Agent Rank": 3,
+     "SP": 470,
+     "SPD": 640
+    }
+   ],
+   [
+    "Garurumon",
+    {
+     "Agent Rank": 3,
+     "DEF": 300,
+     "SPD": 400
+    }
+   ],
+   [
+    "Frigimon",
+    {
+     "Agent Rank": 3,
+     "HP": 960,
+     "SPI": 300
+    }
+   ],
+   [
+    "Hyogamon",
+    {
+     "Agent Rank": 3,
+     "HP": 1010,
+     "ATK": 380
+    }
+   ],
+   [
+    "Sorcermon",
+    {
+     "Agent Rank": 3,
+     "INT": 640,
+     "SPI": 480
+    }
+   ],
+   [
+    "Icemon",
+    {
+     "Agent Rank": 3,
+     "ATK": 460,
+     "SPI": 620
+    }
+   ]
+  ]
+ },
+ "Lopmon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Grizzlymon",
+    {
+     "Agent Rank": 3,
+     "DEF": 460
+    }
+   ],
+   [
+    "Minotarumon",
+    {
+     "Agent Rank": 3,
+     "ATK": 660
+    }
+   ],
+   [
+    "Leomon",
+    {
+     "Agent Rank": 3,
+     "ATK": 510
+    }
+   ],
+   [
+    "Turuiemon",
+    {
+     "Agent Rank": 3,
+     "HP": 820,
+     "SP": 380,
+     "ATK": 530
+    }
+   ],
+   [
+    "Wendigomon",
+    {
+     "Agent Rank": 3,
+     "SPD": 610
+    }
+   ],
+   [
+    "MudFrigimon",
+    {
+     "Agent Rank": 3,
+     "SP": 380
+    }
+   ]
+  ]
+ },
+ "Impmon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Bakemon",
+    {
+     "Agent Rank": 3,
+     "SPI": 400
+    }
+   ],
+   [
+    "Wizardmon",
+    {
+     "Agent Rank": 3,
+     "SP": 500,
+     "INT": 630
+    }
+   ],
+   [
+    "Clockmon",
+    {
+     "Agent Rank": 3,
+     "SP": 450
+    }
+   ],
+   [
+    "Sangloupmon",
+    {
+     "Agent Rank": 3,
+     "SPD": 620
+    }
+   ],
+   [
+    "Devimon",
+    {
+     "Agent Rank": 3,
+     "SP": 640,
+     "SPD": 430
+    }
+   ],
+   [
+    "Witchmon",
+    {
+     "Agent Rank": 3,
+     "INT": 500,
+     "SPI": 490
+    }
+   ]
+  ]
+ },
+ "Renamon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Lekismon",
+    {
+     "Agent Rank": 3,
+     "SP": 470,
+     "SPD": 640
+    }
+   ],
+   [
+    "Sunflowmon",
+    {
+     "Agent Rank": 3,
+     "SP": 360,
+     "INT": 630,
+     "SPI": 480
+    }
+   ],
+   [
+    "Reppamon",
+    {
+     "Agent Rank": 3,
+     "HP": 820,
+     "SPI": 540
+    }
+   ],
+   [
+    "Kyubimon",
+    {
+     "Agent Rank": 3,
+     "INT": 730
+    }
+   ],
+   [
+    "Garurumon (Black)",
+    {
+     "Agent Rank": 3,
+     "SPD": 580
+    }
+   ]
+  ]
+ },
+ "Otamamon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Seadramon",
+    {
+     "Agent Rank": 3,
+     "HP": 890,
+     "INT": 420
+    }
+   ],
+   [
+    "Numemon",
+    {
+     "Agent Rank": 3,
+     "SP": 330
+    }
+   ],
+   [
+    "Gekomon",
+    {
+     "Agent Rank": 3,
+     "INT": 490
+    }
+   ],
+   [
+    "ShellNumemon",
+    {
+     "Agent Rank": 3,
+     "SP": 390,
+     "DEF": 300
+    }
+   ],
+   [
+    "PlatinumSukamon",
+    {
+     "Agent Rank": 3,
+     "DEF": 550
+    }
+   ]
+  ]
+ },
+ "Gazimon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Sangloupmon",
+    {
+     "Agent Rank": 3,
+     "SPD": 620
+    }
+   ],
+   [
+    "BlackGatomon",
+    {
+     "Agent Rank": 3,
+     "SPI": 530
+    }
+   ],
+   [
+    "Gaogamon",
+    {
+     "Agent Rank": 3,
+     "SPI": 470
+    }
+   ],
+   [
+    "BaoHuckmon",
+    {
+     "Agent Rank": 3,
+     "ATK": 700,
+     "SPI": 540
+    }
+   ],
+   [
+    "Dobermon",
+    {
+     "Agent Rank": 3,
+     "SPD": 620
+    }
+   ],
+   [
+    "Dorugamon",
+    {
+     "Agent Rank": 3,
+     "HP": 1060
+    }
+   ]
+  ]
+ },
+ "Gizamon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Cyclonemon",
+    {
+     "Agent Rank": 3,
+     "HP": 1020,
+     "SPI": 460
+    }
+   ],
+   [
+    "Flymon",
+    {
+     "Agent Rank": 3,
+     "ATK": 620
+    }
+   ],
+   [
+    "ZubaEagermon",
+    {
+     "Agent Rank": 3,
+     "ATK": 540
+    }
+   ],
+   [
+    "Ankylomon",
+    {
+     "Agent Rank": 3,
+     "DEF": 450,
+     "SPI": 420
+    }
+   ],
+   [
+    "Geremon",
+    {
+     "Agent Rank": 3,
+     "HP": 750
+    }
+   ],
+   [
+    "Lanamon",
+    {
+     "Agent Rank": 3,
+     "SP": 1580,
+     "INT": 1130
+    }
+   ]
+  ]
+ },
+ "Guilmon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "GeoGreymon",
+    {
+     "Agent Rank": 3,
+     "HP": 1100
+    }
+   ],
+   [
+    "Growlmon",
+    {
+     "Agent Rank": 3,
+     "HP": 1100
+    }
+   ],
+   [
+    "ExVeemon",
+    {
+     "Agent Rank": 3,
+     "SPD": 610
+    }
+   ],
+   [
+    "Tyrannomon",
+    {
+     "Agent Rank": 3,
+     "ATK": 840
+    }
+   ],
+   [
+    "Greymon (Blue)",
+    {
+     "Agent Rank": 3,
+     "ATK": 660,
+     "SPI": 420,
+     "SPD": 540
+    }
+   ]
+  ]
+ },
+ "Goblimon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Golemon",
+    {
+     "Agent Rank": 3,
+     "DEF": 480
+    }
+   ],
+   [
+    "Wendigomon",
+    {
+     "Agent Rank": 3,
+     "SPD": 610
+    }
+   ],
+   [
+    "Deltamon",
+    {
+     "Agent Rank": 3,
+     "HP": 1100
+    }
+   ],
+   [
+    "Tuskmon",
+    {
+     "Agent Rank": 3,
+     "ATK": 540
+    }
+   ],
+   [
+    "Ogremon",
+    {
+     "Agent Rank": 3,
+     "ATK": 440,
+     "DEF": 290
+    }
+   ]
+  ]
+ },
+ "Shamamon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Minotarumon",
+    {
+     "Agent Rank": 3,
+     "ATK": 660
+    }
+   ],
+   [
+    "Musyamon",
+    {
+     "Agent Rank": 3,
+     "SPI": 560
+    }
+   ],
+   [
+    "Fugamon",
+    {
+     "Agent Rank": 3,
+     "SP": 380,
+     "ATK": 640
+    }
+   ],
+   [
+    "Witchmon",
+    {
+     "Agent Rank": 3,
+     "INT": 500,
+     "SPI": 490
+    }
+   ]
+  ]
+ },
+ "Syakomon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Coelamon",
+    {
+     "Agent Rank": 3,
+     "HP": 1060
+    }
+   ],
+   [
+    "Shellmon",
+    {
+     "Agent Rank": 3,
+     "SP": 460,
+     "DEF": 430
+    }
+   ],
+   [
+    "ShellNumemon",
+    {
+     "Agent Rank": 3,
+     "SP": 390,
+     "DEF": 300
+    }
+   ],
+   [
+    "Octomon",
+    {
+     "Agent Rank": 3,
+     "HP": 1010,
+     "DEF": 430
+    }
+   ],
+   [
+    "Raremon",
+    {
+     "Agent Rank": 3,
+     "HP": 900
+    }
+   ]
+  ]
+ },
+ "SnowGoblimon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Gatomon",
+    {
+     "Agent Rank": 3,
+     "HP": 820,
+     "SPI": 540
+    }
+   ],
+   [
+    "Monochromon",
+    {
+     "Agent Rank": 3,
+     "ATK": 510
+    }
+   ],
+   [
+    "Frigimon",
+    {
+     "Agent Rank": 3,
+     "HP": 960,
+     "SPI": 300
+    }
+   ],
+   [
+    "Hyogamon",
+    {
+     "Agent Rank": 3,
+     "HP": 1010,
+     "ATK": 380
+    }
+   ],
+   [
+    "IceDevimon",
+    {
+     "Agent Rank": 3,
+     "ATK": 400,
+     "SPI": 300
+    }
+   ],
+   [
+    "Icemon",
+    {
+     "Agent Rank": 3,
+     "ATK": 460,
+     "SPI": 620
+    }
+   ]
+  ]
+ },
+ "Dracmon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Sangloupmon",
+    {
+     "Agent Rank": 3,
+     "SPD": 620
+    }
+   ],
+   [
+    "Sukamon",
+    {
+     "Agent Rank": 3,
+     "DEF": 300
+    }
+   ],
+   [
+    "Wizardmon",
+    {
+     "Agent Rank": 3,
+     "SP": 500,
+     "INT": 630
+    }
+   ],
+   [
+    "Starmon",
+    {
+     "Agent Rank": 3,
+     "SP": 420
+    }
+   ]
+  ]
+ },
+ "Chuumon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "BlackGatomon",
+    {
+     "Agent Rank": 3,
+     "SPI": 530
+    }
+   ],
+   [
+    "Sukamon",
+    {
+     "Agent Rank": 3,
+     "DEF": 300
+    }
+   ],
+   [
+    "Gatomon",
+    {
+     "Agent Rank": 3,
+     "HP": 820,
+     "SPI": 540
+    }
+   ],
+   [
+    "Gekomon",
+    {
+     "Agent Rank": 3,
+     "INT": 490
+    }
+   ],
+   [
+    "Geremon",
+    {
+     "Agent Rank": 3,
+     "HP": 750
+    }
+   ],
+   [
+    "PlatinumSukamon",
+    {
+     "Agent Rank": 3,
+     "DEF": 550
+    }
+   ]
+  ]
+ },
+ "DemiDevimon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Bakemon",
+    {
+     "Agent Rank": 3,
+     "SPI": 400
+    }
+   ],
+   [
+    "IceDevimon",
+    {
+     "Agent Rank": 3,
+     "ATK": 400,
+     "SPI": 300
+    }
+   ],
+   [
+    "Devimon",
+    {
+     "Agent Rank": 3,
+     "SP": 640,
+     "SPD": 430
+    }
+   ],
+   [
+    "Ogremon",
+    {
+     "Agent Rank": 3,
+     "ATK": 440,
+     "DEF": 290
+    }
+   ],
+   [
+    "Greymon (Blue)",
+    {
+     "Agent Rank": 3,
+     "ATK": 660,
+     "SPI": 420,
+     "SPD": 540
+    }
+   ]
+  ]
+ },
+ "Hagurumon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Clockmon",
+    {
+     "Agent Rank": 3,
+     "SP": 450
+    }
+   ],
+   [
+    "Mekanorimon",
+    {
+     "Agent Rank": 3,
+     "HP": 870,
+     "DEF": 430
+    }
+   ],
+   [
+    "Tankmon",
+    {
+     "Agent Rank": 3,
+     "DEF": 430,
+     "SPI": 300
+    }
+   ],
+   [
+    "Guardromon",
+    {
+     "Agent Rank": 3,
+     "DEF": 440
+    }
+   ],
+   [
+    "Blimpmon",
+    {
+     "Agent Rank": 3,
+     "HP": 1000
+    }
+   ]
+  ]
+ },
+ "FunBeemon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Waspmon",
+    {
+     "Agent Rank": 3,
+     "HP": 800,
+     "ATK": 520
+    }
+   ],
+   [
+    "Flymon",
+    {
+     "Agent Rank": 3,
+     "ATK": 620
+    }
+   ],
+   [
+    "Dokugumon",
+    {
+     "Agent Rank": 3,
+     "SP": 460,
+     "ATK": 380
+    }
+   ],
+   [
+    "Stingmon",
+    {
+     "Agent Rank": 3,
+     "ATK": 500,
+     "SPI": 590
+    }
+   ],
+   [
+    "GoldNumemon",
+    {
+     "Agent Rank": 3,
+     "INT": 300,
+     "SPI": 300
+    }
+   ],
+   [
+    "Kabuterimon",
+    {
+     "Agent Rank": 3,
+     "SP": 380
+    }
+   ]
+  ]
+ },
+ "Mushroomon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Sukamon",
+    {
+     "Agent Rank": 3,
+     "DEF": 300
+    }
+   ],
+   [
+    "Nanimon",
+    {
+     "Agent Rank": 3,
+     "HP": 840,
+     "DEF": 280
+    }
+   ],
+   [
+    "Woodmon",
+    {
+     "Agent Rank": 3,
+     "HP": 1100
+    }
+   ],
+   [
+    "Flymon",
+    {
+     "Agent Rank": 3,
+     "ATK": 620
+    }
+   ]
+  ]
+ },
+ "Armadillomon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Digmon",
+    {
+     "Agent Rank": 3,
+     "Req. Item": "Digi-Egg of Knowledge"
+    }
+   ],
+   [
+    "Submarimon",
+    {
+     "Agent Rank": 3,
+     "Req. Item": "Digi-Egg of Reliability"
+    }
+   ],
+   [
+    "Golemon",
+    {
+     "Agent Rank": 3,
+     "DEF": 480
+    }
+   ],
+   [
+    "Ankylomon",
+    {
+     "Agent Rank": 3,
+     "DEF": 450,
+     "SPI": 420
+    }
+   ]
+  ]
+ },
+ "Betamon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Seadramon",
+    {
+     "Agent Rank": 3,
+     "HP": 890,
+     "INT": 420
+    }
+   ],
+   [
+    "Coelamon",
+    {
+     "Agent Rank": 3,
+     "HP": 1060
+    }
+   ],
+   [
+    "Devimon",
+    {
+     "Agent Rank": 3,
+     "SP": 640,
+     "SPD": 430
+    }
+   ],
+   [
+    "Numemon",
+    {
+     "Agent Rank": 3,
+     "SP": 330
+    }
+   ],
+   [
+    "Vegiemon",
+    {
+     "Agent Rank": 3,
+     "HP": 800
+    }
+   ],
+   [
+    "Tuskmon",
+    {
+     "Agent Rank": 3,
+     "ATK": 540
+    }
+   ]
+  ]
+ },
+ "Veemon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "ExVeemon",
+    {
+     "Agent Rank": 3,
+     "SPD": 610
+    }
+   ],
+   [
+    "Veedramon",
+    {
+     "Agent Rank": 3,
+     "SP": 380,
+     "ATK": 480,
+     "SPI": 390
+    }
+   ],
+   [
+    "Lighdramon",
+    {
+     "Agent Rank": 3,
+     "Req. Item": "Digi-Egg of Friendship"
+    }
+   ],
+   [
+    "Magnamon",
+    {
+     "Agent Rank": 7,
+     "Req. Item": "Digi-Egg of Miracles"
+    }
+   ],
+   [
+    "Flamedramon",
+    {
+     "Agent Rank": 3,
+     "Req. Item": "Digi-Egg of Courage"
+    }
+   ]
+  ]
+ },
+ "Wormmon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Stingmon",
+    {
+     "Agent Rank": 3,
+     "ATK": 500,
+     "SPI": 590
+    }
+   ],
+   [
+    "Dokugumon",
+    {
+     "Agent Rank": 3,
+     "SP": 460,
+     "ATK": 380
+    }
+   ],
+   [
+    "Snimon",
+    {
+     "Agent Rank": 3,
+     "SPD": 530
+    }
+   ]
+  ]
+ },
+ "Hawkmon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Firamon",
+    {
+     "Agent Rank": 3,
+     "ATK": 700
+    }
+   ],
+   [
+    "Halsemon",
+    {
+     "Agent Rank": 3,
+     "Req. Item": "Digi-Egg of Love"
+    }
+   ],
+   [
+    "Shurimon",
+    {
+     "Agent Rank": 3,
+     "Req. Item": "Digi-Egg of Sincerity"
+    }
+   ],
+   [
+    "Aquilamon",
+    {
+     "Agent Rank": 3,
+     "DEF": 300,
+     "SPD": 470
+    }
+   ]
+  ]
+ },
+ "Keramon": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Dokugumon",
+    {
+     "Agent Rank": 3,
+     "SP": 460,
+     "ATK": 380
+    }
+   ],
+   [
+    "Wendigomon",
+    {
+     "Agent Rank": 3,
+     "SPD": 610
+    }
+   ],
+   [
+    "Octomon",
+    {
+     "Agent Rank": 3,
+     "HP": 1010,
+     "DEF": 430
+    }
+   ],
+   [
+    "Mekanorimon",
+    {
+     "Agent Rank": 3,
+     "HP": 870,
+     "DEF": 430
+    }
+   ],
+   [
+    "Kurisarimon",
+    {
+     "Agent Rank": 3,
+     "HP": 1170
+    }
+   ]
+  ]
+ },
+ "Aegiomon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Aegiochusmon",
+    {
+     "Agent Rank": 9,
+     "ATK": 1100,
+     "SPD": 1090,
+     "Valor(Agent Skills)": 46,
+     "Philantropy(Agent Skills)": 46
+    }
+   ],
+   [
+    "Aegiochusmon: Dark",
+    {
+     "Agent Rank": 9,
+     "ATK": 3070,
+     "INT": 2980,
+     "Valor(Agent Skills)": 46,
+     "Amicability(Agent Skills)": 46,
+     "Wisdom(Agent Skills)": 46
+    }
+   ],
+   [
+    "Aegiochusmon: Holy",
+    {
+     "Agent Rank": 9,
+     "INT": 2980,
+     "SPI": 2890,
+     "Valor(Agent Skills)": 46,
+     "Philantropy(Agent Skills)": 46,
+     "Amicability(Agent Skills)": 46
+    }
+   ],
+   [
+    "Aegiochusmon: Blue",
+    {
+     "Agent Rank": 9,
+     "SP": 1820,
+     "ATK": 3070,
+     "Valor(Agent Skills)": 46,
+     "Amicability(Agent Skills)": 46
+    }
+   ],
+   [
+    "Aegiochusmon: Green",
+    {
+     "Agent Rank": 9,
+     "HP": 4620,
+     "SPD": 2910,
+     "Valor(Agent Skills)": 46,
+     "Wisdom(Agent Skills)": 46
+    }
+   ]
+  ]
+ },
+ "Ikkakumon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Whamon",
+    {
+     "Agent Rank": 5,
+     "HP": 1800,
+     "INT": 990,
+     "SPI": 960
+    }
+   ],
+   [
+    "MegaSeadramon",
+    {
+     "Agent Rank": 5,
+     "SP": 900,
+     "INT": 1040
+    }
+   ],
+   [
+    "Zudomon",
+    {
+     "Agent Rank": 5,
+     "HP": 1730,
+     "ATK": 930,
+     "DEF": 940
+    }
+   ],
+   [
+    "SkullSeadramon",
+    {
+     "Agent Rank": 5,
+     "SP": 1350,
+     "INT": 1230
+    }
+   ]
+  ]
+ },
+ "Angemon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "HippoGryphonmon",
+    {
+     "Agent Rank": 5,
+     "INT": 1050,
+     "SPD": 1020
+    }
+   ],
+   [
+    "MagnaAngemon",
+    {
+     "Agent Rank": 5,
+     "SP": 910,
+     "INT": 1270
+    }
+   ],
+   [
+    "Sirenmon",
+    {
+     "Agent Rank": 5,
+     "HP": 1530,
+     "SPI": 1020,
+     "SPD": 910
+    }
+   ],
+   [
+    "Shakkoumon",
+    {
+     "Agent Rank": 5,
+     "Jogress": [
+      "Ankylomon (Overprotective)",
+      "Angemon (Enlightened)"
+     ]
+    }
+   ]
+  ]
+ },
+ "Kabuterimon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Lilamon",
+    {
+     "Agent Rank": 5,
+     "SP": 880,
+     "INT": 1260
+    }
+   ],
+   [
+    "MegaKabuterimon",
+    {
+     "Agent Rank": 5,
+     "SP": 620,
+     "DEF": 1020
+    }
+   ],
+   [
+    "CannonBeemon",
+    {
+     "Agent Rank": 5,
+     "SP": 540,
+     "ATK": 1060
+    }
+   ],
+   [
+    "Kimeramon",
+    {
+     "Agent Rank": 5,
+     "HP": 2030,
+     "ATK": 1350
+    }
+   ]
+  ]
+ },
+ "Airdramon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Hisyaryumon",
+    {
+     "Agent Rank": 5,
+     "ATK": 900,
+     "DEF": 960
+    }
+   ],
+   [
+    "Megadramon",
+    {
+     "Agent Rank": 5,
+     "ATK": 1050,
+     "SPI": 940
+    }
+   ],
+   [
+    "AeroVeedramon",
+    {
+     "Agent Rank": 5,
+     "HP": 1580,
+     "ATK": 1130,
+     "SPD": 1020
+    }
+   ],
+   [
+    "Gigadramon",
+    {
+     "Agent Rank": 5,
+     "ATK": 1130,
+     "DEF": 990,
+     "SPI": 860
+    }
+   ]
+  ]
+ },
+ "Gargomon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "CatchMamemon",
+    {
+     "Agent Rank": 5,
+     "SP": 620,
+     "DEF": 940
+    }
+   ],
+   [
+    "MachGaogamon",
+    {
+     "Agent Rank": 5,
+     "HP": 1800,
+     "SPD": 1060
+    }
+   ],
+   [
+    "Rapidmon",
+    {
+     "Agent Rank": 5,
+     "SP": 1150,
+     "SPD": 1020
+    }
+   ]
+  ]
+ },
+ "Garurumon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "WereGarurumon",
+    {
+     "Agent Rank": 5,
+     "HP": 1840,
+     "ATK": 990,
+     "SPD": 1090
+    }
+   ],
+   [
+    "BlueMeramon",
+    {
+     "Agent Rank": 5,
+     "HP": 1370,
+     "SP": 1020
+    }
+   ],
+   [
+    "Taomon",
+    {
+     "Agent Rank": 5,
+     "SP": 860,
+     "INT": 1020
+    }
+   ],
+   [
+    "Kimeramon",
+    {
+     "Agent Rank": 5,
+     "HP": 2030,
+     "ATK": 1350
+    }
+   ]
+  ]
+ },
+ "Ginryumon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Hisyaryumon",
+    {
+     "Agent Rank": 5,
+     "ATK": 900,
+     "DEF": 960
+    }
+   ],
+   [
+    "SkullGreymon",
+    {
+     "Agent Rank": 5,
+     "ATK": 1250,
+     "DEF": 1060
+    }
+   ],
+   [
+    "Butenmon",
+    {
+     "Agent Rank": 5,
+     "SPI": 960,
+     "SPD": 1040
+    }
+   ]
+  ]
+ },
+ "Grizzlymon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "WereGarurumon",
+    {
+     "Agent Rank": 5,
+     "HP": 1840,
+     "ATK": 990,
+     "SPD": 1090
+    }
+   ],
+   [
+    "GrapLeomon",
+    {
+     "Agent Rank": 5,
+     "HP": 1080,
+     "ATK": 940
+    }
+   ],
+   [
+    "GreatGrizzlymon",
+    {
+     "Agent Rank": 5,
+     "DEF": 1050,
+     "SPI": 970
+    }
+   ]
+  ]
+ },
+ "Greymon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "MetalGreymon",
+    {
+     "Agent Rank": 5,
+     "HP": 1480,
+     "ATK": 1300
+    }
+   ],
+   [
+    "Megadramon",
+    {
+     "Agent Rank": 5,
+     "ATK": 1050,
+     "SPI": 940
+    }
+   ],
+   [
+    "SkullGreymon",
+    {
+     "Agent Rank": 5,
+     "ATK": 1250,
+     "DEF": 1060
+    }
+   ],
+   [
+    "Kimeramon",
+    {
+     "Agent Rank": 5,
+     "HP": 2030,
+     "ATK": 1350
+    }
+   ]
+  ]
+ },
+ "Coredramon (Blue)": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Wingdramon",
+    {
+     "Agent Rank": 5,
+     "HP": 1760,
+     "SPD": 1020
+    }
+   ],
+   [
+    "AeroVeedramon",
+    {
+     "Agent Rank": 5,
+     "HP": 1580,
+     "ATK": 1130,
+     "SPD": 1020
+    }
+   ],
+   [
+    "Gigadramon",
+    {
+     "Agent Rank": 5,
+     "ATK": 1130,
+     "DEF": 990,
+     "SPI": 860
+    }
+   ]
+  ]
+ },
+ "GeoGreymon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "RizeGreymon",
+    {
+     "Agent Rank": 5,
+     "ATK": 940,
+     "SPD": 980
+    }
+   ],
+   [
+    "MetalTyrannomon",
+    {
+     "Agent Rank": 5,
+     "ATK": 740,
+     "DEF": 1060,
+     "SPI": 820
+    }
+   ],
+   [
+    "Cyberdramon",
+    {
+     "Agent Rank": 5,
+     "SP": 510,
+     "ATK": 960,
+     "DEF": 790
+    }
+   ]
+  ]
+ },
+ "Strikedramon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Cyberdramon",
+    {
+     "Agent Rank": 5,
+     "SP": 510,
+     "ATK": 960,
+     "DEF": 790
+    }
+   ],
+   [
+    "SaviorHuckmon",
+    {
+     "Agent Rank": 5,
+     "ATK": 1020,
+     "SPI": 890,
+     "SPD": 1060
+    }
+   ],
+   [
+    "Locomon",
+    {
+     "Agent Rank": 5,
+     "HP": 1650,
+     "DEF": 980
+    }
+   ]
+  ]
+ },
+ "Snimon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Okuwamon",
+    {
+     "Agent Rank": 5,
+     "ATK": 1170,
+     "DEF": 1020
+    }
+   ],
+   [
+    "Phantomon",
+    {
+     "Agent Rank": 5,
+     "HP": 1530,
+     "SPI": 940,
+     "SPD": 1010
+    }
+   ],
+   [
+    "Arukenimon",
+    {
+     "Agent Rank": 5,
+     "ATK": 1110,
+     "SPD": 1060
+    }
+   ],
+   [
+    "JewelBeemon",
+    {
+     "Agent Rank": 5,
+     "HP": 1200,
+     "ATK": 1020
+    }
+   ]
+  ]
+ },
+ "ZubaEagermon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Grademon",
+    {
+     "Agent Rank": 5,
+     "ATK": 960,
+     "SPD": 960
+    }
+   ],
+   [
+    "WarGrowlmon",
+    {
+     "Agent Rank": 5,
+     "HP": 1730,
+     "DEF": 1060
+    }
+   ],
+   [
+    "Duramon",
+    {
+     "Agent Rank": 5,
+     "HP": 1900,
+     "ATK": 1060,
+     "DEF": 960
+    }
+   ],
+   [
+    "Knightmon",
+    {
+     "Agent Rank": 5,
+     "DEF": 1040,
+     "SPI": 950
+    }
+   ]
+  ]
+ },
+ "Sorcermon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "MagnaAngemon",
+    {
+     "Agent Rank": 5,
+     "SP": 910,
+     "INT": 1270
+    }
+   ],
+   [
+    "Piximon",
+    {
+     "Agent Rank": 5,
+     "HP": 1600,
+     "INT": 980,
+     "SPI": 930
+    }
+   ],
+   [
+    "Wisemon",
+    {
+     "Agent Rank": 5,
+     "SP": 1100,
+     "INT": 1650
+    }
+   ]
+  ]
+ },
+ "Gatomon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Nefertimon",
+    {
+     "Agent Rank": 3,
+     "Req. Item": "Digi-Egg of Light"
+    }
+   ],
+   [
+    "Angewomon",
+    {
+     "Agent Rank": 5,
+     "INT": 970,
+     "SPI": 910
+    }
+   ],
+   [
+    "Silphymon",
+    {
+     "Agent Rank": 5,
+     "Jogress": [
+      "Aquilamon (Sociable)",
+      "Gatomon (Tolerant)"
+     ]
+    }
+   ]
+  ]
+ },
+ "Dobermon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Matadormon",
+    {
+     "Agent Rank": 5,
+     "SPI": 890,
+     "SPD": 1100
+    }
+   ],
+   [
+    "DarkSuperStarmon",
+    {
+     "Agent Rank": 5,
+     "SP": 970,
+     "ATK": 900
+    }
+   ],
+   [
+    "Cerberusmon",
+    {
+     "Agent Rank": 5,
+     "SP": 620,
+     "ATK": 940,
+     "SPD": 890
+    }
+   ],
+   [
+    "Mummymon",
+    {
+     "Agent Rank": 5,
+     "SP": 530,
+     "DEF": 920,
+     "SPI": 870
+    }
+   ]
+  ]
+ },
+ "Firamon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Flaremon",
+    {
+     "Agent Rank": 5,
+     "HP": 1860,
+     "ATK": 980,
+     "DEF": 890
+    }
+   ],
+   [
+    "SaviorHuckmon",
+    {
+     "Agent Rank": 5,
+     "ATK": 1020,
+     "SPI": 890,
+     "SPD": 1060
+    }
+   ],
+   [
+    "Mistymon",
+    {
+     "Agent Rank": 5,
+     "SP": 550,
+     "INT": 900,
+     "SPI": 890
+    }
+   ]
+  ]
+ },
+ "Birdramon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Flaremon",
+    {
+     "Agent Rank": 5,
+     "HP": 1860,
+     "ATK": 980,
+     "DEF": 890
+    }
+   ],
+   [
+    "Garudamon",
+    {
+     "Agent Rank": 5,
+     "INT": 1060,
+     "SPD": 980
+    }
+   ],
+   [
+    "SkullMeramon",
+    {
+     "Agent Rank": 5,
+     "HP": 1720,
+     "ATK": 1020,
+     "DEF": 820
+    }
+   ],
+   [
+    "Parrotmon",
+    {
+     "Agent Rank": 5,
+     "INT": 980,
+     "SPD": 1060
+    }
+   ]
+  ]
+ },
+ "Veedramon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Wingdramon",
+    {
+     "Agent Rank": 5,
+     "HP": 1760,
+     "SPD": 1020
+    }
+   ],
+   [
+    "AeroVeedramon",
+    {
+     "Agent Rank": 5,
+     "HP": 1580,
+     "ATK": 1130,
+     "SPD": 1020
+    }
+   ],
+   [
+    "Cyberdramon",
+    {
+     "Agent Rank": 5,
+     "SP": 510,
+     "ATK": 960,
+     "DEF": 790
+    }
+   ],
+   [
+    "MetalGreymon (Blue)",
+    {
+     "Agent Rank": 5,
+     "ATK": 1220,
+     "INT": 740
+    }
+   ]
+  ]
+ },
+ "Buraimon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Butenmon",
+    {
+     "Agent Rank": 5,
+     "SPI": 960,
+     "SPD": 1040
+    }
+   ],
+   [
+    "Duramon",
+    {
+     "Agent Rank": 5,
+     "HP": 1900,
+     "ATK": 1060,
+     "DEF": 960
+    }
+   ],
+   [
+    "Garudamon",
+    {
+     "Agent Rank": 5,
+     "INT": 1060,
+     "SPD": 980
+    }
+   ]
+  ]
+ },
+ "Peckmon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Chirinmon",
+    {
+     "Agent Rank": 5,
+     "ATK": 900,
+     "INT": 900,
+     "SPD": 1100
+    }
+   ],
+   [
+    "Myotismon",
+    {
+     "Agent Rank": 5,
+     "HP": 1650,
+     "INT": 950
+    }
+   ],
+   [
+    "Crowmon",
+    {
+     "Agent Rank": 5,
+     "INT": 1020,
+     "SPD": 1050
+    }
+   ]
+  ]
+ },
+ "Frigimon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Crescemon",
+    {
+     "Agent Rank": 5,
+     "HP": 1530,
+     "SPI": 1000,
+     "SPD": 890
+    }
+   ],
+   [
+    "Angewomon",
+    {
+     "Agent Rank": 5,
+     "INT": 970,
+     "SPI": 910
+    }
+   ],
+   [
+    "IceLeomon",
+    {
+     "Agent Rank": 5,
+     "SP": 540,
+     "SPI": 940,
+     "SPD": 890
+    }
+   ],
+   [
+    "Meteormon",
+    {
+     "Agent Rank": 5,
+     "DEF": 980,
+     "SPI": 970
+    }
+   ],
+   [
+    "Mammothmon",
+    {
+     "Agent Rank": 5,
+     "HP": 1940,
+     "ATK": 820
+    }
+   ]
+  ]
+ },
+ "Mojyamon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Zudomon",
+    {
+     "Agent Rank": 5,
+     "HP": 1730,
+     "ATK": 930,
+     "DEF": 940
+    }
+   ],
+   [
+    "Piximon",
+    {
+     "Agent Rank": 5,
+     "HP": 1600,
+     "INT": 980,
+     "SPI": 930
+    }
+   ],
+   [
+    "Mistymon",
+    {
+     "Agent Rank": 5,
+     "SP": 550,
+     "INT": 900,
+     "SPI": 890
+    }
+   ],
+   [
+    "Mammothmon",
+    {
+     "Agent Rank": 5,
+     "HP": 1940,
+     "ATK": 820
+    }
+   ]
+  ]
+ },
+ "Unimon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "HippoGryphonmon",
+    {
+     "Agent Rank": 5,
+     "INT": 1050,
+     "SPD": 1020
+    }
+   ],
+   [
+    "MagnaAngemon",
+    {
+     "Agent Rank": 5,
+     "SP": 910,
+     "INT": 1270
+    }
+   ],
+   [
+    "Chirinmon",
+    {
+     "Agent Rank": 5,
+     "ATK": 900,
+     "INT": 900,
+     "SPD": 1100
+    }
+   ]
+  ]
+ },
+ "Raptordramon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Grademon",
+    {
+     "Agent Rank": 5,
+     "ATK": 960,
+     "SPD": 960
+    }
+   ],
+   [
+    "Gigadramon",
+    {
+     "Agent Rank": 5,
+     "ATK": 1130,
+     "DEF": 990,
+     "SPI": 860
+    }
+   ],
+   [
+    "Tankdramon",
+    {
+     "Agent Rank": 5,
+     "ATK": 1150,
+     "DEF": 900
+    }
+   ]
+  ]
+ },
+ "Deputymon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Pandamon",
+    {
+     "Agent Rank": 5,
+     "DEF": 860,
+     "INT": 850,
+     "SPI": 900
+    }
+   ],
+   [
+    "SuperStarmon",
+    {
+     "Agent Rank": 5,
+     "ATK": 980,
+     "DEF": 1020,
+     "SPI": 980
+    }
+   ],
+   [
+    "Wisemon",
+    {
+     "Agent Rank": 5,
+     "SP": 1100,
+     "INT": 1650
+    }
+   ]
+  ]
+ },
+ "Reppamon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Chirinmon",
+    {
+     "Agent Rank": 5,
+     "ATK": 900,
+     "INT": 900,
+     "SPD": 1100
+    }
+   ],
+   [
+    "MegaSeadramon",
+    {
+     "Agent Rank": 5,
+     "SP": 900,
+     "INT": 1040
+    }
+   ],
+   [
+    "Angewomon",
+    {
+     "Agent Rank": 5,
+     "INT": 970,
+     "SPI": 910
+    }
+   ],
+   [
+    "DoruGreymon",
+    {
+     "Agent Rank": 5,
+     "HP": 1370,
+     "ATK": 850
+    }
+   ]
+  ]
+ },
+ "Icemon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Crescemon",
+    {
+     "Agent Rank": 5,
+     "HP": 1530,
+     "SPI": 1000,
+     "SPD": 890
+    }
+   ],
+   [
+    "Meteormon",
+    {
+     "Agent Rank": 5,
+     "DEF": 980,
+     "SPI": 970
+    }
+   ],
+   [
+    "IceLeomon",
+    {
+     "Agent Rank": 5,
+     "SP": 540,
+     "SPI": 940,
+     "SPD": 890
+    }
+   ]
+  ]
+ },
+ "Leomon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Flaremon",
+    {
+     "Agent Rank": 5,
+     "HP": 1860,
+     "ATK": 980,
+     "DEF": 890
+    }
+   ],
+   [
+    "GrapLeomon",
+    {
+     "Agent Rank": 5,
+     "HP": 1080,
+     "ATK": 940
+    }
+   ],
+   [
+    "IceLeomon",
+    {
+     "Agent Rank": 5,
+     "SP": 540,
+     "SPI": 940,
+     "SPD": 890
+    }
+   ],
+   [
+    "LoaderLeomon",
+    {
+     "Agent Rank": 5,
+     "ATK": 840,
+     "SPD": 1010
+    }
+   ]
+  ]
+ },
+ "Wizardmon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Datamon",
+    {
+     "Agent Rank": 5,
+     "HP": 1530,
+     "INT": 1020
+    }
+   ],
+   [
+    "Mistymon",
+    {
+     "Agent Rank": 5,
+     "SP": 550,
+     "INT": 900,
+     "SPI": 890
+    }
+   ],
+   [
+    "Wisemon",
+    {
+     "Agent Rank": 5,
+     "SP": 1100,
+     "INT": 1650
+    }
+   ]
+  ]
+ },
+ "Witchmon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "LadyDevimon",
+    {
+     "Agent Rank": 5,
+     "HP": 1290,
+     "INT": 770,
+     "SPD": 830
+    }
+   ],
+   [
+    "Angewomon",
+    {
+     "Agent Rank": 5,
+     "INT": 970,
+     "SPI": 910
+    }
+   ],
+   [
+    "Lillymon",
+    {
+     "Agent Rank": 5,
+     "SP": 960,
+     "SPI": 830
+    }
+   ]
+  ]
+ },
+ "Gaogamon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "MachGaogamon",
+    {
+     "Agent Rank": 5,
+     "HP": 1800,
+     "SPD": 1060
+    }
+   ],
+   [
+    "SaviorHuckmon",
+    {
+     "Agent Rank": 5,
+     "ATK": 1020,
+     "SPI": 890,
+     "SPD": 1060
+    }
+   ],
+   [
+    "DarkSuperStarmon",
+    {
+     "Agent Rank": 5,
+     "SP": 970,
+     "ATK": 900
+    }
+   ]
+  ]
+ },
+ "Gawappamon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Shaujinmon",
+    {
+     "Agent Rank": 5,
+     "HP": 1630,
+     "SPD": 980
+    }
+   ],
+   [
+    "Divermon",
+    {
+     "Agent Rank": 5,
+     "HP": 1610,
+     "ATK": 860,
+     "SPD": 830
+    }
+   ],
+   [
+    "ShogunGekomon",
+    {
+     "Agent Rank": 5,
+     "HP": 1630,
+     "DEF": 940,
+     "SPI": 940
+    }
+   ]
+  ]
+ },
+ "Kiwimon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Lilamon",
+    {
+     "Agent Rank": 5,
+     "SP": 880,
+     "INT": 1260
+    }
+   ],
+   [
+    "Sirenmon",
+    {
+     "Agent Rank": 5,
+     "HP": 1530,
+     "SPI": 1020,
+     "SPD": 910
+    }
+   ],
+   [
+    "Deramon",
+    {
+     "Agent Rank": 5,
+     "HP": 1700,
+     "SP": 650
+    }
+   ],
+   [
+    "Cherrymon",
+    {
+     "Agent Rank": 5,
+     "SP": 980,
+     "DEF": 950
+    }
+   ]
+  ]
+ },
+ "Kyubimon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "BlueMeramon",
+    {
+     "Agent Rank": 5,
+     "HP": 1370,
+     "SP": 1020
+    }
+   ],
+   [
+    "Cerberusmon",
+    {
+     "Agent Rank": 5,
+     "SP": 620,
+     "ATK": 940,
+     "SPD": 890
+    }
+   ],
+   [
+    "Taomon",
+    {
+     "Agent Rank": 5,
+     "SP": 860,
+     "INT": 1020
+    }
+   ],
+   [
+    "Enbarrmon",
+    {
+     "Agent Rank": 5,
+     "HP": 1140,
+     "DEF": 820,
+     "SPD": 840
+    }
+   ]
+  ]
+ },
+ "Clockmon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "ExTyrannomon",
+    {
+     "Agent Rank": 5,
+     "HP": 1610,
+     "SPI": 1010
+    }
+   ],
+   [
+    "Andromon",
+    {
+     "Agent Rank": 5,
+     "DEF": 810,
+     "SPI": 1040
+    }
+   ],
+   [
+    "Zudomon",
+    {
+     "Agent Rank": 5,
+     "HP": 1730,
+     "ATK": 930,
+     "DEF": 940
+    }
+   ],
+   [
+    "Knightmon",
+    {
+     "Agent Rank": 5,
+     "DEF": 1040,
+     "SPI": 950
+    }
+   ]
+  ]
+ },
+ "Centarumon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Andromon",
+    {
+     "Agent Rank": 5,
+     "DEF": 810,
+     "SPI": 1040
+    }
+   ],
+   [
+    "Datamon",
+    {
+     "Agent Rank": 5,
+     "HP": 1530,
+     "INT": 1020
+    }
+   ],
+   [
+    "Rapidmon",
+    {
+     "Agent Rank": 5,
+     "SP": 1150,
+     "SPD": 1020
+    }
+   ]
+  ]
+ },
+ "Sunflowmon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Lilamon",
+    {
+     "Agent Rank": 5,
+     "SP": 880,
+     "INT": 1260
+    }
+   ],
+   [
+    "Lillymon",
+    {
+     "Agent Rank": 5,
+     "SP": 960,
+     "SPI": 830
+    }
+   ],
+   [
+    "Deramon",
+    {
+     "Agent Rank": 5,
+     "HP": 1700,
+     "SP": 650
+    }
+   ],
+   [
+    "Pumpkinmon",
+    {
+     "Agent Rank": 5,
+     "HP": 1610,
+     "INT": 1060
+    }
+   ]
+  ]
+ },
+ "Coelamon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "WaruSeadramon",
+    {
+     "Agent Rank": 5,
+     "HP": 1680,
+     "INT": 1200
+    }
+   ],
+   [
+    "MetalTyrannomon",
+    {
+     "Agent Rank": 5,
+     "ATK": 740,
+     "DEF": 1060,
+     "SPI": 820
+    }
+   ],
+   [
+    "Scorpiomon",
+    {
+     "Agent Rank": 5,
+     "SP": 920,
+     "DEF": 1060
+    }
+   ],
+   [
+    "Divermon",
+    {
+     "Agent Rank": 5,
+     "HP": 1610,
+     "ATK": 860,
+     "SPD": 830
+    }
+   ],
+   [
+    "SkullSeadramon",
+    {
+     "Agent Rank": 5,
+     "SP": 1350,
+     "INT": 1230
+    }
+   ]
+  ]
+ },
+ "Seadramon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Whamon",
+    {
+     "Agent Rank": 5,
+     "HP": 1800,
+     "INT": 990,
+     "SPI": 960
+    }
+   ],
+   [
+    "MegaSeadramon",
+    {
+     "Agent Rank": 5,
+     "SP": 900,
+     "INT": 1040
+    }
+   ],
+   [
+    "WaruSeadramon",
+    {
+     "Agent Rank": 5,
+     "HP": 1680,
+     "INT": 1200
+    }
+   ],
+   [
+    "Hisyaryumon",
+    {
+     "Agent Rank": 5,
+     "ATK": 900,
+     "DEF": 960
+    }
+   ],
+   [
+    "Sharkmon",
+    {
+     "Agent Rank": 5,
+     "HP": 1690,
+     "SP": 960,
+     "ATK": 1100
+    }
+   ],
+   [
+    "SkullSeadramon",
+    {
+     "Agent Rank": 5,
+     "SP": 1350,
+     "INT": 1230
+    }
+   ]
+  ]
+ },
+ "Shellmon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Whamon",
+    {
+     "Agent Rank": 5,
+     "HP": 1800,
+     "INT": 990,
+     "SPI": 960
+    }
+   ],
+   [
+    "Piximon",
+    {
+     "Agent Rank": 5,
+     "HP": 1600,
+     "INT": 980,
+     "SPI": 930
+    }
+   ],
+   [
+    "Scorpiomon",
+    {
+     "Agent Rank": 5,
+     "SP": 920,
+     "DEF": 1060
+    }
+   ]
+  ]
+ },
+ "Starmon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Volcanomon",
+    {
+     "Agent Rank": 5,
+     "HP": 2080,
+     "ATK": 980
+    }
+   ],
+   [
+    "SuperStarmon",
+    {
+     "Agent Rank": 5,
+     "ATK": 980,
+     "DEF": 1020,
+     "SPI": 980
+    }
+   ],
+   [
+    "DarkSuperStarmon",
+    {
+     "Agent Rank": 5,
+     "SP": 970,
+     "ATK": 900
+    }
+   ],
+   [
+    "Mamemon",
+    {
+     "Agent Rank": 5,
+     "HP": 1720,
+     "SP": 580,
+     "DEF": 1020
+    }
+   ]
+  ]
+ },
+ "MudFrigimon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Deramon",
+    {
+     "Agent Rank": 5,
+     "HP": 1700,
+     "SP": 650
+    }
+   ],
+   [
+    "Garbagemon",
+    {
+     "Agent Rank": 5,
+     "HP": 1880,
+     "SP": 1020
+    }
+   ],
+   [
+    "Antylamon",
+    {
+     "Agent Rank": 5,
+     "SP": 920,
+     "SPD": 990
+    }
+   ]
+  ]
+ },
+ "Tankmon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "BigMamemon",
+    {
+     "Agent Rank": 5,
+     "HP": 1650,
+     "DEF": 940
+    }
+   ],
+   [
+    "Locomon",
+    {
+     "Agent Rank": 5,
+     "HP": 1650,
+     "DEF": 980
+    }
+   ],
+   [
+    "Tankdramon",
+    {
+     "Agent Rank": 5,
+     "ATK": 1150,
+     "DEF": 900
+    }
+   ]
+  ]
+ },
+ "Dinohyumon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Shaujinmon",
+    {
+     "Agent Rank": 5,
+     "HP": 1630,
+     "SPD": 980
+    }
+   ],
+   [
+    "Grademon",
+    {
+     "Agent Rank": 5,
+     "ATK": 960,
+     "SPD": 960
+    }
+   ],
+   [
+    "Knightmon",
+    {
+     "Agent Rank": 5,
+     "DEF": 1040,
+     "SPI": 950
+    }
+   ]
+  ]
+ },
+ "Tyrannomon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "ExTyrannomon",
+    {
+     "Agent Rank": 5,
+     "HP": 1610,
+     "SPI": 1010
+    }
+   ],
+   [
+    "Groundramon",
+    {
+     "Agent Rank": 5,
+     "HP": 2120,
+     "ATK": 740,
+     "DEF": 870
+    }
+   ],
+   [
+    "MetalGreymon",
+    {
+     "Agent Rank": 5,
+     "HP": 1480,
+     "ATK": 1300
+    }
+   ],
+   [
+    "MetalTyrannomon",
+    {
+     "Agent Rank": 5,
+     "ATK": 740,
+     "DEF": 1060,
+     "SPI": 820
+    }
+   ]
+  ]
+ },
+ "Togemon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Lillymon",
+    {
+     "Agent Rank": 5,
+     "SP": 960,
+     "SPI": 830
+    }
+   ],
+   [
+    "Cherrymon",
+    {
+     "Agent Rank": 5,
+     "SP": 980,
+     "DEF": 950
+    }
+   ],
+   [
+    "Pumpkinmon",
+    {
+     "Agent Rank": 5,
+     "HP": 1610,
+     "INT": 1060
+    }
+   ]
+  ]
+ },
+ "Turuiemon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Matadormon",
+    {
+     "Agent Rank": 5,
+     "SPI": 890,
+     "SPD": 1100
+    }
+   ],
+   [
+    "MachGaogamon",
+    {
+     "Agent Rank": 5,
+     "HP": 1800,
+     "SPD": 1060
+    }
+   ],
+   [
+    "Antylamon",
+    {
+     "Agent Rank": 5,
+     "SP": 920,
+     "SPD": 990
+    }
+   ]
+  ]
+ },
+ "Drimogemon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Triceramon",
+    {
+     "Agent Rank": 5,
+     "ATK": 970,
+     "DEF": 1060
+    }
+   ],
+   [
+    "LoaderLeomon",
+    {
+     "Agent Rank": 5,
+     "ATK": 840,
+     "SPD": 1010
+    }
+   ],
+   [
+    "Brachiomon",
+    {
+     "Agent Rank": 5,
+     "HP": 1650,
+     "SPI": 1010
+    }
+   ]
+  ]
+ },
+ "Dorugamon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "RizeGreymon",
+    {
+     "Agent Rank": 5,
+     "ATK": 940,
+     "SPD": 980
+    }
+   ],
+   [
+    "DoruGreymon",
+    {
+     "Agent Rank": 5,
+     "HP": 1370,
+     "ATK": 850
+    }
+   ],
+   [
+    "GreatGrizzlymon",
+    {
+     "Agent Rank": 5,
+     "DEF": 1050,
+     "SPI": 970
+    }
+   ],
+   [
+    "MetalGreymon (Blue)",
+    {
+     "Agent Rank": 5,
+     "ATK": 1220,
+     "INT": 740
+    }
+   ]
+  ]
+ },
+ "Blimpmon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Locomon",
+    {
+     "Agent Rank": 5,
+     "HP": 1650,
+     "DEF": 980
+    }
+   ],
+   [
+    "MetalMamemon",
+    {
+     "Agent Rank": 5,
+     "ATK": 820,
+     "INT": 630
+    }
+   ],
+   [
+    "MasterBlimpmon",
+    {
+     "Agent Rank": 5,
+     "HP": 2000,
+     "SPI": 920
+    }
+   ]
+  ]
+ },
+ "BaoHuckmon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "RizeGreymon",
+    {
+     "Agent Rank": 5,
+     "ATK": 940,
+     "SPD": 980
+    }
+   ],
+   [
+    "SaviorHuckmon",
+    {
+     "Agent Rank": 5,
+     "ATK": 1020,
+     "SPI": 890,
+     "SPD": 1060
+    }
+   ],
+   [
+    "LoaderLeomon",
+    {
+     "Agent Rank": 5,
+     "ATK": 840,
+     "SPD": 1010
+    }
+   ]
+  ]
+ },
+ "Meramon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "BigMamemon",
+    {
+     "Agent Rank": 5,
+     "HP": 1650,
+     "DEF": 940
+    }
+   ],
+   [
+    "BlueMeramon",
+    {
+     "Agent Rank": 5,
+     "HP": 1370,
+     "SP": 1020
+    }
+   ],
+   [
+    "SkullMeramon",
+    {
+     "Agent Rank": 5,
+     "HP": 1720,
+     "ATK": 1020,
+     "DEF": 820
+    }
+   ]
+  ]
+ },
+ "Lekismon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Crescemon",
+    {
+     "Agent Rank": 5,
+     "HP": 1530,
+     "SPI": 1000,
+     "SPD": 890
+    }
+   ],
+   [
+    "WereGarurumon",
+    {
+     "Agent Rank": 5,
+     "HP": 1840,
+     "ATK": 990,
+     "SPD": 1090
+    }
+   ],
+   [
+    "GrapLeomon",
+    {
+     "Agent Rank": 5,
+     "HP": 1080,
+     "ATK": 940
+    }
+   ]
+  ]
+ },
+ "IceDevimon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Crescemon",
+    {
+     "Agent Rank": 5,
+     "HP": 1530,
+     "SPI": 1000,
+     "SPD": 890
+    }
+   ],
+   [
+    "LadyDevimon",
+    {
+     "Agent Rank": 5,
+     "HP": 1290,
+     "INT": 770,
+     "SPD": 830
+    }
+   ],
+   [
+    "IceLeomon",
+    {
+     "Agent Rank": 5,
+     "SP": 540,
+     "SPI": 940,
+     "SPD": 890
+    }
+   ],
+   [
+    "Enbarrmon",
+    {
+     "Agent Rank": 5,
+     "HP": 1140,
+     "DEF": 820,
+     "SPD": 840
+    }
+   ]
+  ]
+ },
+ "Monochromon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Triceramon",
+    {
+     "Agent Rank": 5,
+     "ATK": 970,
+     "DEF": 1060
+    }
+   ],
+   [
+    "Cerberusmon",
+    {
+     "Agent Rank": 5,
+     "SP": 620,
+     "ATK": 940,
+     "SPD": 890
+    }
+   ],
+   [
+    "Mammothmon",
+    {
+     "Agent Rank": 5,
+     "HP": 1940,
+     "ATK": 820
+    }
+   ]
+  ]
+ },
+ "Wendigomon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Arukenimon",
+    {
+     "Agent Rank": 5,
+     "ATK": 1110,
+     "SPD": 1060
+    }
+   ],
+   [
+    "SkullMeramon",
+    {
+     "Agent Rank": 5,
+     "HP": 1720,
+     "ATK": 1020,
+     "DEF": 820
+    }
+   ],
+   [
+    "Antylamon",
+    {
+     "Agent Rank": 5,
+     "SP": 920,
+     "SPD": 990
+    }
+   ]
+  ]
+ },
+ "Ogremon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "SkullSatamon",
+    {
+     "Agent Rank": 5,
+     "INT": 870,
+     "SPI": 960
+    }
+   ],
+   [
+    "Mummymon",
+    {
+     "Agent Rank": 5,
+     "SP": 530,
+     "DEF": 920,
+     "SPI": 870
+    }
+   ],
+   [
+    "Digitamamon",
+    {
+     "Agent Rank": 5,
+     "DEF": 1100,
+     "SPI": 870
+    }
+   ]
+  ]
+ },
+ "Woodmon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Cherrymon",
+    {
+     "Agent Rank": 5,
+     "SP": 980,
+     "DEF": 950
+    }
+   ],
+   [
+    "Taomon",
+    {
+     "Agent Rank": 5,
+     "SP": 860,
+     "INT": 1020
+    }
+   ],
+   [
+    "Pumpkinmon",
+    {
+     "Agent Rank": 5,
+     "HP": 1610,
+     "INT": 1060
+    }
+   ]
+  ]
+ },
+ "Guardromon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "CatchMamemon",
+    {
+     "Agent Rank": 5,
+     "SP": 620,
+     "DEF": 940
+    }
+   ],
+   [
+    "Locomon",
+    {
+     "Agent Rank": 5,
+     "HP": 1650,
+     "DEF": 980
+    }
+   ],
+   [
+    "Andromon",
+    {
+     "Agent Rank": 5,
+     "DEF": 810,
+     "SPI": 1040
+    }
+   ]
+  ]
+ },
+ "Octomon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Dragomon",
+    {
+     "Agent Rank": 5,
+     "SP": 820,
+     "INT": 930,
+     "SPI": 940
+    }
+   ],
+   [
+    "Digitamamon",
+    {
+     "Agent Rank": 5,
+     "DEF": 1100,
+     "SPI": 870
+    }
+   ],
+   [
+    "Divermon",
+    {
+     "Agent Rank": 5,
+     "HP": 1610,
+     "ATK": 860,
+     "SPD": 830
+    }
+   ]
+  ]
+ },
+ "ShellNumemon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Orochimon",
+    {
+     "Agent Rank": 5,
+     "HP": 1960,
+     "ATK": 780
+    }
+   ],
+   [
+    "WaruSeadramon",
+    {
+     "Agent Rank": 5,
+     "HP": 1680,
+     "INT": 1200
+    }
+   ],
+   [
+    "BlackKingNumemon",
+    {
+     "Agent Rank": 5,
+     "HP": 1720,
+     "DEF": 900
+    }
+   ],
+   [
+    "Pandamon",
+    {
+     "Agent Rank": 5,
+     "DEF": 860,
+     "INT": 850,
+     "SPI": 900
+    }
+   ]
+  ]
+ },
+ "Growlmon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "WarGrowlmon",
+    {
+     "Agent Rank": 5,
+     "HP": 1730,
+     "DEF": 1060
+    }
+   ],
+   [
+    "Groundramon",
+    {
+     "Agent Rank": 5,
+     "HP": 2120,
+     "ATK": 740,
+     "DEF": 870
+    }
+   ],
+   [
+    "DoruGreymon",
+    {
+     "Agent Rank": 5,
+     "HP": 1370,
+     "ATK": 850
+    }
+   ]
+  ]
+ },
+ "Gekomon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Sirenmon",
+    {
+     "Agent Rank": 5,
+     "HP": 1530,
+     "SPI": 1020,
+     "SPD": 910
+    }
+   ],
+   [
+    "ShogunGekomon",
+    {
+     "Agent Rank": 5,
+     "HP": 1630,
+     "DEF": 940,
+     "SPI": 940
+    }
+   ],
+   [
+    "Divermon",
+    {
+     "Agent Rank": 5,
+     "HP": 1610,
+     "ATK": 860,
+     "SPD": 830
+    }
+   ]
+  ]
+ },
+ "Kuwagamon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Cherrymon",
+    {
+     "Agent Rank": 5,
+     "SP": 980,
+     "DEF": 950
+    }
+   ],
+   [
+    "Okuwamon",
+    {
+     "Agent Rank": 5,
+     "ATK": 1170,
+     "DEF": 1020
+    }
+   ],
+   [
+    "Scorpiomon",
+    {
+     "Agent Rank": 5,
+     "SP": 920,
+     "DEF": 1060
+    }
+   ],
+   [
+    "Kimeramon",
+    {
+     "Agent Rank": 5,
+     "HP": 2030,
+     "ATK": 1350
+    }
+   ]
+  ]
+ },
+ "Coredramon (Green)": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "WarGrowlmon",
+    {
+     "Agent Rank": 5,
+     "HP": 1730,
+     "DEF": 1060
+    }
+   ],
+   [
+    "Groundramon",
+    {
+     "Agent Rank": 5,
+     "HP": 2120,
+     "ATK": 740,
+     "DEF": 870
+    }
+   ],
+   [
+    "SkullGreymon",
+    {
+     "Agent Rank": 5,
+     "ATK": 1250,
+     "DEF": 1060
+    }
+   ]
+  ]
+ },
+ "Geremon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "CatchMamemon",
+    {
+     "Agent Rank": 5,
+     "SP": 620,
+     "DEF": 940
+    }
+   ],
+   [
+    "SuperStarmon",
+    {
+     "Agent Rank": 5,
+     "ATK": 980,
+     "DEF": 1020,
+     "SPI": 980
+    }
+   ],
+   [
+    "Monzaemon",
+    {
+     "Agent Rank": 5,
+     "HP": 2080,
+     "SPI": 1140
+    }
+   ]
+  ]
+ },
+ "GoldNumemon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "WaruSeadramon",
+    {
+     "Agent Rank": 5,
+     "HP": 1680,
+     "INT": 1200
+    }
+   ],
+   [
+    "Vademon",
+    {
+     "Agent Rank": 5,
+     "SP": 580,
+     "INT": 860,
+     "SPI": 700
+    }
+   ],
+   [
+    "BlackKingNumemon",
+    {
+     "Agent Rank": 5,
+     "HP": 1720,
+     "DEF": 900
+    }
+   ]
+  ]
+ },
+ "Golemon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Volcanomon",
+    {
+     "Agent Rank": 5,
+     "HP": 2080,
+     "ATK": 980
+    }
+   ],
+   [
+    "Mammothmon",
+    {
+     "Agent Rank": 5,
+     "HP": 1940,
+     "ATK": 820
+    }
+   ],
+   [
+    "Meteormon",
+    {
+     "Agent Rank": 5,
+     "DEF": 980,
+     "SPI": 970
+    }
+   ],
+   [
+    "BanchoGolemon",
+    {
+     "Agent Rank": 7,
+     "HP": 2640,
+     "ATK": 2010,
+     "DEF": 1800
+    }
+   ]
+  ]
+ },
+ "Sangloupmon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Matadormon",
+    {
+     "Agent Rank": 5,
+     "SPI": 890,
+     "SPD": 1100
+    }
+   ],
+   [
+    "Myotismon",
+    {
+     "Agent Rank": 5,
+     "HP": 1650,
+     "INT": 950
+    }
+   ],
+   [
+    "Astamon",
+    {
+     "Agent Rank": 5,
+     "ATK": 1070,
+     "INT": 1030,
+     "SPI": 940
+    }
+   ],
+   [
+    "WereGarurumon (Black)",
+    {
+     "Agent Rank": 5,
+     "SP": 620,
+     "ATK": 980,
+     "SPI": 920,
+     "SPD": 1020
+    }
+   ]
+  ]
+ },
+ "Cyclonemon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Grademon",
+    {
+     "Agent Rank": 5,
+     "ATK": 960,
+     "SPD": 960
+    }
+   ],
+   [
+    "Cyberdramon",
+    {
+     "Agent Rank": 5,
+     "SP": 510,
+     "ATK": 960,
+     "DEF": 790
+    }
+   ],
+   [
+    "Brachiomon",
+    {
+     "Agent Rank": 5,
+     "HP": 1650,
+     "SPI": 1010
+    }
+   ]
+  ]
+ },
+ "Sukamon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Monzaemon",
+    {
+     "Agent Rank": 5,
+     "HP": 2080,
+     "SPI": 1140
+    }
+   ],
+   [
+    "Etemon",
+    {
+     "Agent Rank": 5,
+     "HP": 1730,
+     "SPI": 940,
+     "SPD": 860
+    }
+   ],
+   [
+    "Garbagemon",
+    {
+     "Agent Rank": 5,
+     "HP": 1880,
+     "SP": 1020
+    }
+   ],
+   [
+    "Mamemon",
+    {
+     "Agent Rank": 5,
+     "HP": 1720,
+     "SP": 580,
+     "DEF": 1020
+    }
+   ]
+  ]
+ },
+ "Tuskmon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Triceramon",
+    {
+     "Agent Rank": 5,
+     "ATK": 970,
+     "DEF": 1060
+    }
+   ],
+   [
+    "Groundramon",
+    {
+     "Agent Rank": 5,
+     "HP": 2120,
+     "ATK": 740,
+     "DEF": 870
+    }
+   ],
+   [
+    "Digitamamon",
+    {
+     "Agent Rank": 5,
+     "DEF": 1100,
+     "SPI": 870
+    }
+   ]
+  ]
+ },
+ "Devimon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Myotismon",
+    {
+     "Agent Rank": 5,
+     "HP": 1650,
+     "INT": 950
+    }
+   ],
+   [
+    "LadyDevimon",
+    {
+     "Agent Rank": 5,
+     "HP": 1290,
+     "INT": 770,
+     "SPD": 830
+    }
+   ],
+   [
+    "Infermon",
+    {
+     "Agent Rank": 5,
+     "SP": 660,
+     "ATK": 1110,
+     "SPD": 930
+    }
+   ],
+   [
+    "SkullSatamon",
+    {
+     "Agent Rank": 5,
+     "INT": 870,
+     "SPI": 960
+    }
+   ],
+   [
+    "Astamon",
+    {
+     "Agent Rank": 5,
+     "ATK": 1070,
+     "INT": 1030,
+     "SPI": 940
+    }
+   ]
+  ]
+ },
+ "Deltamon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Orochimon",
+    {
+     "Agent Rank": 5,
+     "HP": 1960,
+     "ATK": 780
+    }
+   ],
+   [
+    "Kimeramon",
+    {
+     "Agent Rank": 5,
+     "HP": 2030,
+     "ATK": 1350
+    }
+   ],
+   [
+    "SkullBaluchimon",
+    {
+     "Agent Rank": 5,
+     "DEF": 1100,
+     "SPD": 740
+    }
+   ],
+   [
+    "MetalGreymon",
+    {
+     "Agent Rank": 5,
+     "HP": 1480,
+     "ATK": 1300
+    }
+   ],
+   [
+    "Sharkmon",
+    {
+     "Agent Rank": 5,
+     "HP": 1690,
+     "SP": 960,
+     "ATK": 1100
+    }
+   ]
+  ]
+ },
+ "Dokugumon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Arukenimon",
+    {
+     "Agent Rank": 5,
+     "ATK": 1110,
+     "SPD": 1060
+    }
+   ],
+   [
+    "Mummymon",
+    {
+     "Agent Rank": 5,
+     "SP": 530,
+     "DEF": 920,
+     "SPI": 870
+    }
+   ],
+   [
+    "MegaKabuterimon",
+    {
+     "Agent Rank": 5,
+     "SP": 620,
+     "DEF": 1020
+    }
+   ],
+   [
+    "Infermon",
+    {
+     "Agent Rank": 5,
+     "SP": 660,
+     "ATK": 1110,
+     "SPD": 930
+    }
+   ]
+  ]
+ },
+ "Nanimon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Volcanomon",
+    {
+     "Agent Rank": 5,
+     "HP": 2080,
+     "ATK": 980
+    }
+   ],
+   [
+    "SuperStarmon",
+    {
+     "Agent Rank": 5,
+     "ATK": 980,
+     "DEF": 1020,
+     "SPI": 980
+    }
+   ],
+   [
+    "Etemon",
+    {
+     "Agent Rank": 5,
+     "HP": 1730,
+     "SPI": 940,
+     "SPD": 860
+    }
+   ],
+   [
+    "Mamemon",
+    {
+     "Agent Rank": 5,
+     "HP": 1720,
+     "SP": 580,
+     "DEF": 1020
+    }
+   ]
+  ]
+ },
+ "Numemon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Monzaemon",
+    {
+     "Agent Rank": 5,
+     "HP": 2080,
+     "SPI": 1140
+    }
+   ],
+   [
+    "DarkSuperStarmon",
+    {
+     "Agent Rank": 5,
+     "SP": 970,
+     "ATK": 900
+    }
+   ],
+   [
+    "Etemon",
+    {
+     "Agent Rank": 5,
+     "HP": 1730,
+     "SPI": 940,
+     "SPD": 860
+    }
+   ]
+  ]
+ },
+ "Hyogamon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Zudomon",
+    {
+     "Agent Rank": 5,
+     "HP": 1730,
+     "ATK": 930,
+     "DEF": 940
+    }
+   ],
+   [
+    "Phantomon",
+    {
+     "Agent Rank": 5,
+     "HP": 1530,
+     "SPI": 940,
+     "SPD": 1010
+    }
+   ],
+   [
+    "IceLeomon",
+    {
+     "Agent Rank": 5,
+     "SP": 540,
+     "SPI": 940,
+     "SPD": 890
+    }
+   ]
+  ]
+ },
+ "Fugamon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Volcanomon",
+    {
+     "Agent Rank": 5,
+     "HP": 2080,
+     "ATK": 980
+    }
+   ],
+   [
+    "SkullSatamon",
+    {
+     "Agent Rank": 5,
+     "INT": 870,
+     "SPI": 960
+    }
+   ],
+   [
+    "Garudamon",
+    {
+     "Agent Rank": 5,
+     "INT": 1060,
+     "SPD": 980
+    }
+   ]
+  ]
+ },
+ "Bakemon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Myotismon",
+    {
+     "Agent Rank": 5,
+     "HP": 1650,
+     "INT": 950
+    }
+   ],
+   [
+    "BlueMeramon",
+    {
+     "Agent Rank": 5,
+     "HP": 1370,
+     "SP": 1020
+    }
+   ],
+   [
+    "Phantomon",
+    {
+     "Agent Rank": 5,
+     "HP": 1530,
+     "SPI": 940,
+     "SPD": 1010
+    }
+   ],
+   [
+    "Enbarrmon",
+    {
+     "Agent Rank": 5,
+     "HP": 1140,
+     "DEF": 820,
+     "SPD": 840
+    }
+   ]
+  ]
+ },
+ "Flymon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Megadramon",
+    {
+     "Agent Rank": 5,
+     "ATK": 1050,
+     "SPI": 940
+    }
+   ],
+   [
+    "MegaKabuterimon",
+    {
+     "Agent Rank": 5,
+     "SP": 620,
+     "DEF": 1020
+    }
+   ],
+   [
+    "Okuwamon",
+    {
+     "Agent Rank": 5,
+     "ATK": 1170,
+     "DEF": 1020
+    }
+   ],
+   [
+    "JewelBeemon",
+    {
+     "Agent Rank": 5,
+     "HP": 1200,
+     "ATK": 1020
+    }
+   ]
+  ]
+ },
+ "BlackGatomon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Pandamon",
+    {
+     "Agent Rank": 5,
+     "DEF": 860,
+     "INT": 850,
+     "SPI": 900
+    }
+   ],
+   [
+    "LadyDevimon",
+    {
+     "Agent Rank": 5,
+     "HP": 1290,
+     "INT": 770,
+     "SPD": 830
+    }
+   ],
+   [
+    "SkullBaluchimon",
+    {
+     "Agent Rank": 5,
+     "DEF": 1100,
+     "SPD": 740
+    }
+   ],
+   [
+    "WereGarurumon (Black)",
+    {
+     "Agent Rank": 5,
+     "SP": 620,
+     "ATK": 980,
+     "SPI": 920,
+     "SPD": 1020
+    }
+   ]
+  ]
+ },
+ "PlatinumSukamon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Vademon",
+    {
+     "Agent Rank": 5,
+     "SP": 580,
+     "INT": 860,
+     "SPI": 700
+    }
+   ],
+   [
+    "Mamemon",
+    {
+     "Agent Rank": 5,
+     "HP": 1720,
+     "SP": 580,
+     "DEF": 1020
+    }
+   ],
+   [
+    "MetalMamemon",
+    {
+     "Agent Rank": 5,
+     "ATK": 820,
+     "INT": 630
+    }
+   ]
+  ]
+ },
+ "Vegiemon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "ShogunGekomon",
+    {
+     "Agent Rank": 5,
+     "HP": 1630,
+     "DEF": 940,
+     "SPI": 940
+    }
+   ],
+   [
+    "Garbagemon",
+    {
+     "Agent Rank": 5,
+     "HP": 1880,
+     "SP": 1020
+    }
+   ],
+   [
+    "Vademon",
+    {
+     "Agent Rank": 5,
+     "SP": 580,
+     "INT": 860,
+     "SPI": 700
+    }
+   ]
+  ]
+ },
+ "Musyamon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Grademon",
+    {
+     "Agent Rank": 5,
+     "ATK": 960,
+     "SPD": 960
+    }
+   ],
+   [
+    "Butenmon",
+    {
+     "Agent Rank": 5,
+     "SPI": 960,
+     "SPD": 1040
+    }
+   ],
+   [
+    "Hisyaryumon",
+    {
+     "Agent Rank": 5,
+     "ATK": 900,
+     "DEF": 960
+    }
+   ]
+  ]
+ },
+ "Mekanorimon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "BigMamemon",
+    {
+     "Agent Rank": 5,
+     "HP": 1650,
+     "DEF": 940
+    }
+   ],
+   [
+    "Megadramon",
+    {
+     "Agent Rank": 5,
+     "ATK": 1050,
+     "SPI": 940
+    }
+   ],
+   [
+    "Datamon",
+    {
+     "Agent Rank": 5,
+     "HP": 1530,
+     "INT": 1020
+    }
+   ]
+  ]
+ },
+ "Minotarumon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Triceramon",
+    {
+     "Agent Rank": 5,
+     "ATK": 970,
+     "DEF": 1060
+    }
+   ],
+   [
+    "Etemon",
+    {
+     "Agent Rank": 5,
+     "HP": 1730,
+     "SPI": 940,
+     "SPD": 860
+    }
+   ],
+   [
+    "GrapLeomon",
+    {
+     "Agent Rank": 5,
+     "HP": 1080,
+     "ATK": 940
+    }
+   ]
+  ]
+ },
+ "Raremon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Dragomon",
+    {
+     "Agent Rank": 5,
+     "SP": 820,
+     "INT": 930,
+     "SPI": 940
+    }
+   ],
+   [
+    "BlackKingNumemon",
+    {
+     "Agent Rank": 5,
+     "HP": 1720,
+     "DEF": 900
+    }
+   ],
+   [
+    "ShogunGekomon",
+    {
+     "Agent Rank": 5,
+     "HP": 1630,
+     "DEF": 940,
+     "SPI": 940
+    }
+   ],
+   [
+    "ExTyrannomon",
+    {
+     "Agent Rank": 5,
+     "HP": 1610,
+     "SPI": 1010
+    }
+   ],
+   [
+    "SkullBaluchimon",
+    {
+     "Agent Rank": 5,
+     "DEF": 1100,
+     "SPD": 740
+    }
+   ]
+  ]
+ },
+ "Waspmon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Rapidmon",
+    {
+     "Agent Rank": 5,
+     "SP": 1150,
+     "SPD": 1020
+    }
+   ],
+   [
+    "CannonBeemon",
+    {
+     "Agent Rank": 5,
+     "SP": 540,
+     "ATK": 1060
+    }
+   ],
+   [
+    "Tankdramon",
+    {
+     "Agent Rank": 5,
+     "ATK": 1150,
+     "DEF": 900
+    }
+   ]
+  ]
+ },
+ "Aquilamon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Garudamon",
+    {
+     "Agent Rank": 5,
+     "INT": 1060,
+     "SPD": 980
+    }
+   ],
+   [
+    "Parrotmon",
+    {
+     "Agent Rank": 5,
+     "INT": 980,
+     "SPD": 1060
+    }
+   ],
+   [
+    "Silphymon",
+    {
+     "Agent Rank": 5,
+     "Jogress": [
+      "Aquilamon (Sociable)",
+      "Gatomon (Tolerant)"
+     ]
+    }
+   ],
+   [
+    "Crowmon",
+    {
+     "Agent Rank": 5,
+     "INT": 1020,
+     "SPD": 1050
+    }
+   ]
+  ]
+ },
+ "Ankylomon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Shakkoumon",
+    {
+     "Agent Rank": 5,
+     "Jogress": [
+      "Ankylomon (Overprotective)",
+      "Angemon (Enlightened)"
+     ]
+    }
+   ],
+   [
+    "Meteormon",
+    {
+     "Agent Rank": 5,
+     "DEF": 980,
+     "SPI": 970
+    }
+   ],
+   [
+    "Brachiomon",
+    {
+     "Agent Rank": 5,
+     "HP": 1650,
+     "SPI": 1010
+    }
+   ]
+  ]
+ },
+ "ExVeemon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Dinobeemon",
+    {
+     "Agent Rank": 5,
+     "Jogress": [
+      "Stingmon (Tolerant)",
+      "ExVeemon (Zealous)"
+     ]
+    }
+   ],
+   [
+    "RizeGreymon",
+    {
+     "Agent Rank": 5,
+     "ATK": 940,
+     "SPD": 980
+    }
+   ],
+   [
+    "Paildramon",
+    {
+     "Agent Rank": 5,
+     "Jogress": [
+      "ExVeemon (Zealous)",
+      "Stingmon (Tolerant)"
+     ]
+    }
+   ]
+  ]
+ },
+ "Guardromon (Gold)": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Duramon",
+    {
+     "Agent Rank": 5,
+     "HP": 1900,
+     "ATK": 1060,
+     "DEF": 960
+    }
+   ],
+   [
+    "CannonBeemon",
+    {
+     "Agent Rank": 5,
+     "SP": 540,
+     "ATK": 1060
+    }
+   ],
+   [
+    "MasterBlimpmon",
+    {
+     "Agent Rank": 5,
+     "HP": 2000,
+     "SPI": 920
+    }
+   ]
+  ]
+ },
+ "Stingmon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Okuwamon",
+    {
+     "Agent Rank": 5,
+     "ATK": 1170,
+     "DEF": 1020
+    }
+   ],
+   [
+    "JewelBeemon",
+    {
+     "Agent Rank": 5,
+     "HP": 1200,
+     "ATK": 1020
+    }
+   ],
+   [
+    "Dinobeemon",
+    {
+     "Agent Rank": 5,
+     "Jogress": [
+      "Stingmon (Tolerant)",
+      "ExVeemon (Zealous)"
+     ]
+    }
+   ],
+   [
+    "Paildramon",
+    {
+     "Agent Rank": 5,
+     "Jogress": [
+      "ExVeemon (Zealous)",
+      "Stingmon (Tolerant)"
+     ]
+    }
+   ]
+  ]
+ },
+ "Kurisarimon": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Dragomon",
+    {
+     "Agent Rank": 5,
+     "SP": 820,
+     "INT": 930,
+     "SPI": 940
+    }
+   ],
+   [
+    "Orochimon",
+    {
+     "Agent Rank": 5,
+     "HP": 1960,
+     "ATK": 780
+    }
+   ],
+   [
+    "Arukenimon",
+    {
+     "Agent Rank": 5,
+     "ATK": 1110,
+     "SPD": 1060
+    }
+   ],
+   [
+    "Infermon",
+    {
+     "Agent Rank": 5,
+     "SP": 660,
+     "ATK": 1110,
+     "SPD": 930
+    }
+   ]
+  ]
+ },
+ "Submarimon": {
+  "stage": "Armor",
+  "evolves_into": []
+ },
+ "Shurimon": {
+  "stage": "Armor",
+  "evolves_into": []
+ },
+ "Digmon": {
+  "stage": "Armor",
+  "evolves_into": []
+ },
+ "Nefertimon": {
+  "stage": "Armor",
+  "evolves_into": []
+ },
+ "Pegasusmon": {
+  "stage": "Armor",
+  "evolves_into": []
+ },
+ "Flamedramon": {
+  "stage": "Armor",
+  "evolves_into": []
+ },
+ "Halsemon": {
+  "stage": "Armor",
+  "evolves_into": []
+ },
+ "Lighdramon": {
+  "stage": "Armor",
+  "evolves_into": []
+ },
+ "Agunimon": {
+  "stage": "Hybrid",
+  "evolves_into": [
+   [
+    "Aldamon",
+    {
+     "Agent Rank": 5,
+     "Req. Item": "Beast Spirit of Flame"
+    }
+   ],
+   [
+    "BurningGreymon",
+    {
+     "Agent Rank": 3,
+     "Req. Item": "Beast Spirit of Flame"
+    }
+   ]
+  ]
+ },
+ "Lobomon": {
+  "stage": "Hybrid",
+  "evolves_into": [
+   [
+    "Beowolfmon",
+    {
+     "Agent Rank": 5,
+     "Req. Item": "Beast Spirit of Light"
+    }
+   ],
+   [
+    "KendoGarurumon",
+    {
+     "Agent Rank": 3,
+     "Req. Item": "Beast Spirit of Light"
+    }
+   ]
+  ]
+ },
+ "Lanamon": {
+  "stage": "Hybrid",
+  "evolves_into": [
+   [
+    "Calmaramon",
+    {
+     "Agent Rank": 3
+    }
+   ]
+  ]
+ },
+ "BurningGreymon": {
+  "stage": "Hybrid",
+  "evolves_into": [
+   [
+    "Aldamon",
+    {
+     "Agent Rank": 5,
+     "Req. Item": "Beast Spirit of Flame"
+    }
+   ],
+   [
+    "Agunimon",
+    {
+     "Agent Rank": 3,
+     "Req. Item": "Human Spirit of Flame"
+    }
+   ]
+  ]
+ },
+ "Calmaramon": {
+  "stage": "Hybrid",
+  "evolves_into": [
+   [
+    "Lanamon",
+    {
+     "Agent Rank": 3,
+     "SP": 1580,
+     "INT": 1130
+    }
+   ]
+  ]
+ },
+ "Aegiochusmon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Jupitermon",
+    {
+     "Agent Rank": 9,
+     "Valor(Agent Skills)": 46,
+     "Philantropy(Agent Skills)": 46,
+     "Amicability(Agent Skills)": 46,
+     "Wisdom(Agent Skills)": 46
+    }
+   ]
+  ]
+ },
+ "KendoGarurumon": {
+  "stage": "Hybrid",
+  "evolves_into": [
+   [
+    "Beowolfmon",
+    {
+     "Agent Rank": 5,
+     "Req. Item": "Beast Spirit of Light"
+    }
+   ],
+   [
+    "Lobomon",
+    {
+     "Agent Rank": 3,
+     "Req. Item": "Human Spirit of Light"
+    }
+   ]
+  ]
+ },
+ "Aegiochusmon: Green": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Jupitermon",
+    {
+     "Agent Rank": 9,
+     "Valor(Agent Skills)": 46,
+     "Philantropy(Agent Skills)": 46,
+     "Amicability(Agent Skills)": 46,
+     "Wisdom(Agent Skills)": 46
+    }
+   ]
+  ]
+ },
+ "Aegiochusmon: Dark": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Chronomon DM",
+    {
+     "Agent Rank": 10,
+     "Valor(Agent Skills)": 46,
+     "Philantropy(Agent Skills)": 46,
+     "Amicability(Agent Skills)": 46,
+     "Wisdom(Agent Skills)": 46
+    }
+   ]
+  ]
+ },
+ "Aegiochusmon: Blue": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Jupitermon",
+    {
+     "Agent Rank": 9,
+     "Valor(Agent Skills)": 46,
+     "Philantropy(Agent Skills)": 46,
+     "Amicability(Agent Skills)": 46,
+     "Wisdom(Agent Skills)": 46
+    }
+   ]
+  ]
+ },
+ "Aegiochusmon: Holy": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Jupitermon",
+    {
+     "Agent Rank": 9,
+     "Valor(Agent Skills)": 46,
+     "Philantropy(Agent Skills)": 46,
+     "Amicability(Agent Skills)": 46,
+     "Wisdom(Agent Skills)": 46
+    }
+   ]
+  ]
+ },
+ "MegaKabuterimon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "TyrantKabuterimon",
+    {
+     "Agent Rank": 7,
+     "HP": 2500,
+     "ATK": 1490,
+     "SPD": 1620
+    }
+   ],
+   [
+    "HerculesKabuterimon",
+    {
+     "Agent Rank": 7,
+     "DEF": 2280,
+     "INT": 1570
+    }
+   ]
+  ]
+ },
+ "Andromon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "HiAndromon",
+    {
+     "Agent Rank": 7,
+     "HP": 2500,
+     "SPI": 1780
+    }
+   ],
+   [
+    "Boltmon",
+    {
+     "Agent Rank": 7,
+     "HP": 2380,
+     "ATK": 1570,
+     "DEF": 2010
+    }
+   ],
+   [
+    "Craniamon",
+    {
+     "Agent Rank": 7,
+     "HP": 2380,
+     "DEF": 1850,
+     "SPI": 1540
+    }
+   ]
+  ]
+ },
+ "Wingdramon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "ShineGreymon",
+    {
+     "Agent Rank": 7,
+     "HP": 2300,
+     "ATK": 2360
+    }
+   ],
+   [
+    "Varodurumon",
+    {
+     "Agent Rank": 7,
+     "INT": 1800,
+     "SPI": 1750,
+     "SPD": 1640
+    }
+   ],
+   [
+    "Slayerdramon",
+    {
+     "Agent Rank": 7,
+     "ATK": 2280,
+     "SPD": 2280
+    }
+   ]
+  ]
+ },
+ "AeroVeedramon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Goldramon",
+    {
+     "Agent Rank": 7,
+     "HP": 2690,
+     "INT": 1660,
+     "SPI": 1380
+    }
+   ],
+   [
+    "Slayerdramon",
+    {
+     "Agent Rank": 7,
+     "ATK": 2280,
+     "SPD": 2280
+    }
+   ],
+   [
+    "UlforceVeedramon",
+    {
+     "Agent Rank": 7,
+     "HP": 2960,
+     "SPD": 1980
+    }
+   ]
+  ]
+ },
+ "ExTyrannomon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "RustTyrannomon",
+    {
+     "Agent Rank": 7,
+     "HP": 2830,
+     "ATK": 1860,
+     "DEF": 2050
+    }
+   ],
+   [
+    "Belphemon SM",
+    {
+     "Agent Rank": 7,
+     "SP": 1180,
+     "INT": 1740,
+     "SPI": 1540
+    }
+   ],
+   [
+    "Cherubimon (Good)",
+    {
+     "Agent Rank": 7,
+     "SP": 1260,
+     "INT": 2140,
+     "SPI": 1600
+    }
+   ]
+  ]
+ },
+ "Angewomon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Junomon",
+    {
+     "Agent Rank": 7,
+     "SP": 1100,
+     "INT": 1370
+    }
+   ],
+   [
+    "Ophanimon",
+    {
+     "Agent Rank": 7,
+     "INT": 2450,
+     "SPI": 2010
+    }
+   ],
+   [
+    "Magnadramon",
+    {
+     "Agent Rank": 7,
+     "HP": 2740,
+     "SP": 1100,
+     "INT": 1370
+    }
+   ],
+   [
+    "Mastemon",
+    {
+     "Agent Rank": 7,
+     "Jogress": [
+      "Angewomon (Tolerant)",
+      "LadyDevimon (Enlightened)"
+     ]
+    }
+   ]
+  ]
+ },
+ "Garudamon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Gryphonmon",
+    {
+     "Agent Rank": 7,
+     "SP": 1160,
+     "SPD": 1750
+    }
+   ],
+   [
+    "Phoenixmon",
+    {
+     "Agent Rank": 7,
+     "SP": 1260,
+     "INT": 2350
+    }
+   ],
+   [
+    "Jesmon",
+    {
+     "Agent Rank": 7,
+     "ATK": 1730,
+     "DEF": 1730,
+     "SPD": 1650
+    }
+   ]
+  ]
+ },
+ "GrapLeomon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "BanchoLeomon",
+    {
+     "Agent Rank": 7,
+     "HP": 2620,
+     "ATK": 2290
+    }
+   ],
+   [
+    "Marsmon",
+    {
+     "Agent Rank": 7,
+     "SP": 960,
+     "ATK": 2220
+    }
+   ],
+   [
+    "SaberLeomon",
+    {
+     "Agent Rank": 7,
+     "HP": 2400,
+     "ATK": 1930,
+     "SPD": 1860
+    }
+   ],
+   [
+    "Leopardmon",
+    {
+     "Agent Rank": 7,
+     "HP": 2570,
+     "INT": 2130,
+     "SPD": 1890
+    }
+   ]
+  ]
+ },
+ "Grademon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Alphamon",
+    {
+     "Agent Rank": 7,
+     "HP": 2200,
+     "DEF": 1580,
+     "SPI": 1580
+    }
+   ],
+   [
+    "Durandamon",
+    {
+     "Agent Rank": 7,
+     "HP": 2360,
+     "ATK": 1580,
+     "DEF": 1740
+    }
+   ],
+   [
+    "Dynasmon",
+    {
+     "Agent Rank": 7,
+     "HP": 2500,
+     "ATK": 1940,
+     "SPD": 1660
+    }
+   ]
+  ]
+ },
+ "GreatGrizzlymon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Callismon",
+    {
+     "Agent Rank": 7,
+     "HP": 2820,
+     "ATK": 1930,
+     "SPD": 1540
+    }
+   ],
+   [
+    "Cherubimon (Black)",
+    {
+     "Agent Rank": 7,
+     "SP": 960,
+     "INT": 2280,
+     "SPI": 1600
+    }
+   ]
+  ]
+ },
+ "Cerberusmon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Plutomon",
+    {
+     "Agent Rank": 7,
+     "HP": 2460,
+     "ATK": 2500,
+     "INT": 1700
+    }
+   ],
+   [
+    "Cerberusmon WM",
+    {
+     "Agent Rank": 5
+    }
+   ],
+   [
+    "SaberLeomon",
+    {
+     "Agent Rank": 7,
+     "HP": 2400,
+     "ATK": 1930,
+     "SPD": 1860
+    }
+   ],
+   [
+    "MetalGarurumon (Black)",
+    {
+     "Agent Rank": 7,
+     "HP": 2760,
+     "SPI": 1680,
+     "SPD": 1720
+    }
+   ]
+  ]
+ },
+ "Cerberusmon WM": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Plutomon",
+    {
+     "Agent Rank": 7,
+     "HP": 2460,
+     "ATK": 2500,
+     "INT": 1700
+    }
+   ],
+   [
+    "Cerberusmon",
+    {
+     "Agent Rank": 5,
+     "SP": 620,
+     "ATK": 940,
+     "SPD": 890
+    }
+   ],
+   [
+    "SaberLeomon",
+    {
+     "Agent Rank": 7,
+     "HP": 2400,
+     "ATK": 1930,
+     "SPD": 1860
+    }
+   ],
+   [
+    "MetalGarurumon (Black)",
+    {
+     "Agent Rank": 7,
+     "HP": 2760,
+     "SPI": 1680,
+     "SPD": 1720
+    }
+   ]
+  ]
+ },
+ "Cyberdramon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "UlforceVeedramon",
+    {
+     "Agent Rank": 7,
+     "HP": 2960,
+     "SPD": 1980
+    }
+   ],
+   [
+    "Justimon",
+    {
+     "Agent Rank": 7,
+     "DEF": 2060,
+     "SPI": 1960
+    }
+   ]
+  ]
+ },
+ "JewelBeemon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "HerculesKabuterimon",
+    {
+     "Agent Rank": 7,
+     "DEF": 2280,
+     "INT": 1570
+    }
+   ],
+   [
+    "TigerVespamon",
+    {
+     "Agent Rank": 7,
+     "HP": 2820,
+     "ATK": 1900,
+     "SPD": 1600
+    }
+   ],
+   [
+    "BanchoStingmon",
+    {
+     "Agent Rank": 7,
+     "HP": 2470,
+     "DEF": 1670,
+     "SPD": 1170
+    }
+   ]
+  ]
+ },
+ "Zudomon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Vikemon",
+    {
+     "Agent Rank": 7,
+     "HP": 3180,
+     "ATK": 1930
+    }
+   ],
+   [
+    "Plesiomon",
+    {
+     "Agent Rank": 7,
+     "HP": 2680,
+     "INT": 1830,
+     "SPI": 1660
+    }
+   ]
+  ]
+ },
+ "Chirinmon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Kentaurosmon",
+    {
+     "Agent Rank": 7,
+     "DEF": 1730,
+     "INT": 1800,
+     "SPD": 2060
+    }
+   ],
+   [
+    "Eaglemon",
+    {
+     "Agent Rank": 7,
+     "HP": 2260,
+     "DEF": 1720,
+     "SPI": 2060
+    }
+   ],
+   [
+    "Valkyrimon",
+    {
+     "Agent Rank": 7,
+     "SP": 1930,
+     "SPD": 1650
+    }
+   ]
+  ]
+ },
+ "Duramon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "WarGreymon",
+    {
+     "Agent Rank": 7,
+     "HP": 2350,
+     "ATK": 2430
+    }
+   ],
+   [
+    "Gallantmon",
+    {
+     "Agent Rank": 7,
+     "ATK": 1800,
+     "SPI": 2240
+    }
+   ],
+   [
+    "Durandamon",
+    {
+     "Agent Rank": 7,
+     "HP": 2360,
+     "ATK": 1580,
+     "DEF": 1740
+    }
+   ]
+  ]
+ },
+ "Parrotmon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Eaglemon",
+    {
+     "Agent Rank": 7,
+     "HP": 2260,
+     "DEF": 1720,
+     "SPI": 2060
+    }
+   ],
+   [
+    "Phoenixmon",
+    {
+     "Agent Rank": 7,
+     "SP": 1260,
+     "INT": 2350
+    }
+   ]
+  ]
+ },
+ "IceLeomon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "MirageGaogamon",
+    {
+     "Agent Rank": 7,
+     "HP": 2470,
+     "SPD": 1790
+    }
+   ],
+   [
+    "SaberLeomon",
+    {
+     "Agent Rank": 7,
+     "HP": 2400,
+     "ATK": 1930,
+     "SPD": 1860
+    }
+   ]
+  ]
+ },
+ "Hisyaryumon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Ouryumon",
+    {
+     "Agent Rank": 7,
+     "HP": 1850,
+     "ATK": 2150,
+     "DEF": 1860
+    }
+   ],
+   [
+    "Gaiomon",
+    {
+     "Agent Rank": 7,
+     "HP": 2820,
+     "ATK": 2430
+    }
+   ]
+  ]
+ },
+ "Butenmon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Chronomon HM",
+    {
+     "Agent Rank": 10,
+     "Valor(Agent Skills)": 46,
+     "Philantropy(Agent Skills)": 46,
+     "Amicability(Agent Skills)": 46,
+     "Wisdom(Agent Skills)": 46
+    }
+   ],
+   [
+    "Chronomon DM",
+    {
+     "Agent Rank": 10,
+     "Valor(Agent Skills)": 46,
+     "Philantropy(Agent Skills)": 46,
+     "Amicability(Agent Skills)": 46,
+     "Wisdom(Agent Skills)": 46
+    }
+   ],
+   [
+    "Gryphonmon",
+    {
+     "Agent Rank": 7,
+     "SP": 1160,
+     "SPD": 1750
+    }
+   ],
+   [
+    "Gaiomon",
+    {
+     "Agent Rank": 7,
+     "HP": 2820,
+     "ATK": 2430
+    }
+   ]
+  ]
+ },
+ "Flaremon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Apollomon",
+    {
+     "Agent Rank": 7,
+     "ATK": 2220,
+     "SPI": 1810
+    }
+   ],
+   [
+    "Seraphimon",
+    {
+     "Agent Rank": 7,
+     "SP": 1380,
+     "INT": 1990,
+     "SPI": 1730
+    }
+   ],
+   [
+    "BlackWarGreymon",
+    {
+     "Agent Rank": 7,
+     "ATK": 2420,
+     "DEF": 2060
+    }
+   ]
+  ]
+ },
+ "Whamon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Leviamon",
+    {
+     "Agent Rank": 7,
+     "HP": 2860,
+     "ATK": 2000,
+     "DEF": 1430
+    }
+   ],
+   [
+    "Neptunemon",
+    {
+     "Agent Rank": 7,
+     "SP": 1190,
+     "ATK": 1940,
+     "SPI": 1710
+    }
+   ],
+   [
+    "Plesiomon",
+    {
+     "Agent Rank": 7,
+     "HP": 2680,
+     "INT": 1830,
+     "SPI": 1660
+    }
+   ],
+   [
+    "MarineAngemon",
+    {
+     "Agent Rank": 7,
+     "INT": 1800,
+     "SPI": 2040
+    }
+   ]
+  ]
+ },
+ "MagnaAngemon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Goldramon",
+    {
+     "Agent Rank": 7,
+     "HP": 2690,
+     "INT": 1660,
+     "SPI": 1380
+    }
+   ],
+   [
+    "Seraphimon",
+    {
+     "Agent Rank": 7,
+     "SP": 1380,
+     "INT": 1990,
+     "SPI": 1730
+    }
+   ],
+   [
+    "ClavisAngemon",
+    {
+     "Agent Rank": 7,
+     "SP": 1540,
+     "INT": 2450
+    }
+   ],
+   [
+    "SlashAngemon",
+    {
+     "Agent Rank": 7,
+     "ATK": 2050,
+     "SPD": 1060
+    }
+   ]
+  ]
+ },
+ "Mammothmon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Vikemon",
+    {
+     "Agent Rank": 7,
+     "HP": 3180,
+     "ATK": 1930
+    }
+   ],
+   [
+    "SkullMammothmon",
+    {
+     "Agent Rank": 7,
+     "HP": 2570,
+     "ATK": 1580,
+     "DEF": 1650
+    }
+   ]
+  ]
+ },
+ "MetalGreymon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "WarGreymon",
+    {
+     "Agent Rank": 7,
+     "HP": 2350,
+     "ATK": 2430
+    }
+   ],
+   [
+    "Gaiomon",
+    {
+     "Agent Rank": 7,
+     "HP": 2820,
+     "ATK": 2430
+    }
+   ],
+   [
+    "BlitzGreymon",
+    {
+     "Agent Rank": 7,
+     "ATK": 2280,
+     "INT": 1670
+    }
+   ]
+  ]
+ },
+ "Monzaemon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "KingEtemon",
+    {
+     "Agent Rank": 7,
+     "ATK": 1640,
+     "DEF": 1790
+    }
+   ],
+   [
+    "Callismon",
+    {
+     "Agent Rank": 7,
+     "HP": 2820,
+     "ATK": 1930,
+     "SPD": 1540
+    }
+   ]
+  ]
+ },
+ "Crowmon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Varodurumon",
+    {
+     "Agent Rank": 7,
+     "INT": 1800,
+     "SPI": 1750,
+     "SPD": 1640
+    }
+   ],
+   [
+    "Ravemon",
+    {
+     "Agent Rank": 7,
+     "SP": 1640,
+     "SPD": 1820
+    }
+   ],
+   [
+    "Kuzuhamon",
+    {
+     "Agent Rank": 7,
+     "SP": 1290,
+     "INT": 1860,
+     "SPI": 1290
+    }
+   ]
+  ]
+ },
+ "RizeGreymon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Kentaurosmon",
+    {
+     "Agent Rank": 7,
+     "DEF": 1730,
+     "INT": 1800,
+     "SPD": 2060
+    }
+   ],
+   [
+    "ShineGreymon",
+    {
+     "Agent Rank": 7,
+     "HP": 2300,
+     "ATK": 2360
+    }
+   ],
+   [
+    "MagnaKidmon",
+    {
+     "Agent Rank": 7,
+     "SP": 1200,
+     "ATK": 1940
+    }
+   ]
+  ]
+ },
+ "Rapidmon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "MegaGargomon",
+    {
+     "Agent Rank": 7,
+     "HP": 2500,
+     "SP": 1070,
+     "ATK": 1780
+    }
+   ],
+   [
+    "HiAndromon",
+    {
+     "Agent Rank": 7,
+     "HP": 2500,
+     "SPI": 1780
+    }
+   ]
+  ]
+ },
+ "LoaderLeomon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "BanchoLeomon",
+    {
+     "Agent Rank": 7,
+     "HP": 2620,
+     "ATK": 2290
+    }
+   ],
+   [
+    "MetalGarurumon",
+    {
+     "Agent Rank": 7,
+     "SP": 1700,
+     "ATK": 960,
+     "SPD": 1850
+    }
+   ],
+   [
+    "Chaosdramon",
+    {
+     "Agent Rank": 7,
+     "HP": 2100,
+     "ATK": 2130,
+     "DEF": 1700
+    }
+   ]
+  ]
+ },
+ "WereGarurumon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Merukimon",
+    {
+     "Agent Rank": 7,
+     "ATK": 1150,
+     "SPD": 2100
+    }
+   ],
+   [
+    "MetalGarurumon",
+    {
+     "Agent Rank": 7,
+     "SP": 1700,
+     "ATK": 960,
+     "SPD": 1850
+    }
+   ],
+   [
+    "CresGarurumon",
+    {
+     "Agent Rank": 7,
+     "SP": 1020,
+     "SPI": 1810,
+     "SPD": 1960
+    }
+   ]
+  ]
+ },
+ "Scorpiomon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Vulcanusmon",
+    {
+     "Agent Rank": 7,
+     "DEF": 1700,
+     "SPI": 1820
+    }
+   ],
+   [
+    "Pukumon",
+    {
+     "Agent Rank": 7,
+     "HP": 2690,
+     "ATK": 1790
+    }
+   ]
+  ]
+ },
+ "Enbarrmon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Kentaurosmon",
+    {
+     "Agent Rank": 7,
+     "DEF": 1730,
+     "INT": 1800,
+     "SPD": 2060
+    }
+   ],
+   [
+    "SkullMammothmon",
+    {
+     "Agent Rank": 7,
+     "HP": 2570,
+     "ATK": 1580,
+     "DEF": 1650
+    }
+   ],
+   [
+    "Craniamon + Enbarrmon",
+    {
+     "Agent Rank": 8,
+     "Jogress": [
+      "Craniamon (Devoted)",
+      "Enbarrmon (Sly)"
+     ]
+    }
+   ]
+  ]
+ },
+ "Antylamon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Dianamon",
+    {
+     "Agent Rank": 7,
+     "DEF": 1670,
+     "INT": 2100
+    }
+   ],
+   [
+    "Cherubimon (Good)",
+    {
+     "Agent Rank": 7,
+     "SP": 1260,
+     "INT": 2140,
+     "SPI": 1600
+    }
+   ],
+   [
+    "Cherubimon (Black)",
+    {
+     "Agent Rank": 7,
+     "SP": 960,
+     "INT": 2280,
+     "SPI": 1600
+    }
+   ]
+  ]
+ },
+ "Meteormon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "MetalEtemon",
+    {
+     "Agent Rank": 7,
+     "HP": 2470,
+     "DEF": 2010
+    }
+   ],
+   [
+    "Boltmon",
+    {
+     "Agent Rank": 7,
+     "HP": 2380,
+     "ATK": 1570,
+     "DEF": 2010
+    }
+   ]
+  ]
+ },
+ "OmniShoutmon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "PileVolcanomon",
+    {
+     "Agent Rank": 7,
+     "ATK": 1430,
+     "DEF": 1790,
+     "SPI": 1730
+    }
+   ],
+   [
+    "MagnaKidmon",
+    {
+     "Agent Rank": 7,
+     "SP": 1200,
+     "ATK": 1940
+    }
+   ],
+   [
+    "Durandamon",
+    {
+     "Agent Rank": 7,
+     "HP": 2360,
+     "ATK": 1580,
+     "DEF": 1740
+    }
+   ]
+  ]
+ },
+ "Kimeramon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "GranDracmon",
+    {
+     "Agent Rank": 7,
+     "SP": 1140,
+     "ATK": 1300,
+     "INT": 1590
+    }
+   ],
+   [
+    "Millenniummon",
+    {
+     "Agent Rank": 7,
+     "Jogress": [
+      "Machinedramon (Reckless)",
+      "Kimeramon (Friendly)"
+     ]
+    }
+   ],
+   [
+    "Machinedramon",
+    {
+     "Agent Rank": 7,
+     "ATK": 1700,
+     "DEF": 2140
+    }
+   ]
+  ]
+ },
+ "CatchMamemon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "PlatinumNumemon",
+    {
+     "Agent Rank": 7,
+     "DEF": 2220
+    }
+   ],
+   [
+    "PrinceMamemon",
+    {
+     "Agent Rank": 7,
+     "HP": 2140,
+     "DEF": 1530
+    }
+   ],
+   [
+    "MetalGarurumon (Black)",
+    {
+     "Agent Rank": 7,
+     "HP": 2760,
+     "SPI": 1680,
+     "SPD": 1720
+    }
+   ]
+  ]
+ },
+ "Crescemon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Dianamon",
+    {
+     "Agent Rank": 7,
+     "DEF": 1670,
+     "INT": 2100
+    }
+   ],
+   [
+    "Cherubimon (Good)",
+    {
+     "Agent Rank": 7,
+     "SP": 1260,
+     "INT": 2140,
+     "SPI": 1600
+    }
+   ],
+   [
+    "LordKnightmon",
+    {
+     "Agent Rank": 7,
+     "SP": 1120,
+     "SPI": 2020,
+     "SPD": 2060
+    }
+   ]
+  ]
+ },
+ "SkullBaluchimon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "SkullMammothmon",
+    {
+     "Agent Rank": 7,
+     "HP": 2570,
+     "ATK": 1580,
+     "DEF": 1650
+    }
+   ],
+   [
+    "Titamon + SkullBaluchimon",
+    {
+     "Agent Rank": 8,
+     "Jogress": [
+      "Titamon (Reckless)",
+      "SkullBaluchimon (Sociable)"
+     ]
+    }
+   ]
+  ]
+ },
+ "SuperStarmon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Goldramon",
+    {
+     "Agent Rank": 7,
+     "HP": 2690,
+     "INT": 1660,
+     "SPI": 1380
+    }
+   ],
+   [
+    "PrinceMamemon",
+    {
+     "Agent Rank": 7,
+     "HP": 2140,
+     "DEF": 1530
+    }
+   ],
+   [
+    "Justimon",
+    {
+     "Agent Rank": 7,
+     "DEF": 2060,
+     "SPI": 1960
+    }
+   ]
+  ]
+ },
+ "SaviorHuckmon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Gankoomon",
+    {
+     "Agent Rank": 7,
+     "DEF": 1860,
+     "SPI": 1720
+    }
+   ],
+   [
+    "TigerVespamon",
+    {
+     "Agent Rank": 7,
+     "HP": 2820,
+     "ATK": 1900,
+     "SPD": 1600
+    }
+   ],
+   [
+    "Jesmon",
+    {
+     "Agent Rank": 7,
+     "ATK": 1730,
+     "DEF": 1730,
+     "SPD": 1650
+    }
+   ]
+  ]
+ },
+ "Sirenmon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "MarineAngemon",
+    {
+     "Agent Rank": 7,
+     "INT": 1800,
+     "SPI": 2040
+    }
+   ],
+   [
+    "Ceresmon",
+    {
+     "Agent Rank": 7,
+     "HP": 2470,
+     "SPI": 2190
+    }
+   ]
+  ]
+ },
+ "Taomon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Venusmon",
+    {
+     "Agent Rank": 7,
+     "SP": 1170,
+     "SPI": 2040
+    }
+   ],
+   [
+    "Sakuyamon",
+    {
+     "Agent Rank": 7,
+     "INT": 2710,
+     "SPD": 1990
+    }
+   ],
+   [
+    "Kuzuhamon",
+    {
+     "Agent Rank": 7,
+     "SP": 1290,
+     "INT": 1860,
+     "SPI": 1290
+    }
+   ]
+  ]
+ },
+ "SkullMeramon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Beelzemon",
+    {
+     "Agent Rank": 7,
+     "HP": 2500,
+     "ATK": 2340,
+     "SPD": 1330
+    }
+   ],
+   [
+    "Boltmon",
+    {
+     "Agent Rank": 7,
+     "HP": 2380,
+     "ATK": 1570,
+     "DEF": 2010
+    }
+   ],
+   [
+    "AvengeKidmon",
+    {
+     "Agent Rank": 7,
+     "HP": 2500,
+     "ATK": 1940
+    }
+   ]
+  ]
+ },
+ "Digitamamon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Bacchusmon",
+    {
+     "Agent Rank": 7,
+     "HP": 2880,
+     "ATK": 1790,
+     "INT": 1510
+    }
+   ],
+   [
+    "Titamon",
+    {
+     "Agent Rank": 7,
+     "HP": 3220,
+     "ATK": 1680
+    }
+   ]
+  ]
+ },
+ "Deramon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Varodurumon",
+    {
+     "Agent Rank": 7,
+     "INT": 1800,
+     "SPI": 1750,
+     "SPD": 1640
+    }
+   ],
+   [
+    "Ceresmon",
+    {
+     "Agent Rank": 7,
+     "HP": 2470,
+     "SPI": 2190
+    }
+   ],
+   [
+    "PlatinumNumemon",
+    {
+     "Agent Rank": 7,
+     "DEF": 2220
+    }
+   ]
+  ]
+ },
+ "Triceramon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Breakdramon",
+    {
+     "Agent Rank": 7,
+     "HP": 1920,
+     "ATK": 1920,
+     "DEF": 1570
+    }
+   ],
+   [
+    "UltimateBrachiomon",
+    {
+     "Agent Rank": 7,
+     "HP": 2900,
+     "DEF": 2130,
+     "SPI": 1570
+    }
+   ]
+  ]
+ },
+ "DoruGreymon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Dorugoramon",
+    {
+     "Agent Rank": 7,
+     "HP": 2700,
+     "ATK": 2220
+    }
+   ],
+   [
+    "Alphamon",
+    {
+     "Agent Rank": 7,
+     "HP": 2200,
+     "DEF": 1580,
+     "SPI": 1580
+    }
+   ]
+  ]
+ },
+ "Knightmon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Zanbamon",
+    {
+     "Agent Rank": 7,
+     "HP": 2380,
+     "ATK": 1960,
+     "SPD": 1060
+    }
+   ],
+   [
+    "SlashAngemon",
+    {
+     "Agent Rank": 7,
+     "ATK": 2050,
+     "SPD": 1060
+    }
+   ],
+   [
+    "LordKnightmon",
+    {
+     "Agent Rank": 7,
+     "SP": 1120,
+     "SPI": 2020,
+     "SPD": 2060
+    }
+   ],
+   [
+    "Leopardmon",
+    {
+     "Agent Rank": 7,
+     "HP": 2570,
+     "INT": 2130,
+     "SPD": 1890
+    }
+   ]
+  ]
+ },
+ "Divermon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Neptunemon",
+    {
+     "Agent Rank": 7,
+     "SP": 1190,
+     "ATK": 1940,
+     "SPI": 1710
+    }
+   ],
+   [
+    "Plesiomon",
+    {
+     "Agent Rank": 7,
+     "HP": 2680,
+     "INT": 1830,
+     "SPI": 1660
+    }
+   ]
+  ]
+ },
+ "Pumpkinmon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Rosemon",
+    {
+     "Agent Rank": 7,
+     "SP": 2350,
+     "ATK": 1290,
+     "INT": 1500
+    }
+   ],
+   [
+    "Lotosmon",
+    {
+     "Agent Rank": 7,
+     "HP": 2380,
+     "SP": 1100,
+     "INT": 1980
+    }
+   ]
+  ]
+ },
+ "BigMamemon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "PlatinumNumemon",
+    {
+     "Agent Rank": 7,
+     "DEF": 2220
+    }
+   ],
+   [
+    "PrinceMamemon",
+    {
+     "Agent Rank": 7,
+     "HP": 2140,
+     "DEF": 1530
+    }
+   ],
+   [
+    "GroundLocomon",
+    {
+     "Agent Rank": 7,
+     "DEF": 2250,
+     "SPI": 1850
+    }
+   ]
+  ]
+ },
+ "Piximon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Venusmon",
+    {
+     "Agent Rank": 7,
+     "SP": 1170,
+     "SPI": 2040
+    }
+   ],
+   [
+    "Ophanimon",
+    {
+     "Agent Rank": 7,
+     "INT": 2450,
+     "SPI": 2010
+    }
+   ],
+   [
+    "ClavisAngemon",
+    {
+     "Agent Rank": 7,
+     "SP": 1540,
+     "INT": 2450
+    }
+   ]
+  ]
+ },
+ "HippoGryphonmon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Gryphonmon",
+    {
+     "Agent Rank": 7,
+     "SP": 1160,
+     "SPD": 1750
+    }
+   ],
+   [
+    "Eaglemon",
+    {
+     "Agent Rank": 7,
+     "HP": 2260,
+     "DEF": 1720,
+     "SPI": 2060
+    }
+   ],
+   [
+    "Dynasmon",
+    {
+     "Agent Rank": 7,
+     "HP": 2500,
+     "ATK": 1940,
+     "SPD": 1660
+    }
+   ]
+  ]
+ },
+ "Brachiomon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Ouryumon",
+    {
+     "Agent Rank": 7,
+     "HP": 1850,
+     "ATK": 2150,
+     "DEF": 1860
+    }
+   ],
+   [
+    "RustTyrannomon",
+    {
+     "Agent Rank": 7,
+     "HP": 2830,
+     "ATK": 1860,
+     "DEF": 2050
+    }
+   ],
+   [
+    "UltimateBrachiomon",
+    {
+     "Agent Rank": 7,
+     "HP": 2900,
+     "DEF": 2130,
+     "SPI": 1570
+    }
+   ]
+  ]
+ },
+ "Pandamon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Merukimon",
+    {
+     "Agent Rank": 7,
+     "ATK": 1150,
+     "SPD": 2100
+    }
+   ],
+   [
+    "MirageGaogamon",
+    {
+     "Agent Rank": 7,
+     "HP": 2470,
+     "SPD": 1790
+    }
+   ],
+   [
+    "Justimon",
+    {
+     "Agent Rank": 7,
+     "DEF": 2060,
+     "SPI": 1960
+    }
+   ]
+  ]
+ },
+ "Volcanomon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "BanchoLeomon",
+    {
+     "Agent Rank": 7,
+     "HP": 2620,
+     "ATK": 2290
+    }
+   ],
+   [
+    "PileVolcanomon",
+    {
+     "Agent Rank": 7,
+     "ATK": 1430,
+     "DEF": 1790,
+     "SPI": 1730
+    }
+   ],
+   [
+    "Gankoomon",
+    {
+     "Agent Rank": 7,
+     "DEF": 1860,
+     "SPI": 1720
+    }
+   ],
+   [
+    "Apollomon",
+    {
+     "Agent Rank": 7,
+     "ATK": 2220,
+     "SPI": 1810
+    }
+   ]
+  ]
+ },
+ "MasterBlimpmon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "GroundLocomon",
+    {
+     "Agent Rank": 7,
+     "DEF": 2250,
+     "SPI": 1850
+    }
+   ],
+   [
+    "Gundramon",
+    {
+     "Agent Rank": 7,
+     "SP": 1300,
+     "ATK": 2130
+    }
+   ]
+  ]
+ },
+ "MachGaogamon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "MirageGaogamon",
+    {
+     "Agent Rank": 7,
+     "HP": 2470,
+     "SPD": 1790
+    }
+   ],
+   [
+    "MegaGargomon",
+    {
+     "Agent Rank": 7,
+     "HP": 2500,
+     "SP": 1070,
+     "ATK": 1780
+    }
+   ]
+  ]
+ },
+ "Mamemon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Pukumon",
+    {
+     "Agent Rank": 7,
+     "HP": 2690,
+     "ATK": 1790
+    }
+   ],
+   [
+    "PrinceMamemon",
+    {
+     "Agent Rank": 7,
+     "HP": 2140,
+     "DEF": 1530
+    }
+   ],
+   [
+    "BanchoMamemon",
+    {
+     "Agent Rank": 7,
+     "ATK": 1870,
+     "DEF": 1340,
+     "SPD": 1060
+    }
+   ]
+  ]
+ },
+ "MegaSeadramon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "JumboGamemon",
+    {
+     "Agent Rank": 7,
+     "HP": 2010,
+     "DEF": 1740,
+     "SPI": 1870
+    }
+   ],
+   [
+    "Ouryumon",
+    {
+     "Agent Rank": 7,
+     "HP": 1850,
+     "ATK": 2150,
+     "DEF": 1860
+    }
+   ],
+   [
+    "MetalSeadramon",
+    {
+     "Agent Rank": 7,
+     "SP": 1430,
+     "INT": 1530
+    }
+   ]
+  ]
+ },
+ "MetalMamemon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "MetalGarurumon",
+    {
+     "Agent Rank": 7,
+     "SP": 1700,
+     "ATK": 960,
+     "SPD": 1850
+    }
+   ],
+   [
+    "MagnaKidmon",
+    {
+     "Agent Rank": 7,
+     "SP": 1200,
+     "ATK": 1940
+    }
+   ]
+  ]
+ },
+ "Lilamon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Lilithmon",
+    {
+     "Agent Rank": 7,
+     "SP": 1300,
+     "INT": 2180,
+     "SPD": 1860
+    }
+   ],
+   [
+    "Rosemon",
+    {
+     "Agent Rank": 7,
+     "SP": 2350,
+     "ATK": 1290,
+     "INT": 1500
+    }
+   ],
+   [
+    "Puppetmon",
+    {
+     "Agent Rank": 7,
+     "DEF": 1430,
+     "SPI": 1430
+    }
+   ]
+  ]
+ },
+ "Lillymon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Rosemon",
+    {
+     "Agent Rank": 7,
+     "SP": 2350,
+     "ATK": 1290,
+     "INT": 1500
+    }
+   ],
+   [
+    "Ceresmon",
+    {
+     "Agent Rank": 7,
+     "HP": 2470,
+     "SPI": 2190
+    }
+   ],
+   [
+    "BanchoLillymon",
+    {
+     "Agent Rank": 7,
+     "DEF": 1660,
+     "SPI": 2060,
+     "SPD": 1280
+    }
+   ]
+  ]
+ },
+ "Locomon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "GroundLocomon",
+    {
+     "Agent Rank": 7,
+     "DEF": 2250,
+     "SPI": 1850
+    }
+   ],
+   [
+    "HiAndromon",
+    {
+     "Agent Rank": 7,
+     "HP": 2500,
+     "SPI": 1780
+    }
+   ]
+  ]
+ },
+ "Astamon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Beelzemon",
+    {
+     "Agent Rank": 7,
+     "HP": 2500,
+     "ATK": 2340,
+     "SPD": 1330
+    }
+   ],
+   [
+    "Plutomon",
+    {
+     "Agent Rank": 7,
+     "HP": 2460,
+     "ATK": 2500,
+     "INT": 1700
+    }
+   ],
+   [
+    "Belphemon SM",
+    {
+     "Agent Rank": 7,
+     "SP": 1180,
+     "INT": 1740,
+     "SPI": 1540
+    }
+   ],
+   [
+    "VenomMyotismon",
+    {
+     "Agent Rank": 7,
+     "HP": 2080,
+     "ATK": 2140
+    }
+   ]
+  ]
+ },
+ "Arukenimon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Lilithmon",
+    {
+     "Agent Rank": 7,
+     "SP": 1300,
+     "INT": 2180,
+     "SPD": 1860
+    }
+   ],
+   [
+    "TyrantKabuterimon",
+    {
+     "Agent Rank": 7,
+     "HP": 2500,
+     "ATK": 1490,
+     "SPD": 1620
+    }
+   ],
+   [
+    "Lotosmon",
+    {
+     "Agent Rank": 7,
+     "HP": 2380,
+     "SP": 1100,
+     "INT": 1980
+    }
+   ]
+  ]
+ },
+ "Myotismon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Creepymon",
+    {
+     "Agent Rank": 7,
+     "HP": 2000,
+     "ATK": 1970,
+     "INT": 1900
+    }
+   ],
+   [
+    "MaloMyotismon",
+    {
+     "Agent Rank": 7,
+     "HP": 2200,
+     "ATK": 2140,
+     "INT": 2770
+    }
+   ],
+   [
+    "VenomMyotismon",
+    {
+     "Agent Rank": 7,
+     "HP": 2080,
+     "ATK": 2140
+    }
+   ]
+  ]
+ },
+ "Etemon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "PileVolcanomon",
+    {
+     "Agent Rank": 7,
+     "ATK": 1430,
+     "DEF": 1790,
+     "SPI": 1730
+    }
+   ],
+   [
+    "KingEtemon",
+    {
+     "Agent Rank": 7,
+     "ATK": 1640,
+     "DEF": 1790
+    }
+   ],
+   [
+    "MetalEtemon",
+    {
+     "Agent Rank": 7,
+     "HP": 2470,
+     "DEF": 2010
+    }
+   ]
+  ]
+ },
+ "Okuwamon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "TyrantKabuterimon",
+    {
+     "Agent Rank": 7,
+     "HP": 2500,
+     "ATK": 1490,
+     "SPD": 1620
+    }
+   ],
+   [
+    "HerculesKabuterimon",
+    {
+     "Agent Rank": 7,
+     "DEF": 2280,
+     "INT": 1570
+    }
+   ],
+   [
+    "GranKuwagamon",
+    {
+     "Agent Rank": 7,
+     "HP": 2770,
+     "DEF": 2290
+    }
+   ]
+  ]
+ },
+ "Orochimon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Bacchusmon",
+    {
+     "Agent Rank": 7,
+     "HP": 2880,
+     "ATK": 1790,
+     "INT": 1510
+    }
+   ],
+   [
+    "Gundramon",
+    {
+     "Agent Rank": 7,
+     "SP": 1300,
+     "ATK": 2130
+    }
+   ],
+   [
+    "Minervamon",
+    {
+     "Agent Rank": 7,
+     "HP": 2360,
+     "ATK": 1940
+    }
+   ]
+  ]
+ },
+ "Garbagemon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "JumboGamemon",
+    {
+     "Agent Rank": 7,
+     "HP": 2010,
+     "DEF": 1740,
+     "SPI": 1870
+    }
+   ],
+   [
+    "MetalEtemon",
+    {
+     "Agent Rank": 7,
+     "HP": 2470,
+     "DEF": 2010
+    }
+   ]
+  ]
+ },
+ "Gigadramon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Gundramon",
+    {
+     "Agent Rank": 7,
+     "SP": 1300,
+     "ATK": 2130
+    }
+   ],
+   [
+    "Chaosdramon",
+    {
+     "Agent Rank": 7,
+     "HP": 2100,
+     "ATK": 2130,
+     "DEF": 1700
+    }
+   ]
+  ]
+ },
+ "CannonBeemon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "MegaGargomon",
+    {
+     "Agent Rank": 7,
+     "HP": 2500,
+     "SP": 1070,
+     "ATK": 1780
+    }
+   ],
+   [
+    "TigerVespamon",
+    {
+     "Agent Rank": 7,
+     "HP": 2820,
+     "ATK": 1900,
+     "SPD": 1600
+    }
+   ]
+  ]
+ },
+ "Groundramon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Megidramon",
+    {
+     "Agent Rank": 7,
+     "HP": 2960,
+     "ATK": 2290
+    }
+   ],
+   [
+    "Breakdramon",
+    {
+     "Agent Rank": 7,
+     "HP": 1920,
+     "ATK": 1920,
+     "DEF": 1570
+    }
+   ]
+  ]
+ },
+ "Sharkmon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Neptunemon",
+    {
+     "Agent Rank": 7,
+     "SP": 1190,
+     "ATK": 1940,
+     "SPI": 1710
+    }
+   ],
+   [
+    "MetalSeadramon",
+    {
+     "Agent Rank": 7,
+     "SP": 1430,
+     "INT": 1530
+    }
+   ]
+  ]
+ },
+ "Shaujinmon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Barbamon",
+    {
+     "Agent Rank": 7,
+     "SP": 1060,
+     "INT": 2290
+    }
+   ],
+   [
+    "JumboGamemon",
+    {
+     "Agent Rank": 7,
+     "HP": 2010,
+     "DEF": 1740,
+     "SPI": 1870
+    }
+   ],
+   [
+    "Puppetmon",
+    {
+     "Agent Rank": 7,
+     "DEF": 1430,
+     "SPI": 1430
+    }
+   ]
+  ]
+ },
+ "SkullGreymon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Titamon",
+    {
+     "Agent Rank": 7,
+     "HP": 3220,
+     "ATK": 1680
+    }
+   ],
+   [
+    "SkullMammothmon",
+    {
+     "Agent Rank": 7,
+     "HP": 2570,
+     "ATK": 1580,
+     "DEF": 1650
+    }
+   ]
+  ]
+ },
+ "SkullSatamon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Barbamon",
+    {
+     "Agent Rank": 7,
+     "SP": 1060,
+     "INT": 2290
+    }
+   ],
+   [
+    "Piedmon",
+    {
+     "Agent Rank": 7,
+     "SP": 1190,
+     "INT": 1860
+    }
+   ],
+   [
+    "Ebemon",
+    {
+     "Agent Rank": 7,
+     "SP": 1500,
+     "INT": 2420,
+     "SPI": 1570
+    }
+   ]
+  ]
+ },
+ "Cherrymon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Puppetmon",
+    {
+     "Agent Rank": 7,
+     "DEF": 1430,
+     "SPI": 1430
+    }
+   ],
+   [
+    "Rosemon",
+    {
+     "Agent Rank": 7,
+     "SP": 2350,
+     "ATK": 1290,
+     "INT": 1500
+    }
+   ],
+   [
+    "GranKuwagamon",
+    {
+     "Agent Rank": 7,
+     "HP": 2770,
+     "DEF": 2290
+    }
+   ]
+  ]
+ },
+ "SkullSeadramon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Leviamon",
+    {
+     "Agent Rank": 7,
+     "HP": 2860,
+     "ATK": 2000,
+     "DEF": 1430
+    }
+   ],
+   [
+    "MetalSeadramon",
+    {
+     "Agent Rank": 7,
+     "SP": 1430,
+     "INT": 1530
+    }
+   ]
+  ]
+ },
+ "DarkSuperStarmon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "BeelStarmon",
+    {
+     "Agent Rank": 7,
+     "HP": 2200,
+     "SP": 1380,
+     "ATK": 1600
+    }
+   ],
+   [
+    "Titamon",
+    {
+     "Agent Rank": 7,
+     "HP": 3220,
+     "ATK": 1680
+    }
+   ],
+   [
+    "Ravemon",
+    {
+     "Agent Rank": 7,
+     "SP": 1640,
+     "SPD": 1820
+    }
+   ]
+  ]
+ },
+ "Dragomon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Vulcanusmon",
+    {
+     "Agent Rank": 7,
+     "DEF": 1700,
+     "SPI": 1820
+    }
+   ],
+   [
+    "Ebemon",
+    {
+     "Agent Rank": 7,
+     "SP": 1500,
+     "INT": 2420,
+     "SPI": 1570
+    }
+   ],
+   [
+    "Parallelmon",
+    {
+     "Agent Rank": 8,
+     "HP": 4840,
+     "ATK": 2420,
+     "SPI": 1800,
+     "Talent": 40
+    }
+   ]
+  ]
+ },
+ "Tankdramon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Gundramon",
+    {
+     "Agent Rank": 7,
+     "SP": 1300,
+     "ATK": 2130
+    }
+   ],
+   [
+    "Darkdramon",
+    {
+     "Agent Rank": 7,
+     "HP": 2400,
+     "ATK": 2220
+    }
+   ]
+  ]
+ },
+ "ShogunGekomon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "KingEtemon",
+    {
+     "Agent Rank": 7,
+     "ATK": 1640,
+     "DEF": 1790
+    }
+   ],
+   [
+    "Bacchusmon",
+    {
+     "Agent Rank": 7,
+     "HP": 2880,
+     "ATK": 1790,
+     "INT": 1510
+    }
+   ],
+   [
+    "Pukumon",
+    {
+     "Agent Rank": 7,
+     "HP": 2690,
+     "ATK": 1790
+    }
+   ]
+  ]
+ },
+ "Datamon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Pharaohmon",
+    {
+     "Agent Rank": 7,
+     "HP": 2460,
+     "INT": 1360,
+     "SPI": 1820
+    }
+   ],
+   [
+    "Diaboromon",
+    {
+     "Agent Rank": 7,
+     "HP": 2690,
+     "ATK": 2250
+    }
+   ]
+  ]
+ },
+ "Phantomon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Sakuyamon",
+    {
+     "Agent Rank": 7,
+     "INT": 2710,
+     "SPD": 1990
+    }
+   ],
+   [
+    "Piedmon",
+    {
+     "Agent Rank": 7,
+     "SP": 1190,
+     "INT": 1860
+    }
+   ],
+   [
+    "Belphemon SM",
+    {
+     "Agent Rank": 7,
+     "SP": 1180,
+     "INT": 1740,
+     "SPI": 1540
+    }
+   ],
+   [
+    "Ravemon",
+    {
+     "Agent Rank": 7,
+     "SP": 1640,
+     "SPD": 1820
+    }
+   ]
+  ]
+ },
+ "BlackKingNumemon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "PlatinumNumemon",
+    {
+     "Agent Rank": 7,
+     "DEF": 2220
+    }
+   ],
+   [
+    "MetalEtemon",
+    {
+     "Agent Rank": 7,
+     "HP": 2470,
+     "DEF": 2010
+    }
+   ]
+  ]
+ },
+ "BlueMeramon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Marsmon",
+    {
+     "Agent Rank": 7,
+     "SP": 960,
+     "ATK": 2220
+    }
+   ],
+   [
+    "Pharaohmon",
+    {
+     "Agent Rank": 7,
+     "HP": 2460,
+     "INT": 1360,
+     "SPI": 1820
+    }
+   ]
+  ]
+ },
+ "Mummymon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Pharaohmon",
+    {
+     "Agent Rank": 7,
+     "HP": 2460,
+     "INT": 1360,
+     "SPI": 1820
+    }
+   ],
+   [
+    "HiAndromon",
+    {
+     "Agent Rank": 7,
+     "HP": 2500,
+     "SPI": 1780
+    }
+   ],
+   [
+    "AvengeKidmon",
+    {
+     "Agent Rank": 7,
+     "HP": 2500,
+     "ATK": 1940
+    }
+   ]
+  ]
+ },
+ "Vademon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Ebemon",
+    {
+     "Agent Rank": 7,
+     "SP": 1500,
+     "INT": 2420,
+     "SPI": 1570
+    }
+   ],
+   [
+    "AvengeKidmon",
+    {
+     "Agent Rank": 7,
+     "HP": 2500,
+     "ATK": 1940
+    }
+   ]
+  ]
+ },
+ "Megadramon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Megidramon",
+    {
+     "Agent Rank": 7,
+     "HP": 2960,
+     "ATK": 2290
+    }
+   ],
+   [
+    "Machinedramon",
+    {
+     "Agent Rank": 7,
+     "ATK": 1700,
+     "DEF": 2140
+    }
+   ]
+  ]
+ },
+ "Mistymon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "ChaosGallantmon",
+    {
+     "Agent Rank": 7,
+     "ATK": 1870,
+     "INT": 1430
+    }
+   ],
+   [
+    "Zanbamon",
+    {
+     "Agent Rank": 7,
+     "HP": 2380,
+     "ATK": 1960,
+     "SPD": 1060
+    }
+   ],
+   [
+    "MedievalGallantmon",
+    {
+     "Agent Rank": 7,
+     "INT": 2050,
+     "SPI": 1790
+    }
+   ],
+   [
+    "Dynasmon",
+    {
+     "Agent Rank": 7,
+     "HP": 2500,
+     "ATK": 1940,
+     "SPD": 1660
+    }
+   ]
+  ]
+ },
+ "WarGrowlmon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Megidramon",
+    {
+     "Agent Rank": 7,
+     "HP": 2960,
+     "ATK": 2290
+    }
+   ],
+   [
+    "Gallantmon",
+    {
+     "Agent Rank": 7,
+     "ATK": 1800,
+     "SPI": 2240
+    }
+   ],
+   [
+    "ChaosGallantmon",
+    {
+     "Agent Rank": 7,
+     "ATK": 1870,
+     "INT": 1430
+    }
+   ],
+   [
+    "Chaosdramon",
+    {
+     "Agent Rank": 7,
+     "HP": 2100,
+     "ATK": 2130,
+     "DEF": 1700
+    }
+   ]
+  ]
+ },
+ "MetalTyrannomon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "RustTyrannomon",
+    {
+     "Agent Rank": 7,
+     "HP": 2830,
+     "ATK": 1860,
+     "DEF": 2050
+    }
+   ],
+   [
+    "Machinedramon",
+    {
+     "Agent Rank": 7,
+     "ATK": 1700,
+     "DEF": 2140
+    }
+   ],
+   [
+    "UltimateBrachiomon",
+    {
+     "Agent Rank": 7,
+     "HP": 2900,
+     "DEF": 2130,
+     "SPI": 1570
+    }
+   ]
+  ]
+ },
+ "Matadormon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "GranDracmon",
+    {
+     "Agent Rank": 7,
+     "SP": 1140,
+     "ATK": 1300,
+     "INT": 1590
+    }
+   ],
+   [
+    "SlashAngemon",
+    {
+     "Agent Rank": 7,
+     "ATK": 2050,
+     "SPD": 1060
+    }
+   ],
+   [
+    "Kuzuhamon",
+    {
+     "Agent Rank": 7,
+     "SP": 1290,
+     "INT": 1860,
+     "SPI": 1290
+    }
+   ]
+  ]
+ },
+ "Lucemon CM": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Lucemon SM",
+    {
+     "Agent Rank": 8,
+     "HP": 2350,
+     "INT": 3090,
+     "SPD": 1880
+    }
+   ]
+  ]
+ },
+ "LadyDevimon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Lilithmon",
+    {
+     "Agent Rank": 7,
+     "SP": 1300,
+     "INT": 2180,
+     "SPD": 1860
+    }
+   ],
+   [
+    "BeelStarmon",
+    {
+     "Agent Rank": 7,
+     "HP": 2200,
+     "SP": 1380,
+     "ATK": 1600
+    }
+   ],
+   [
+    "Mastemon",
+    {
+     "Agent Rank": 7,
+     "Jogress": [
+      "Angewomon (Tolerant)",
+      "LadyDevimon (Enlightened)"
+     ]
+    }
+   ]
+  ]
+ },
+ "WaruSeadramon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Leviamon",
+    {
+     "Agent Rank": 7,
+     "HP": 2860,
+     "ATK": 2000,
+     "DEF": 1430
+    }
+   ],
+   [
+    "Megidramon",
+    {
+     "Agent Rank": 7,
+     "HP": 2960,
+     "ATK": 2290
+    }
+   ],
+   [
+    "MetalSeadramon",
+    {
+     "Agent Rank": 7,
+     "SP": 1430,
+     "INT": 1530
+    }
+   ]
+  ]
+ },
+ "Shakkoumon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Goldramon",
+    {
+     "Agent Rank": 7,
+     "HP": 2690,
+     "INT": 1660,
+     "SPI": 1380
+    }
+   ],
+   [
+    "Junomon",
+    {
+     "Agent Rank": 7,
+     "SP": 1100,
+     "INT": 1370
+    }
+   ],
+   [
+    "Vikemon",
+    {
+     "Agent Rank": 7,
+     "HP": 3180,
+     "ATK": 1930
+    }
+   ],
+   [
+    "Magnadramon",
+    {
+     "Agent Rank": 7,
+     "HP": 2740,
+     "SP": 1100,
+     "INT": 1370
+    }
+   ]
+  ]
+ },
+ "Silphymon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "BeelStarmon",
+    {
+     "Agent Rank": 7,
+     "HP": 2200,
+     "SP": 1380,
+     "ATK": 1600
+    }
+   ],
+   [
+    "Minervamon",
+    {
+     "Agent Rank": 7,
+     "HP": 2360,
+     "ATK": 1940
+    }
+   ],
+   [
+    "Valkyrimon",
+    {
+     "Agent Rank": 7,
+     "SP": 1930,
+     "SPD": 1650
+    }
+   ]
+  ]
+ },
+ "Dinobeemon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "GranKuwagamon",
+    {
+     "Agent Rank": 7,
+     "HP": 2770,
+     "DEF": 2290
+    }
+   ],
+   [
+    "TigerVespamon",
+    {
+     "Agent Rank": 7,
+     "HP": 2820,
+     "ATK": 1900,
+     "SPD": 1600
+    }
+   ]
+  ]
+ },
+ "Paildramon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Dorugoramon",
+    {
+     "Agent Rank": 7,
+     "HP": 2700,
+     "ATK": 2220
+    }
+   ],
+   [
+    "Imperialdramon DM",
+    {
+     "Agent Rank": 7,
+     "HP": 2890,
+     "SP": 1180,
+     "SPI": 1180
+    }
+   ],
+   [
+    "Darkdramon",
+    {
+     "Agent Rank": 7,
+     "HP": 2400,
+     "ATK": 2220
+    }
+   ]
+  ]
+ },
+ "Wisemon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "Creepymon",
+    {
+     "Agent Rank": 7,
+     "HP": 2000,
+     "ATK": 1970,
+     "INT": 1900
+    }
+   ],
+   [
+    "ChaosGallantmon",
+    {
+     "Agent Rank": 7,
+     "ATK": 1870,
+     "INT": 1430
+    }
+   ],
+   [
+    "AncientWisemon",
+    {
+     "Agent Rank": 7,
+     "INT": 3100,
+     "SPI": 2090
+    }
+   ]
+  ]
+ },
+ "Infermon": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "MaloMyotismon",
+    {
+     "Agent Rank": 7,
+     "HP": 2200,
+     "ATK": 2140,
+     "INT": 2770
+    }
+   ],
+   [
+    "Diaboromon",
+    {
+     "Agent Rank": 7,
+     "HP": 2690,
+     "ATK": 2250
+    }
+   ],
+   [
+    "Cherubimon (Black)",
+    {
+     "Agent Rank": 7,
+     "SP": 960,
+     "INT": 2280,
+     "SPI": 1600
+    }
+   ],
+   [
+    "Parallelmon",
+    {
+     "Agent Rank": 8,
+     "HP": 4840,
+     "ATK": 2420,
+     "SPI": 1800,
+     "Talent": 40
+    }
+   ]
+  ]
+ },
+ "Aldamon": {
+  "stage": "Hybrid",
+  "evolves_into": [
+   [
+    "EmperorGreymon",
+    {
+     "Agent Rank": 7
+    }
+   ]
+  ]
+ },
+ "Beowolfmon": {
+  "stage": "Hybrid",
+  "evolves_into": [
+   [
+    "MagnaGarurumon",
+    {
+     "Agent Rank": 7
+    }
+   ]
+  ]
+ },
+ "Apollomon": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "GraceNovamon",
+    {
+     "Agent Rank": 8,
+     "Jogress": [
+      "Apollomon (Daring)",
+      "Dianamon (Enlightened)"
+     ]
+    }
+   ]
+  ]
+ },
+ "Alphamon": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Alphamon: Ouryuken",
+    {
+     "Agent Rank": 8,
+     "Jogress": [
+      "Alphamon (Friendly)",
+      "Ouryumon (Zealous)"
+     ]
+    }
+   ]
+  ]
+ },
+ "UlforceVeedramon": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "UlforceVeedramon (X Antibody)",
+    {
+     "Agent Rank": 7,
+     "HP": 2960,
+     "SPD": 1980
+    }
+   ]
+  ]
+ },
+ "Varodurumon": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Chaosmon: Valdur Arm",
+    {
+     "Agent Rank": 8,
+     "Jogress": [
+      "BanchoLeomon (Daring)",
+      "Varodurumon (Sociable)"
+     ]
+    }
+   ]
+  ]
+ },
+ "Venusmon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "WarGreymon": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Omnimon",
+    {
+     "Agent Rank": 8,
+     "Jogress": [
+      "WarGreymon (Daring)",
+      "MetalGarurumon (Friendly)"
+     ]
+    }
+   ]
+  ]
+ },
+ "Ouryumon": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Alphamon: Ouryuken",
+    {
+     "Agent Rank": 8,
+     "Jogress": [
+      "Alphamon (Friendly)",
+      "Ouryumon (Zealous)"
+     ]
+    }
+   ]
+  ]
+ },
+ "Ophanimon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "ClavisAngemon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Craniamon": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Craniamon + Enbarrmon",
+    {
+     "Agent Rank": 8,
+     "Jogress": [
+      "Craniamon (Devoted)",
+      "Enbarrmon (Sly)"
+     ]
+    }
+   ]
+  ]
+ },
+ "Eaglemon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Chronomon HM": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Cherubimon (Black)": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Goldramon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "ShineGreymon": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "ShineGreymon BM",
+    {
+     "Agent Rank": 8,
+     "HP": 4900,
+     "SPD": 2810
+    }
+   ]
+  ]
+ },
+ "Justimon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "SkullMammothmon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Cherubimon (Good)": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "SlashAngemon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Kentaurosmon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Slayerdramon": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Examon",
+    {
+     "Agent Rank": 8,
+     "Jogress": [
+      "Slayerdramon (Daring)",
+      "Breakdramon (Reckless)"
+     ]
+    }
+   ]
+  ]
+ },
+ "Seraphimon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "MegaGargomon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Durandamon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Neptunemon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "HiAndromon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "BanchoLeomon": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Chaosmon: Valdur Arm",
+    {
+     "Agent Rank": 8,
+     "Jogress": [
+      "BanchoLeomon (Daring)",
+      "Varodurumon (Sociable)"
+     ]
+    }
+   ],
+   [
+    "Chaosmon",
+    {
+     "Agent Rank": 8,
+     "Jogress": [
+      "Darkdramon (Zealous)",
+      "BanchoLeomon (Daring)"
+     ]
+    }
+   ]
+  ]
+ },
+ "HerculesKabuterimon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Phoenixmon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Magnadramon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Mastemon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Marsmon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "MarineAngemon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Jupitermon": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Jupitermon WM",
+    {
+     "Agent Rank": 9,
+     "HP": 4020,
+     "ATK": 3200
+    }
+   ]
+  ]
+ },
+ "Ravemon": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Ravemon BM",
+    {
+     "Agent Rank": 8,
+     "SP": 1710,
+     "SPD": 3390
+    }
+   ]
+  ]
+ },
+ "UltimateBrachiomon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Vulcanusmon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Gankoomon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Kuzuhamon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "GroundLocomon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Gryphonmon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Ceresmon": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Ceresmon Medium",
+    {
+     "Agent Rank": 7,
+     "SP": 1670,
+     "INT": 2500
+    }
+   ]
+  ]
+ },
+ "Ceresmon Medium": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Ceresmon",
+    {
+     "Agent Rank": 7,
+     "HP": 2470,
+     "SPI": 2190
+    }
+   ]
+  ]
+ },
+ "SaberLeomon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Sakuyamon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Jesmon": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Jesmon (X Antibody)",
+    {
+     "Agent Rank": 7,
+     "ATK": 1730,
+     "DEF": 1730,
+     "SPD": 1650
+    }
+   ]
+  ]
+ },
+ "JumboGamemon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Dianamon": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "GraceNovamon",
+    {
+     "Agent Rank": 8,
+     "Jogress": [
+      "Apollomon (Daring)",
+      "Dianamon (Enlightened)"
+     ]
+    }
+   ]
+  ]
+ },
+ "Dynasmon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Leopardmon": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Leopardmon LM",
+    {
+     "Agent Rank": 7
+    }
+   ]
+  ]
+ },
+ "Leopardmon LM": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Leopardmon",
+    {
+     "Agent Rank": 7,
+     "HP": 2570,
+     "INT": 2130,
+     "SPD": 1890
+    }
+   ]
+  ]
+ },
+ "Dorugoramon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "PileVolcanomon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "PrinceMamemon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Plesiomon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Boltmon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "MirageGaogamon": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "MirageGaogamon BM",
+    {
+     "Agent Rank": 8,
+     "ATK": 3100,
+     "SPD": 3100
+    }
+   ]
+  ]
+ },
+ "MetalGarurumon": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Omnimon",
+    {
+     "Agent Rank": 8,
+     "Jogress": [
+      "WarGreymon (Daring)",
+      "MetalGarurumon (Friendly)"
+     ]
+    }
+   ]
+  ]
+ },
+ "MetalSeadramon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Rosemon": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Rosemon BM",
+    {
+     "Agent Rank": 8,
+     "INT": 3170,
+     "SPI": 2700
+    }
+   ]
+  ]
+ },
+ "MedievalGallantmon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "AvengeKidmon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Lotosmon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Ebemon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "VenomMyotismon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "AncientWisemon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Gaiomon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "ChaosGallantmon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Chaosdramon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Callismon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Gundramon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Chronomon DM": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Zanbamon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "GranDracmon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "ZombiePlutomon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Darkdramon": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Chaosmon",
+    {
+     "Agent Rank": 8,
+     "Jogress": [
+      "Darkdramon (Zealous)",
+      "BanchoLeomon (Daring)"
+     ]
+    }
+   ]
+  ]
+ },
+ "KingEtemon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "TigerVespamon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Titamon": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Titamon + SkullBaluchimon",
+    {
+     "Agent Rank": 8,
+     "Jogress": [
+      "Titamon (Reckless)",
+      "SkullBaluchimon (Sociable)"
+     ]
+    }
+   ]
+  ]
+ },
+ "TyrantKabuterimon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Creepymon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Gallantmon": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Gallantmon CM",
+    {
+     "Agent Rank": 8,
+     "ATK": 2810,
+     "INT": 3170
+    }
+   ],
+   [
+    "Gallantmon (X Antibody)",
+    {
+     "Agent Rank": 7,
+     "ATK": 1800,
+     "SPI": 2240
+    }
+   ]
+  ]
+ },
+ "Bacchusmon DM": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Bacchusmon",
+    {
+     "Agent Rank": 7,
+     "HP": 2880,
+     "ATK": 1790,
+     "INT": 1510
+    }
+   ]
+  ]
+ },
+ "Bacchusmon": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Bacchusmon DM",
+    {
+     "Agent Rank": 7,
+     "HP": 4250,
+     "ATK": 2850
+    }
+   ]
+  ]
+ },
+ "Barbamon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Pharaohmon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Puppetmon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Pukumon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "PlatinumNumemon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Plutomon": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "ZombiePlutomon",
+    {
+     "Agent Rank": 7,
+     "ATK": 2500,
+     "INT": 1900
+    }
+   ]
+  ]
+ },
+ "Piedmon": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Apocalymon",
+    {
+     "Agent Rank": 8,
+     "SP": 2660,
+     "INT": 3100
+    }
+   ]
+  ]
+ },
+ "Breakdramon": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Examon",
+    {
+     "Agent Rank": 8,
+     "Jogress": [
+      "Slayerdramon (Daring)",
+      "Breakdramon (Reckless)"
+     ]
+    }
+   ]
+  ]
+ },
+ "MaloMyotismon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "BeelStarmon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Beelzemon": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Beelzemon BM",
+    {
+     "Agent Rank": 8,
+     "ATK": 3760,
+     "SPD": 2960
+    }
+   ]
+  ]
+ },
+ "Belphemon SM": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Belphemon RM",
+    {
+     "Agent Rank": 8,
+     "HP": 4680,
+     "ATK": 2070
+    }
+   ]
+  ]
+ },
+ "MagnaKidmon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Minervamon": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Mervamon",
+    {
+     "Agent Rank": 8,
+     "ATK": 3470,
+     "SPD": 2960
+    }
+   ]
+  ]
+ },
+ "Millenniummon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Machinedramon": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Millenniummon",
+    {
+     "Agent Rank": 7,
+     "Jogress": [
+      "Machinedramon (Reckless)",
+      "Kimeramon (Friendly)"
+     ]
+    }
+   ]
+  ]
+ },
+ "MetalEtemon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Megidramon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Merukimon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Junomon": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Junomon HM",
+    {
+     "Agent Rank": 7,
+     "INT": 3380,
+     "SPI": 2920
+    }
+   ]
+  ]
+ },
+ "Junomon HM": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Junomon",
+    {
+     "Agent Rank": 7,
+     "SP": 1100,
+     "INT": 1370
+    }
+   ]
+  ]
+ },
+ "RustTyrannomon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Leviamon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Lilithmon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "LordKnightmon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Imperialdramon DM": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Imperialdramon FM",
+    {
+     "Agent Rank": 7,
+     "ATK": 2500
+    }
+   ],
+   [
+    "Imperialdramon PM",
+    {
+     "Agent Rank": 8,
+     "HP": 4680,
+     "SPD": 2740,
+     "Req. Item": "Omni Blade"
+    }
+   ]
+  ]
+ },
+ "Vikemon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Imperialdramon FM": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Imperialdramon PM",
+    {
+     "Agent Rank": 8,
+     "HP": 4680,
+     "SPD": 2740,
+     "Req. Item": "Omni Blade"
+    }
+   ],
+   [
+    "Imperialdramon DM",
+    {
+     "Agent Rank": 7,
+     "HP": 2890,
+     "SP": 1180,
+     "SPI": 1180
+    }
+   ]
+  ]
+ },
+ "Valkyrimon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "GranKuwagamon": {
+  "stage": "Mega",
+  "evolves_into": []
+ },
+ "Diaboromon": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Armageddemon",
+    {
+     "Agent Rank": 8,
+     "HP": 4450,
+     "ATK": 3980
+    }
+   ]
+  ]
+ },
+ "Rapidmon (Armor)": {
+  "stage": "Armor",
+  "evolves_into": []
+ },
+ "Magnamon": {
+  "stage": "Armor",
+  "evolves_into": [
+   [
+    "Magnamon (X Antibody)",
+    {
+     "Agent Rank": 7,
+     "Req. Item": "Digi-Egg of Miracles"
+    }
+   ]
+  ]
+ },
+ "EmperorGreymon": {
+  "stage": "Hybrid",
+  "evolves_into": [
+   [
+    "Susanomon",
+    {
+     "Agent Rank": 8,
+     "Jogress": [
+      "EmperorGreymon (Zealous)",
+      "MagnaGarurumon (Friendly)"
+     ]
+    }
+   ]
+  ]
+ },
+ "MagnaGarurumon": {
+  "stage": "Hybrid",
+  "evolves_into": [
+   [
+    "Susanomon",
+    {
+     "Agent Rank": 8,
+     "Jogress": [
+      "EmperorGreymon (Zealous)",
+      "MagnaGarurumon (Friendly)"
+     ]
+    }
+   ],
+   [
+    "MagnaGarurumon (Detached)",
+    {
+     "Agent Rank": 7
+    }
+   ]
+  ]
+ },
+ "MagnaGarurumon (Detached)": {
+  "stage": "Hybrid",
+  "evolves_into": [
+   [
+    "MagnaGarurumon",
+    {
+     "Agent Rank": 7
+    }
+   ]
+  ]
+ },
+ "Alphamon: Ouryuken": {
+  "stage": "Mega +",
+  "evolves_into": []
+ },
+ "Craniamon + Enbarrmon": {
+  "stage": "Mega +",
+  "evolves_into": []
+ },
+ "Imperialdramon PM": {
+  "stage": "Mega +",
+  "evolves_into": []
+ },
+ "Omnimon": {
+  "stage": "Mega +",
+  "evolves_into": [
+   [
+    "Omnimon Zwart",
+    {
+     "Agent Rank": 8
+    }
+   ],
+   [
+    "Omnimon MM",
+    {
+     "Agent Rank": 8,
+     "ATK": 2970,
+     "SPD": 2680
+    }
+   ],
+   [
+    "Omnimon (X Antibody)",
+    {
+     "Agent Rank": 8
+    }
+   ]
+  ]
+ },
+ "Omnimon Zwart": {
+  "stage": "Mega +",
+  "evolves_into": [
+   [
+    "Omnimon",
+    {
+     "Agent Rank": 8
+    }
+   ],
+   [
+    "Omnimon Zwart Defeat",
+    {
+     "Agent Rank": 8,
+     "SP": 2300,
+     "SPI": 2720,
+     "SPD": 1900
+    }
+   ]
+  ]
+ },
+ "Chaosmon": {
+  "stage": "Mega +",
+  "evolves_into": []
+ },
+ "Chaosmon: Valdur Arm": {
+  "stage": "Mega +",
+  "evolves_into": []
+ },
+ "GraceNovamon": {
+  "stage": "Mega +",
+  "evolves_into": []
+ },
+ "ShineGreymon BM": {
+  "stage": "Mega +",
+  "evolves_into": []
+ },
+ "Susanomon": {
+  "stage": "Mega +",
+  "evolves_into": []
+ },
+ "Jupitermon WM": {
+  "stage": "Mega +",
+  "evolves_into": []
+ },
+ "Ravemon BM": {
+  "stage": "Mega +",
+  "evolves_into": []
+ },
+ "Examon": {
+  "stage": "Mega +",
+  "evolves_into": []
+ },
+ "MirageGaogamon BM": {
+  "stage": "Mega +",
+  "evolves_into": []
+ },
+ "Rosemon BM": {
+  "stage": "Mega +",
+  "evolves_into": []
+ },
+ "Titamon + SkullBaluchimon": {
+  "stage": "Mega +",
+  "evolves_into": []
+ },
+ "Gallantmon CM": {
+  "stage": "Mega +",
+  "evolves_into": []
+ },
+ "Beelzemon BM": {
+  "stage": "Mega +",
+  "evolves_into": []
+ },
+ "Belphemon RM": {
+  "stage": "Mega +",
+  "evolves_into": []
+ },
+ "Mervamon": {
+  "stage": "Mega +",
+  "evolves_into": []
+ },
+ "Lucemon SM": {
+  "stage": "Mega +",
+  "evolves_into": []
+ },
+ "Armageddemon": {
+  "stage": "Mega +",
+  "evolves_into": []
+ },
+ "Agumon (Bond of Bravery)": {
+  "stage": "Mega +",
+  "evolves_into": []
+ },
+ "Apocalymon": {
+  "stage": "Mega +",
+  "evolves_into": []
+ },
+ "Gabumon (Bond of Friendship)": {
+  "stage": "Mega +",
+  "evolves_into": []
+ },
+ "Agumon (Black)": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Strikedramon",
+    {
+     "Agent Rank": 3,
+     "HP": 1090
+    }
+   ],
+   [
+    "Tuskmon",
+    {
+     "Agent Rank": 3,
+     "ATK": 540
+    }
+   ],
+   [
+    "Devimon",
+    {
+     "Agent Rank": 3,
+     "SP": 640,
+     "SPD": 430
+    }
+   ],
+   [
+    "Coredramon (Blue)",
+    {
+     "Agent Rank": 3,
+     "HP": 1060
+    }
+   ],
+   [
+    "Greymon (Blue)",
+    {
+     "Agent Rank": 3,
+     "ATK": 660,
+     "SPI": 420,
+     "SPD": 540
+    }
+   ]
+  ]
+ },
+ "Gabumon (Black)": {
+  "stage": "Rookie",
+  "evolves_into": [
+   [
+    "Minotarumon",
+    {
+     "Agent Rank": 3,
+     "ATK": 660
+    }
+   ],
+   [
+    "BlackGatomon",
+    {
+     "Agent Rank": 3,
+     "SPI": 530
+    }
+   ],
+   [
+    "Dobermon",
+    {
+     "Agent Rank": 3,
+     "SPD": 620
+    }
+   ],
+   [
+    "Dorugamon",
+    {
+     "Agent Rank": 3,
+     "HP": 1060
+    }
+   ],
+   [
+    "Fugamon",
+    {
+     "Agent Rank": 3,
+     "SP": 380,
+     "ATK": 640
+    }
+   ],
+   [
+    "Garurumon (Black)",
+    {
+     "Agent Rank": 3,
+     "SPD": 580
+    }
+   ]
+  ]
+ },
+ "Garurumon (Black)": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "SkullSatamon",
+    {
+     "Agent Rank": 5,
+     "INT": 870,
+     "SPI": 960
+    }
+   ],
+   [
+    "Pandamon",
+    {
+     "Agent Rank": 5,
+     "DEF": 860,
+     "INT": 850,
+     "SPI": 900
+    }
+   ],
+   [
+    "WereGarurumon (Black)",
+    {
+     "Agent Rank": 5,
+     "SP": 620,
+     "ATK": 980,
+     "SPI": 920,
+     "SPD": 1020
+    }
+   ]
+  ]
+ },
+ "Greymon (Blue)": {
+  "stage": "Champion",
+  "evolves_into": [
+   [
+    "Wingdramon",
+    {
+     "Agent Rank": 5,
+     "HP": 1760,
+     "SPD": 1020
+    }
+   ],
+   [
+    "SkullBaluchimon",
+    {
+     "Agent Rank": 5,
+     "DEF": 1100,
+     "SPD": 740
+    }
+   ],
+   [
+    "MetalGreymon (Blue)",
+    {
+     "Agent Rank": 5,
+     "ATK": 1220,
+     "INT": 740
+    }
+   ]
+  ]
+ },
+ "MetalGreymon (Blue)": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "BlackWarGreymon",
+    {
+     "Agent Rank": 7,
+     "ATK": 2420,
+     "DEF": 2060
+    }
+   ],
+   [
+    "Darkdramon",
+    {
+     "Agent Rank": 7,
+     "HP": 2400,
+     "ATK": 2220
+    }
+   ],
+   [
+    "Cherubimon (Black)",
+    {
+     "Agent Rank": 7,
+     "SP": 960,
+     "INT": 2280,
+     "SPI": 1600
+    }
+   ]
+  ]
+ },
+ "WereGarurumon (Black)": {
+  "stage": "Ultimate",
+  "evolves_into": [
+   [
+    "PileVolcanomon",
+    {
+     "Agent Rank": 7,
+     "ATK": 1430,
+     "DEF": 1790,
+     "SPI": 1730
+    }
+   ],
+   [
+    "MetalGarurumon (Black)",
+    {
+     "Agent Rank": 7,
+     "HP": 2760,
+     "SPI": 1680,
+     "SPD": 1720
+    }
+   ]
+  ]
+ },
+ "BlackWarGreymon": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Omnimon Zwart",
+    {
+     "Agent Rank": 8,
+     "Jogress": [
+      "BlackWarGreymon (Reckless)",
+      "MetalGarurumon (Black) (Friendly)"
+     ]
+    }
+   ]
+  ]
+ },
+ "MetalGarurumon (Black)": {
+  "stage": "Mega",
+  "evolves_into": [
+   [
+    "Omnimon Zwart",
+    {
+     "Agent Rank": 8,
+     "Jogress": [
+      "BlackWarGreymon (Reckless)",
+      "MetalGarurumon (Black) (Friendly)"
+     ]
+    }
+   ]
+  ]
+ }
+}
