@@ -1,15 +1,61 @@
-# TamaDigi
+# TamaDigi: Time Stranger fork
 
 ![Firmware](https://img.shields.io/badge/firmware-v1.0.0-8A2BE2) ![Board](https://img.shields.io/badge/board-ESP32--S3%20round%20AMOLED-E7352C) ![Code](https://img.shields.io/badge/code-MIT-blue)
 
-A **Digimon V-Pet** for the **Waveshare ESP32-S3-Touch-AMOLED-1.75**: a round 466×466 AMOLED with touch, battery and speaker.
+A custom fork of **TamaDigi**, the **Digimon V-Pet** for the **Waveshare ESP32-S3-Touch-AMOLED-1.75** (a round 466×466 AMOLED with touch, battery and speaker). The goal is to rebuild it around the roster and evolution tree of ***Digimon Story: Time Stranger***.
+
+> **Status (October 2026):** the firmware still plays exactly like TamaDigi 1.0.0: 87 Digimon from the V-Pet versions Ver.1–5, described under [The current firmware](#the-current-firmware-tamadigi-100). The Time Stranger rework is at the design, art and tooling stage, and no gameplay change has been made yet. The board (the -G version) hasn't arrived, so everything so far has run in the emulator only.
+>
+> **Non-commercial fan project.** The code is MIT licensed. Digimon, all names and all game art are © Bandai / Bandai Namco / Toei Animation. See [CREDITS.md](CREDITS.md).
+
+## Where it comes from
+
+| | Author | What they added |
+|---|---|---|
+| [socquique/TamaPoke](https://github.com/socquique/TamaPoke) | Quique Tortosa | The original pet: care, stats, evolution, display, touch, sound, saves, the first web installer |
+| [DylanPDao/TamaPoke](https://github.com/DylanPDao/TamaPoke) | Dylan Dao | Battles, party, gyms, more regions, LAN battle, the desktop emulator, level cap, auto-sleep |
+| [eperdeme/TamaPoke](https://github.com/eperdeme/TamaPoke) | Nathan Flynn | Up to v4.1.1: the rebuilt web installer, faster sprite packs, tests on an ESP32-S3 emulator, save migration |
+| [joop0810/TamaDigi](https://github.com/joop0810/TamaDigi) | joop0810 | Replaced the Pokémon content with Digimon content and rules |
+| **this repo** | jaredbt | The Time Stranger rework |
+
+joop0810 published TamaDigi as a single commit with no history. This repo puts that commit back on top of eperdeme's v4.1.1, so `git log` and `git blame` reach every author back to socquique's first commit.
+
+## This fork
+
+### Done so far
+
+- **Full history restored** (see above).
+- **Everything in English**: source comments, serial logs, tool output, scripts and docs. The six UI languages are unchanged.
+- **A new backdrop**: an original V-Pet-style landscape that fills the whole screen, with a day and a night version (`art/backdrops/`). It is not drawn by the firmware yet.
+
+  | Day | Night |
+  |---|---|
+  | <img src="art/backdrops/landscape_day.png" width="220"> | <img src="art/backdrops/landscape_night.png" width="220"> |
+
+- **A pre-render pipeline** (`tools/prerender/`) that captures Time Stranger's 3D Digimon models as animated sprites in the firmware's TPK2 format. It uses a locally run copy of Nuffle's [DSTS Model Viewer](https://tangled.org/nuffle.me/dsts-viewer) (MIT). The captured frames cover every action the firmware plays (idle, walk, sleep, eat, hurt, attack, cheer, nod, deep breath) and two new ones (sad and special attack).
+- **Emulator start time:** `EMU_EPOCH=<unix seconds>` sets the virtual clock, for testing day and night.
+
+> **Private builds only.** The models, and every frame rendered from them, are Bandai Namco's assets. `tools/prerender/.gitignore` keeps them out of the repo, and they must never be committed or published. A public build would need other art.
+
+### Planned
+
+The decisions so far, all recorded in [docs/HANDOFF.md](docs/HANDOFF.md):
+
+- **One roster**: Time Stranger's Digimon (those with art), with no V-Pet versions. The first egg hatches a random In-Training I.
+- **Time Stranger evolution**: you choose among the branches whose conditions are met. The stage timers become minimums, evolution is always offered and never forced, and de-digivolution is allowed. A Mega+ stage follows Mega.
+- **Stats from Time Stranger**: each Digimon grows from its Time Stranger level-1 stats to its maximum ones, one level per hour, plus training. HP grows with age only. Training is how you reach the late evolutions: the IV scales each session's gain (70% to 130%) instead of capping it, so no evolution is out of reach because of a bad IV.
+- **Battles stay central**: wins earn the XP that training costs, boss badges set an Agent Rank, and every Digimon keeps at least one evolution that needs no battles.
+- **Firmware work**: more frames per action, larger sprite files, the new sad and special-attack slots, the attack animation chosen by move type, longer battle animation windows, and the new backdrop. socquique's later battery and drawing improvements should be ported too.
+
+Still open: how evolution and the 72-hour farewell are offered, eggs and wild Digimon without versions, battle timing, and art for a public build.
+
+## The current firmware (TamaDigi 1.0.0)
+
+Everything in this section describes the firmware as it is today, inherited unchanged from joop0810's TamaDigi.
+
 You raise a Digimon from a **Digi-Egg**. How well you care for and train it, and how many battles it wins, decides **which Digimon it digivolves into**.
 
-> **Origin:** The project is built on the TamaPoke engine (original by **Quique Tortosa** – [socquique/TamaPoke](https://github.com/socquique/TamaPoke), forked by [DylanPDao](https://github.com/DylanPDao/TamaPoke) and [eperdeme](https://github.com/eperdeme/TamaPoke)). The display, touch, sound, save files, battle system, emulator and web installer come from there. TamaDigi replaces the Pokémon content entirely with Digimon content and Digimon rules.
->
-> **Non-commercial fan project.** The code is MIT licensed. Digimon, all names and the pixel art (from *Digimon Color*) are © Bandai / Toei Animation. See [CREDITS.md](CREDITS.md).
-
-## Screens
+### Screens
 
 Every image comes straight from the emulator (`bash tools/make_screens.sh`) and shows exactly what the display draws.
 
@@ -33,7 +79,7 @@ Every image comes straight from the emulator (`bash tools/make_screens.sh`) and 
 |---|---|---|---|
 | <img src="docs/screens/player.png" width="200"> | <img src="docs/screens/player2.png" width="200"> | <img src="docs/screens/moves.png" width="200"> | <img src="docs/screens/lanready.png" width="200"> |
 
-## How it differs from Pokémon
+### How it differs from TamaPoke
 
 | | TamaPoke | **TamaDigi** |
 |---|---|---|
@@ -48,7 +94,7 @@ Every image comes straight from the emulator (`bash tools/make_screens.sh`) and 
 | Shiny | Shiny Pokémon | a rare **colour variant** |
 | Art/music | Nintendo material | coloured Digimon Color sprites; the music, badges, avatars and backgrounds are **original work** |
 
-## Digivolution – how it works
+### Digivolution – how it works
 
 One level equals one hour of real time. When a stage's time is up, the **digivolution button** appears. Tap it to watch the digivolution; "Keep form" postpones it. **Which** Digimon comes out is decided by the first matching branch:
 
@@ -76,7 +122,7 @@ Example, Ver.1 – **Agumon** becomes:
 
 With 5 victories, Greymon, Devimon and Airdramon become **MetalGreymon**; Tyrannomon, Meramon and Seadramon become **Mamemon**; Numemon becomes **Monzaemon**. With 15 more victories these become the Megas **BlitzGreymon**, **BanchoMamemon** and **ShinMonzaemon**.
 
-## The versions
+### The versions
 
 | Version | Digi-Egg | Digimon | Megas |
 |---|---|---|---|
@@ -91,7 +137,7 @@ That makes **87 Digimon** in all, each with its own coloured art. The trees foll
 
 **Ver.3 special route:** with 10 victories Sukamon becomes **Chimairamon**, otherwise with 5 it becomes Etemon. With 20 victories Chimairamon becomes **Millenniumon**, with 15 BanchoLeomon.
 
-## Battle
+### Battle
 
 - Turn-based with 4 attacks. Signature attacks come with digivolution (Pepper Breath, Mega Flame, Giga Destroyer …).
 - **Element table** (Fire, Water, Plant, Electric, Wind, Earth, Light, Dark, Neutral) with 2×/½× and no immunities.
@@ -99,6 +145,27 @@ That makes **87 Digimon** in all, each with its own coloured art. The trees foll
 - **Explore:** wild Digimon matched to your level (level 10 → Rookies, from level 25 Champions too). Weaken them and use a **scan chip** to take their data into your party or box.
 - **Boss ladders:** per version, 8 areas, 4 elite bosses and a champion, on Easy and Hard. Victories train your Digimon and count toward digivolution.
 - **LAN battle** between two devices over ESP-NOW.
+
+### Sprites
+
+The Digimon are the **coloured pixel sprites from *Digimon Color*** (Bandai), as collected by the [furudbat/wayland-vpets](https://github.com/furudbat/wayland-vpets) project (`assets/dmc/`). Each Digimon there has a sheet of 9–13 images: standing, happy, angry, eating, sleeping, refusing, sad, defeated and attacking. The animations (walking, eating, sleeping, hit, attack, nodding) are built from those. A light rim keeps the figure visible against the dark sky at night too. The rare **colour variant** is the same art with a shifted hue.
+
+```bash
+python3 tools/pack_sprites.py   # fetches the source images (once), produces tools/sdcard/mons/*.bin + noart.h
+python3 tools/make_thumbs.py    # Digidex thumbnails
+python3 tools/pack_bundle.py    # web/sprites-<version>.pak for the installer
+```
+
+The finished packs are already in `web/sprites-ver1.pak` … `ver5.pak`. You only need to run these commands if you add Digimon or change the art. A Digimon without art goes into `noart.h`; it then never hatches and is never a digivolution target.
+
+### How to play
+
+- **Bottom**: 🍖 Feed (meat/fish/mushroom or protein) · 🌙 Light/sleep · 🫧 Bath · 🏋 Training (punching bag → strength, reaction → speed, ball → defence, memory game → joy)
+- **Swipe**: horizontally through `TAMER · PARTY · [DIGIMON] · EXPLORE · BOSSES · DIGIDEX`, up = status card, down = back, drag at the edge = turn pages
+- **Tap the name** = menu (bag, settings, say goodbye); **tap the Digimon** = pet it; **hold for 3 s** = release it
+- **At night** (0–6 h, screen off) your Digimon falls asleep on its own so it does not run away overnight. This needs the time to be set in the settings.
+- **PWR short press** = screen on/off, **long press (4 s)** = power off (the clock keeps running, so your Digimon ages while switched off too)
+- Language: English (default), German, Spanish, French, Italian, Portuguese – in the settings
 
 ## Hardware
 
@@ -108,21 +175,23 @@ That makes **87 Digimon** in all, each with its own coloured art. The trees foll
 
 ## Installation
 
-### Option A: web installer (recommended, nothing to install)
+This fork has no hosted installer of its own yet: GitHub Pages isn't set up for it, and `web/editions.json`, `web/index.html`, `web/installer.js` and `tools/local_installer.ps1` still point at joop0810's site. Until that changes, build it locally (option B). Options A and A2 install **joop0810's** TamaDigi 1.0.0, which today plays the same as this fork.
+
+### Option A: joop0810's web installer (nothing to install)
 
 1. Open **https://joop0810.github.io/TamaDigi/web/** in **Chrome or Edge** (Firefox and Safari cannot do Web Serial).
 2. Plug the board in over USB-C, click **Install firmware** and choose the port.
 3. Further down, send the **version packs** (sprites) to the SD card: Ver.1–Ver.5, one at a time or all of them.
 4. Done. To change the language on the device: tap the name → SETTINGS → tap the language row (until it shows the one you want).
 
-**Your own fork:** fork the repo, replace `joop0810` with your GitHub name in `web/editions.json`, `web/index.html` and `web/installer.js`, choose "GitHub Actions" under **Settings → Pages → Source**, and push to `main`. The workflow compiles the firmware in the cloud and publishes your own installer.
+To host this fork's own installer: replace `joop0810` with `jaredbt` in the files above, choose "GitHub Actions" under **Settings → Pages → Source**, and push to `main`. The workflow compiles the firmware in the cloud and publishes the installer.
 
 ### Option A2: `start.bat` (Windows, local)
 
 Double-click **`start.bat`** in the TamaDigi folder. The script
 
-- downloads the firmware GitHub built most recently from the Pages site, or
-- takes it from **`tamadigi-firmware.zip`** if there is no Pages site (for example a private fork). You get that file under **GitHub → Actions → latest run → Artifacts → tamadigi-firmware**. Leave it in your Downloads folder or put it next to `start.bat`.
+- downloads the most recently built firmware from the Pages site (joop0810's by default; pass `-Pages <url>` to use another), or
+- takes it from **`tamadigi-firmware.zip`** if there is no Pages site. You get that file under **GitHub → Actions → latest run → Artifacts → tamadigi-firmware**. Leave it in your Downloads folder or put it next to `start.bat`.
 - Then it starts a small local server and opens the installer at `http://localhost:8765/web/` in Chrome or Edge.
 
 Everything else (flashing the firmware, sprites to the SD, backing up the save) works there as in option A. You need neither Python nor Arduino for this, only the PowerShell that comes with Windows. Close the black window to stop it.
@@ -140,27 +209,6 @@ python3 tools/unpack_bundle.py   # unpack the sprites from web/sprites-*.pak
 python3 tools/send_sd.py         # and send them to the SD over USB
 ```
 
-## Sprites
-
-The Digimon are the **coloured pixel sprites from *Digimon Color*** (Bandai), as collected by the [furudbat/wayland-vpets](https://github.com/furudbat/wayland-vpets) project (`assets/dmc/`). Each Digimon there has a sheet of 9–13 images: standing, happy, angry, eating, sleeping, refusing, sad, defeated and attacking. The animations (walking, eating, sleeping, hit, attack, nodding) are built from those. A light rim keeps the figure visible against the dark sky at night too. The rare **colour variant** is the same art with a shifted hue.
-
-```bash
-python3 tools/pack_sprites.py   # fetches the source images (once), produces tools/sdcard/mons/*.bin + noart.h
-python3 tools/make_thumbs.py    # Digidex thumbnails
-python3 tools/pack_bundle.py    # web/sprites-<version>.pak for the installer
-```
-
-The finished packs are already in `web/sprites-ver1.pak` … `ver5.pak`. You only need to run these commands if you add Digimon or change the art. A Digimon without art goes into `noart.h`; it then never hatches and is never a digivolution target.
-
-## How to play
-
-- **Bottom**: 🍖 Feed (meat/fish/mushroom or protein) · 🌙 Light/sleep · 🫧 Bath · 🏋 Training (punching bag → strength, reaction → speed, ball → defence, memory game → joy)
-- **Swipe**: horizontally through `TAMER · PARTY · [DIGIMON] · EXPLORE · BOSSES · DIGIDEX`, up = status card, down = back, drag at the edge = turn pages
-- **Tap the name** = menu (bag, settings, say goodbye); **tap the Digimon** = pet it; **hold for 3 s** = release it
-- **At night** (0–6 h, screen off) your Digimon falls asleep on its own so it does not run away overnight. This needs the time to be set in the settings.
-- **PWR short press** = screen on/off, **long press (4 s)** = power off (the clock keeps running, so your Digimon ages while switched off too)
-- Language: English (default), German, Spanish, French, Italian, Portuguese – in the settings
-
 ## Try it on a PC: the emulator
 
 `tools/emu/` compiles the **real firmware** into a desktop program; only the hardware is simulated.
@@ -170,6 +218,8 @@ sudo apt install libsdl2-dev          # macOS: brew install sdl2
 python3 tools/unpack_bundle.py
 bash tools/emu/build.sh
 tools/emu/tamadigi-emu --scale 2 --fast 60   # 60x time-lapse: a whole life in ~1 h
+EMU_EPOCH=1767294000 tools/emu/tamadigi-emu  # start the clock at a chosen time (unix seconds)
+tools/emu/tamadigi-emu --shot main --out main.png  # headless screenshot
 ```
 
 ## Tests
@@ -179,6 +229,8 @@ TAMA_TEST_BACKEND=host bash tools/emu/tests/run.sh           # every suite in th
 TAMA_TEST_BACKEND=host bash tools/emu/tests/run.sh digivolve # just one
 ```
 
+The runner needs `node`, `python3` and `arduino-cli` with the ESP32 core even for the host backend, because it compiles the real firmware first. The native backend also needs the `esp-emu` emulator (`TAMA_ESP_EMULATOR`).
+
 48 suites, including `digivolve_test` (every Ver.1 branch, victories, the stage clock, Megas in every version, no branch to a Digimon without a sprite), battle, saving through a power cut, the web installer and touch. GitHub Actions runs them on every push and also compiles the real ESP32 firmware.
 
 ## Serial console (115200)
@@ -187,8 +239,9 @@ TAMA_TEST_BACKEND=host bash tools/emu/tests/run.sh digivolve # just one
 
 ## Licence
 
-- **Code** (firmware + tools): MIT, © 2026 Quique Tortosa and contributors, Digimon conversion © 2026 Dennis.
+- **Code** (firmware + tools): MIT, © 2026 Quique Tortosa and contributors, Digimon conversion © 2026 Dennis (joop0810), Time Stranger fork © 2026 jaredbt.
 - **Digimon, names, sprites**: © Bandai / Toei Animation. Private, non-commercial use only.
-- **Music, badges, avatars, battle backgrounds, UI icons**: made in this project (see `tools/gen_music.py`, `gen_ladders.py`, `gen_avatars.py`, `draw_backs.py`, `sprites.py`), MIT.
+- **Time Stranger models and anything rendered from them**: © Bandai Namco. Never part of this repository; private builds only.
+- **Music, badges, avatars, battle backgrounds, UI icons, the landscape backdrop**: made in this project (see `tools/gen_music.py`, `gen_ladders.py`, `gen_avatars.py`, `draw_backs.py`, `sprites.py`, `art/backdrops/make_backdrops.py`), MIT.
 
-Unofficial fan project. Not affiliated with or endorsed by Bandai or Toei.
+Unofficial fan project. Not affiliated with or endorsed by Bandai, Bandai Namco or Toei.
