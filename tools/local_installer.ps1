@@ -11,7 +11,7 @@
 # PowerShell 7. No Python and no Arduino needed.
 param(
   [int]$Port = 8765,
-  [string]$Pages = 'https://joop0810.github.io/TamaDigi/web',
+  [string]$Pages = 'https://jaredbt.github.io/TamaDigi/web',
   [switch]$NoDownload,
   [switch]$NoBrowser
 )

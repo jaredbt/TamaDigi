@@ -175,22 +175,22 @@ The finished packs are already in `web/sprites-ver1.pak` … `ver5.pak`. You onl
 
 ## Installation
 
-This fork has no hosted installer of its own yet: GitHub Pages isn't set up for it, and `web/editions.json`, `web/index.html`, `web/installer.js` and `tools/local_installer.ps1` still point at joop0810's site. Until that changes, build it locally (option B). Options A and A2 install **joop0810's** TamaDigi 1.0.0, which today plays the same as this fork.
+### Option A: web installer (recommended, nothing to install)
 
-### Option A: joop0810's web installer (nothing to install)
-
-1. Open **https://joop0810.github.io/TamaDigi/web/** in **Chrome or Edge** (Firefox and Safari cannot do Web Serial).
+1. Open **https://jaredbt.github.io/TamaDigi/web/** in **Chrome or Edge** (Firefox and Safari cannot do Web Serial).
 2. Plug the board in over USB-C, click **Install firmware** and choose the port.
 3. Further down, send the **version packs** (sprites) to the SD card: Ver.1–Ver.5, one at a time or all of them.
 4. Done. To change the language on the device: tap the name → SETTINGS → tap the language row (until it shows the one you want).
 
-To host this fork's own installer: replace `joop0810` with `jaredbt` in the files above, choose "GitHub Actions" under **Settings → Pages → Source**, and push to `main`. The workflow compiles the firmware in the cloud and publishes the installer.
+Every push to `main` rebuilds it: the Pages workflow compiles the firmware in the cloud and publishes the installer. The page offers "Current Pages build" (the latest `main`) plus any GitHub Releases; this fork has none yet.
+
+**Your own fork of this fork:** replace `jaredbt` with your GitHub name in `web/editions.json`, `web/index.html`, `web/installer.js` and `tools/local_installer.ps1`, choose "GitHub Actions" under **Settings → Pages → Source**, and push to `main`.
 
 ### Option A2: `start.bat` (Windows, local)
 
 Double-click **`start.bat`** in the TamaDigi folder. The script
 
-- downloads the most recently built firmware from the Pages site (joop0810's by default; pass `-Pages <url>` to use another), or
+- downloads the most recently built firmware from this fork's Pages site (pass `-Pages <url>` to use another), or
 - takes it from **`tamadigi-firmware.zip`** if there is no Pages site. You get that file under **GitHub → Actions → latest run → Artifacts → tamadigi-firmware**. Leave it in your Downloads folder or put it next to `start.bat`.
 - Then it starts a small local server and opens the installer at `http://localhost:8765/web/` in Chrome or Edge.
 

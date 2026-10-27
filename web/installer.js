@@ -1,6 +1,6 @@
 import {
   verifyBackup, describeBackup, sendBackup, saveSummary, backupFileName,
-} from './savefile.js?v=46404cdccf162854';
+} from './savefile.js?v=1d2637d0211815b5';
 import { parsePak, verifyPak, packIsCurrent, probeSum, installFile } from './packs.js?v=2d4d719f12e1ccb6';
 
 const byId = (id) => document.getElementById(id);
@@ -230,7 +230,7 @@ async function loadEditions() {
     version: normalizeVersion(currentManifest.version) || 'unknown',
     description: currentConfig.description || 'The build currently hosted by this GitHub Pages site.',
     notes: currentConfig.notes || 'This build has not been published as an immutable GitHub Release yet.',
-    releaseUrl: `https://github.com/${config.repository || 'joop0810/TamaDigi'}/releases`,
+    releaseUrl: `https://github.com/${config.repository || 'jaredbt/TamaDigi'}/releases`,
   };
 
   let released = [];
