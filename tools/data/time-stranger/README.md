@@ -2,7 +2,7 @@
 
 Reference data from *Digimon Story: Time Stranger* for the planned roster rework
 (see `docs/HANDOFF.md`). Nothing in the firmware reads these files yet; the data
-pipeline will.
+pipeline (`tools/gen_ts_data.py`) turns them into `ts_dex.h` and `ts_skills.h`.
 
 | File | What it is | Source |
 |---|---|---|
@@ -14,6 +14,7 @@ pipeline will.
 | `skills.json` | Every skill (181 attachment, 40 personality, 613 special: element, damage type, SP cost, accuracy, crit rate, power, description) and each Digimon's special skills and attachment skills learned by level | the game's data, read from Grindosaur's skills page and each Digimon's page, 2026-10-28 (checked by hash; names in `stats.tsv` order) |
 | `roster_audit.py` | What the data pipeline has to deal with: stages, kept and dropped evolutions, reachability, training and storage limits, bosses, display names, public art | this project |
 | `unlock_check.py` | When an untrained Digimon could first take each evolution under Approach B | this project |
+| `../../gen_ts_data.py` | The data pipeline: writes `ts_dex.h` and `ts_skills.h` from these files under the design table's rules, after asserting them (format: `docs/ts-data-format.md`) | this project |
 
 ## `stats.tsv`
 

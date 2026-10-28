@@ -211,6 +211,10 @@ From the design table (each row has the detail):
   `vite` with `DSTS_MODELS=tools/prerender/models`, `playwright-core` + Google
   Chrome, Blender only for the abandoned render.py path.
 - `tools/data/time-stranger/`: stats and evolution requirements (see its README).
+- `tools/gen_ts_data.py`: the Time Stranger data pipeline. Applies the design table to
+  `tools/data/time-stranger/`, asserts its counts and rules, and writes `ts_dex.h` and
+  `ts_skills.h` (not included by the firmware yet; `--check` fails if they are stale).
+  Format, and how the open cases were resolved: `docs/ts-data-format.md`.
 - Emulator: `EMU_EPOCH=<unix secs>` sets the start time (`tools/emu/host_impl.cpp`).
 - The full test suite (`tools/emu/tests/run.sh`) needs `arduino-cli` with the ESP32
   core and the `esp-emu` native emulator; neither is installed on this machine yet,
