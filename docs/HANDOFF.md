@@ -45,7 +45,7 @@ credits all four authors.
   decision and `roster_audit.py` behind the pipeline decisions). A review copy of
   the skills ("TamaDigi: Time Stranger skills") is in the owner's Google Drive.
 - **Every design and data decision for v1 is made** (2026-10-28): the design
-  table below. Only presentation details are left (see "Still open").
+  table below. What is left is presentation and balance tuning (see "Still open").
 
 ### Next, in order
 
