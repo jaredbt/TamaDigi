@@ -44,9 +44,10 @@ credits all four authors.
 
 ### Next, in order
 
-1. Settle the "without versions" questions below (eggs, wild pools, boss ladders,
-   badges -> Agent Rank). They decide the data model and the save layout, so they
-   come before code.
+1. Finish the versionless design (paused 2026-10-27; see "Versionless design:
+   where it paused" below). Most of it is decided; two questions and the boss
+   picks remain. It decides the data model and the save layout, so it comes
+   before code.
 2. Build the data pipeline: replace the 87-Digimon roster in `tools/digimon_data.py`
    with the Time Stranger roster and Approach B stats, and regenerate.
 3. Before the board arrives: pull the hardware bring-up notes back from upstream's
@@ -79,10 +80,12 @@ stale test comments saying Ver.3 has no Baby I art (it has, now).
 | One partner | **No teams, anywhere** (Q4a): no player party and no boss teams. One partner Digimon at a time, V-Pet style; every battle is 1-on-1 |
 | Eggs | After the first, each egg hatches a random In-Training I (7 in the roster), leaning toward lines with Digimon you have not raised yet; the colour-variant roll stays; the empty rare/legendary egg tiers go (Q2) |
 | Wild Digimon | From the whole roster (no Armor/Hybrid), by the stage your partner's level has reached: 65% that stage, 25% one behind, 10% one ahead at your level. Mega+ appears only for a Mega+ partner; for a Mega the "ahead" roll stays Mega (Q3, Q3b, Q3c) |
-| Boss ladder | One ladder of 13 single Digimon, unlocked in order: 8 area bosses (1-2 Rookie, 3-5 Champion, 6-8 Ultimate; each gives a badge), 4 elites (Mega), a champion (Mega+). Levels stretched over the 72-hour life (Q4, Q4a) |
+| Boss ladder | One ladder of 13 single Digimon, unlocked in order: 8 area bosses (each gives a badge), 4 elites (Mega), a champion (Mega+). Levels (Q6b): area 15, 22, 32, 40, 47, 54, 58, 60; elites 64, 66, 68, 70; champion 80. The bosses come from Time Stranger's story bosses (`tools/data/time-stranger/bosses.tsv`); the picks are still open (Q4, Q4a, Q10) |
+| Hard mode | Easy: your partner fights at its real level. Hard: if your partner is above the boss's level it is scaled down to it, never up, so waiting cannot win a Hard badge. Hard badges are separate and optional; Agent Rank counts Easy badges only; Hard gives about double the training reward (Q6, Q6b) |
 | Partner leaves | After a farewell, runaway or release the partner leaves for good: marked "raised" in the Digidex and added to a short partner history on the tamer card (name, final form, age, how it ended); then the next egg (Q8) |
 | v1.0.0 saves | **Not carried forward** (Q9). The new firmware recognises a v1.0.0 save, says so, and starts a new game (the installer backs the save up first). `upgrade_test`'s frozen v1.0.0 save then checks it is detected and replaced cleanly, never misread |
 | Digidex | A stage picker (In-Training I ... Mega+, with counts) replaces the version picker; inside, the existing 16-per-page grid in Time Stranger dex order (Q5, Q5b). Smooth scrolling: revisit later |
+| Digidex states | Unseen (silhouette, "???"), seen (met in the wild or a boss fight: name and sprite), scanned (stats and its evolution requirements: which forms digivolve into it and the stats/rank each route needs), raised (was your partner: everything plus your record). When choosing an evolution, a branch into a scanned or raised Digimon shows its requirements, any other shows "???" (Q7, Q7b). How scanning happens is open (Q7c) |
 | Stages | Mega+ is a stage after Mega, from 72 h (Q11). Armor, Hybrid and Jogress left out of v1 |
 | Stat mapping (Q12a/b) | HP, ATK, DEF, SPD direct; INT -> Special Attack; SPI -> Special Defense; **SP dropped** |
 | Stat formula (Q12e) | **Approach B**: rebuild TamaDigi's formula on Time Stranger growth. Each species grows linearly from its TS level-1 to its TS max (level 99) stats (`tools/data/time-stranger/stats.tsv`, 475 forms incl. personality), times one scale factor (~0.1), plus training. TamaDigi level = TS level, one per hour. Requirements convert with the same factor; no per-stage scaling. Battle balance must be redone |
@@ -183,10 +186,30 @@ is a candidate).
 
 ## Still open
 
-- Versionless design, in progress: boss levels and Hard mode in a 1-on-1 world;
-  what scanning does without a party or box (Digidex states unseen / seen /
-  scanned / raised, scans revealing evolution requirements); which Digimon the
-  13 bosses are.
+### Versionless design: where it paused (2026-10-27)
+
+Asked, not yet answered:
+
+- **Q10a, the two Rookie ladder slots.** Time Stranger has no Rookie bosses.
+  A: fill them with Champion story bosses at low levels (e.g. Kuwagamon at 15,
+  Raremon at 22), making the area bosses 5 Champions + 3 Ultimates
+  (recommended: every boss stays a real Time Stranger boss, rank gates unchanged).
+  B: two non-boss Rookies from the roster. C: pick any 13 and fit the levels.
+- **Q7c, how scanning happens.** TamaDigi's scan chips are TamaPoke's Poke Balls:
+  an item used on a weakened wild Digimon, its tier (Scan/Super/Hyper/Master)
+  setting the odds. A: keep the chips. B: Time Stranger style, no item, each wild
+  win has a chance to scan (recommended; the bag then holds only recovery disks
+  and stat chips).
+- **Q10, the 13 bosses.** The user picks from `tools/data/time-stranger/bosses.tsv`
+  (Game8's story-boss list matched to our roster's stages). Then: check the
+  model viewer has a model for each pick, and set each one's level in its slot.
+
+Pool by stage: Champion 8 (Kuwagamon, Raremon, Cyclonemon, Greymon (Blue),
+Fugamon, Ogremon, Hyogamon, Witchmon), Ultimate 7, Mega 16, Mega+ 4 (Titamon +
+SkullBaluchimon, Lucemon SM, Beelzemon BM, Belphemon RM), plus 2 Mega+ DLC
+Omnimons. Ladder slots: 2 Rookie, 3 Champion, 3 Ultimate, 4 Mega, 1 Mega+.
+
+### Other open items
 
 - How evolution is offered, and how the 72-hour farewell is offered (revisit later).
 - Battle timing (above).
