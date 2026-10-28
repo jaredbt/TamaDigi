@@ -26,7 +26,9 @@ the old ones during the cutover.
   `tsDex` keeps the game's own number (1-475) for display.
 - **Skill id** (16-bit): 0 = none; 1-44 are the learnable skills; 45-652 are the
   608 signature skills, in `skills.json` row order. Skill ids are positional and
-  saved in partner data, so new skills are appended and existing ids never change.
+  saved in partner data, so existing ids never change and new skills are
+  appended at the end. Restoring a dropped signature in its row-order place
+  would shift every later id, so it too goes at the end.
 
 ## `ts_dex.h`
 
@@ -56,21 +58,23 @@ de-digivolution is any route read backwards (`to` -> `from`).
 | Field | Meaning |
 |---|---|
 | `from`, `to` | Dex ids, both raisable |
-| `min[6]` | Raw stat minimums by `TS_STAT_*`; 0 = none. HP minimums are kept even when they exceed the source's level-99 HP (66 routes): the de-digivolve HP boost (Q16) is what reaches them |
+| `min[6]` | Raw stat minimums by `TS_STAT_*`; 0 = none. HP minimums are kept even when they exceed the source's level-99 HP (65 kept routes; the summary prints the count): the de-digivolve HP boost (Q16) is what reaches them |
 | `minLevel` | The SP minimum turned into a level: the first level (1-99) at which the source's untrained SP, growing linearly from level 1 to level 99, reaches the minimum. 0 = no SP minimum |
 | `rank` | Agent Rank needed. 0 for every route into a stage below Ultimate. The game's value is kept for routes into Ultimate or later: 5 into Ultimate, 7 into Mega, 8 into Mega+ |
 
 Kept routes are those between two raisable forms that need no Jogress, item,
-Agent Skills or Talent. Setting `JOGRESS_SHIPPED = True` in the generator makes
-the fusion-only forms raisable and restores the routes among them, such as
-Omnimon (X Antibody) -> Omnimon.
+Agent Skills or Talent. `JOGRESS_SHIPPED` in the generator makes the
+fusion-only forms raisable and restores the routes among them, such as
+Omnimon (X Antibody) -> Omnimon. Setting it is not enough on its own: the
+Jogress work must also add the Jogress pairs to `validate()`'s reachability
+check and update its expected counts (419 / 33 / 17).
 
 ### `TsJogress TS_JOGRESS_TBL[TS_JOGRESS_COUNT]` (17 pairs, data only)
 
 | Field | Meaning |
 |---|---|
 | `a`, `b`, `to` | The two partners and the result, as dex ids. Each pair is listed once; the game's personality requirement is dropped |
-| `min[6]`, `rank` | The game's stat minimums and Agent Rank (8, or 7 for Millenniummon and Mastemon) |
+| `min[6]`, `rank` | The game's stat minimums and Agent Rank: 5 for the four Ultimate fusions (Shakkoumon, Silphymon, Dinobeemon, Paildramon, which are also reached by ordinary routes), 7 for Millenniummon and Mastemon, 8 for the rest |
 | `partnersRaisable` | 0 when a partner can never be a partner in v1. This holds only for EmperorGreymon + MagnaGarurumon -> Susanomon (both Hybrid) |
 
 ### `TsBoss TS_BOSS_TBL[13]`

@@ -6,7 +6,8 @@
 // Field meanings: docs/ts-data-format.md.
 
 // Skill IDs are positional and saved: 0 = none, 1-44 the learnable skills, then the
-// signature skills in skills.json row order. Append only.
+// signature skills in skills.json row order. Append only: a skill added later
+// goes at the end, never into its row-order place.
 #define TS_SKILL_COUNT 653   // including 0
 #define TS_LEARNABLE_COUNT 44
 #define TS_SKILL_FIRST_SIGNATURE 45
