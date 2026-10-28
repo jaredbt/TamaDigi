@@ -74,8 +74,13 @@ stale test comments saying Ver.3 has no Baby I art (it has, now).
 | Level | Stays as age (Q4); no XP-based level |
 | Bond | Sets how much training carries over on (de-)digivolution (Q6) |
 | Battles | Kept (Q3). Wins earn XP; training mini-games cost XP and nothing else; Energy is only for battles. XP balance is player-wide (Q10) |
-| Agent Rank | Boss-badge count mapped to ranks 1-10, player-wide (Q7). Revisit for balance: little to do at rank 10 once stats cap |
-| Fallback | Every form keeps at least one evolution reachable without battling (Q9) |
+| Agent Rank | Player-wide, from the boss ladder: rank = 1 + area badges held (ranks 2-9 from the 8 area bosses), rank 10 for beating the champion (Q7, Q4). Evolution checks ignore Time Stranger's Agent Rank requirement up to Champion and apply it from Champion->Ultimate (rank 5), Ultimate->Mega (7) and Mega->Mega+ (8) (Q1). Revisit for balance: little to do at rank 10 once stats cap |
+| Fallback | **No battling needed up to Champion** (Q9, amended by Q1b): every In-Training and Rookie form keeps an evolution that needs no battles. From Ultimate on, the rank gates make boss battles part of the way up |
+| One partner | **No teams, anywhere** (Q4a): no player party and no boss teams. One partner Digimon at a time, V-Pet style; every battle is 1-on-1 |
+| Eggs | After the first, each egg hatches a random In-Training I (7 in the roster), leaning toward lines with Digimon you have not raised yet; the colour-variant roll stays; the empty rare/legendary egg tiers go (Q2) |
+| Wild Digimon | From the whole roster (no Armor/Hybrid), by the stage your partner's level has reached: 65% that stage, 25% one behind, 10% one ahead at your level. Mega+ appears only for a Mega+ partner; for a Mega the "ahead" roll stays Mega (Q3, Q3b, Q3c) |
+| Boss ladder | One ladder of 13 single Digimon, unlocked in order: 8 area bosses (1-2 Rookie, 3-5 Champion, 6-8 Ultimate; each gives a badge), 4 elites (Mega), a champion (Mega+). Levels stretched over the 72-hour life (Q4, Q4a) |
+| Digidex | A stage picker (In-Training I ... Mega+, with counts) replaces the version picker; inside, the existing 16-per-page grid in Time Stranger dex order (Q5, Q5b). Smooth scrolling: revisit later |
 | Stages | Mega+ is a stage after Mega, from 72 h (Q11). Armor, Hybrid and Jogress left out of v1 |
 | Stat mapping (Q12a/b) | HP, ATK, DEF, SPD direct; INT -> Special Attack; SPI -> Special Defense; **SP dropped** |
 | Stat formula (Q12e) | **Approach B**: rebuild TamaDigi's formula on Time Stranger growth. Each species grows linearly from its TS level-1 to its TS max (level 99) stats (`tools/data/time-stranger/stats.tsv`, 475 forms incl. personality), times one scale factor (~0.1), plus training. TamaDigi level = TS level, one per hour. Requirements convert with the same factor; no per-stage scaling. Battle balance must be redone |
@@ -174,7 +179,11 @@ is a candidate).
 
 ## Still open
 
+- Versionless design, in progress: Hard mode in a 1-on-1 world; what scanning does
+  without a party or box; where a partner goes after a farewell, runaway or
+  release; what happens to v1.0.0 saves' party and box; which Digimon the 13
+  bosses are.
+
 - How evolution is offered, and how the 72-hour farewell is offered (revisit later).
-- Without versions: later eggs, wild-encounter pools, boss ladders, badges -> Agent Rank.
 - Battle timing (above).
 - Public-build art.
