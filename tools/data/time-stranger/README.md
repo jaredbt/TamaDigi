@@ -11,6 +11,7 @@ pipeline will.
 | `bosses.tsv` | The game's boss fights in story order, matched to the roster's names and stages (the ladder itself uses anime villains; these could return as optional fights) | [Game8's boss list](https://game8.co/games/Digimon-Story-Time-Stranger/archives/553558), 2026-10-27; stages from `stats.tsv` |
 | `attributes.tsv` | Each Digimon's dex number (the game's Field Guide order, which `stats.tsv` follows row for row) and attribute | the game's data, read from Game8's Digimon list, 2026-10-28 |
 | `resistances.tsv` | Each Digimon's damage multiplier against the game's 11 elements (Fire, Water, Plant, Ice, Electricity, Earth, Steel, Wind, Light, Dark, Null): 0, 0.5, 1, 1.5 or 2 | the game's data, read from Grindosaur's resistance table, 2026-10-28 (copied with a checksum; names in the same order as `stats.tsv`) |
+| `skills.json` | Every skill (181 attachment, 40 personality, 613 special: element, damage type, SP cost, accuracy, crit rate, power, description) and each Digimon's special skills and attachment skills learned by level | the game's data, read from Grindosaur's skills page and each Digimon's page, 2026-10-28 (checked by hash; names in `stats.tsv` order) |
 | `roster_audit.py` | What the data pipeline has to deal with: stages, kept and dropped evolutions, reachability, training and storage limits, bosses, display names, public art | this project |
 | `unlock_check.py` | When an untrained Digimon could first take each evolution under Approach B | this project |
 
@@ -58,3 +59,12 @@ It applies the decided filters (no Armor or Hybrid; no evolution that needs
 Jogress, an item, Agent Skills or Talent) and prints one section per check.
 Nothing reads its output; it is the evidence for the pipeline's decisions in
 `docs/HANDOFF.md`.
+
+## `skills.json`
+
+`skills` holds the three tables as Grindosaur shows them (`attachment`,
+`personality`, `special`). `digimon` lists the 475 forms in `stats.tsv` order;
+each has `special`, row numbers into `skills.special`, and `learn`, pairs of a
+row number into `skills.attachment` and the level it is learned at. Special
+skill names repeat with different stats (Acid Bubbles is both a Fire and a
+Water attack), so those rows were matched by Grindosaur's skill ID, not by name.
