@@ -34,6 +34,7 @@ TRAINABLE = ['ATK', 'DEF', 'INT', 'SPI', 'SPD']            # HP grows with age o
 SCALE = 0.1                                                # TS stat -> TamaDigi stat (Q12e)
 CAP = 255                                                  # training cap per stat (Q12d)
 FAREWELL = 73
+HP_BOOST, HP_BOOST_CAP = 0.1, 2.0                          # HP x1.1 per de-digivolve, at most x2.0 (Q16)
 LEFT_OUT = {'Armor', 'Hybrid'}
 STAGES = ['In-Training I', 'In-Training II', 'Rookie', 'Champion', 'Ultimate', 'Mega', 'Mega +']
 BOSSES = [('DemiDevimon', 'Rookie'), ('Ogremon', 'Champion'), ('Unimon', 'Champion'),
@@ -148,7 +149,13 @@ def main():
         t = max([(cnd[k] - at(a, k, 99)) * SCALE for k in TRAINABLE if k in cnd] + [0])
         need.append((t, a['name'], b['name']))
     need.sort(reverse=True)
-    print(f'  HP never reached by level 99: {len(hp99)} {hp99[:6]}')
+    print(f'  HP never reached by level 99 without de-digivolving: {len(hp99)} {hp99[:6]}')
+    loops = Counter()
+    for a, b, cnd in edges:
+        if 'HP' in cnd and at(a, 'HP', 99) < cnd['HP']:
+            n = next((k for k in range(1, 11) if at(a, 'HP', 99) * (1 + HP_BOOST * k) >= cnd['HP']), None)
+            loops[n if n and 1 + HP_BOOST * n <= HP_BOOST_CAP else 'over the cap'] += 1
+    print(f'  de-digivolve loops they need (x{1 + HP_BOOST:.1f} each, cap x{HP_BOOST_CAP:.1f}): {dict(loops)}')
     print(f'  HP reached only after level {FAREWELL}: {len(hp73)} {hp73[:6]}')
     print(f'  over the cap: {sum(1 for t, *_ in need if t > CAP)}; hardest: '
           + ', '.join(f'{x} -> {y} {t:.0f}' for t, x, y in need[:3]))
