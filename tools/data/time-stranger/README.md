@@ -10,6 +10,7 @@ pipeline will.
 | `evolutions.json` | Evolution requirements of 475 forms | [MelbearX123/digivolve-target](https://github.com/MelbearX123/digivolve-target) `server/data/digimon_evolutions_clean.json` at commit `e31958f`, MIT (`evolutions.LICENSE`) |
 | `bosses.tsv` | The game's boss fights in story order, matched to the roster's names and stages (the ladder itself uses anime villains; these could return as optional fights) | [Game8's boss list](https://game8.co/games/Digimon-Story-Time-Stranger/archives/553558), 2026-10-27; stages from `stats.tsv` |
 | `attributes.tsv` | Each Digimon's dex number (the game's Field Guide order, which `stats.tsv` follows row for row) and attribute | the game's data, read from Game8's Digimon list, 2026-10-28 |
+| `resistances.tsv` | Each Digimon's damage multiplier against the game's 11 elements (Fire, Water, Plant, Ice, Electricity, Earth, Steel, Wind, Light, Dark, Null): 0, 0.5, 1, 1.5 or 2 | the game's data, read from Grindosaur's resistance table, 2026-10-28 (copied with a checksum; names in the same order as `stats.tsv`) |
 | `roster_audit.py` | What the data pipeline has to deal with: stages, kept and dropped evolutions, reachability, training and storage limits, bosses, display names, public art | this project |
 | `unlock_check.py` | When an untrained Digimon could first take each evolution under Approach B | this project |
 
