@@ -36,6 +36,8 @@ CAP = 255                                                  # training cap per st
 FAREWELL = 73
 HP_BOOST, HP_BOOST_CAP = 0.1, 2.0                          # HP x1.1 per de-digivolve, at most x2.0 (Q16)
 LEFT_OUT = {'Armor', 'Hybrid'}
+ON_ICE = {'Aegiomon', 'Aegiochusmon', 'Aegiochusmon: Green', 'Aegiochusmon: Dark',
+          'Aegiochusmon: Blue', 'Aegiochusmon: Holy'}            # out of v1 entirely (2026-10-28)
 STAGES = ['In-Training I', 'In-Training II', 'Rookie', 'Champion', 'Ultimate', 'Mega', 'Mega +']
 BOSSES = [('DemiDevimon', 'Rookie'), ('Ogremon', 'Champion'), ('Unimon', 'Champion'),
           ('Devimon', 'Champion'), ('Etemon', 'Ultimate'), ('Myotismon', 'Ultimate'),
@@ -85,8 +87,8 @@ def component(starts, adj):
 
 def main():
     forms, evo = load()
-    kept = {k: f for k, f in forms.items() if f['stage'] not in LEFT_OUT}
-    print(f'{len(forms)} forms, {len(kept)} kept (Armor and Hybrid left out)')
+    kept = {k: f for k, f in forms.items() if f['stage'] not in LEFT_OUT and f['name'] not in ON_ICE}
+    print(f'{len(forms)} forms, {len(kept)} kept (Armor, Hybrid and the Aegiomon line left out)')
     c = Counter(f['stage'] for f in kept.values())
     print('  per stage: ' + ', '.join(f'{s} {c[s]}' for s in STAGES))
     print('  attributes: ' + ', '.join(f'{a} {n}' for a, n in Counter(f['attr'] for f in kept.values()).most_common()))
