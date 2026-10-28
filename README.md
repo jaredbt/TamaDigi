@@ -4,7 +4,7 @@
 
 A custom fork of **TamaDigi**, the **Digimon V-Pet** for the **Waveshare ESP32-S3-Touch-AMOLED-1.75** (a round 466×466 AMOLED with touch, battery and speaker). The goal is to rebuild it around the roster and evolution tree of ***Digimon Story: Time Stranger***.
 
-> **Status (October 2026):** the firmware still plays exactly like TamaDigi 1.0.0: 87 Digimon from the V-Pet versions Ver.1–5, described under [The current firmware](#the-current-firmware-tamadigi-100). The Time Stranger rework is at the design, art and tooling stage, and no gameplay change has been made yet. The board (the -G version) hasn't arrived, so everything so far has run in the emulator only.
+> **Status (October 2026):** the firmware still plays exactly like TamaDigi 1.0.0: 87 Digimon from the V-Pet versions Ver.1–5, described under [The current firmware](#the-current-firmware-tamadigi-100). The Time Stranger rework is fully designed and its data is collected; building it is next, and no gameplay change has been made yet. The board (the -G version) hasn't arrived, so everything so far has run in the emulator only.
 >
 > **Non-commercial fan project.** The code is MIT licensed. Digimon, all names and all game art are © Bandai / Bandai Namco / Toei Animation. See [CREDITS.md](CREDITS.md).
 
@@ -36,21 +36,22 @@ joop0810 published TamaDigi as a single commit with no history. This repo puts t
 - **Emulator start time:** `EMU_EPOCH=<unix seconds>` sets the virtual clock, for testing day and night.
 - **A baseline release, [v1.0.0](https://github.com/jaredbt/TamaDigi/releases/tag/v1.0.0):** joop0810's game as it was, so there is a known-good firmware to flash first and to roll back to. This fork's installer is live at https://jaredbt.github.io/TamaDigi/web/.
 - **Tests that pass:** the firmware tests had failed since the Digimon conversion (a save-migration test still used Pokémon dex numbers). They pass now, and the old-save upgrade test the conversion deleted is back, with a frozen v1.0.0 save that later builds must keep loading.
-- **The Time Stranger data** the rework needs: every Digimon's stats and evolution requirements (`tools/data/time-stranger/`).
+- **The Time Stranger data** the rework needs (`tools/data/time-stranger/`): every Digimon's stats, evolution requirements, attribute, elemental weaknesses and skills, plus an audit of what the conversion has to handle.
 
 > **Private builds only.** The models, and every frame rendered from them, are Bandai Namco's assets. `tools/prerender/.gitignore` keeps them out of the repo, and they must never be committed or published. A public build would need other art.
 
 ### Planned
 
-The decisions so far, all recorded in [docs/HANDOFF.md](docs/HANDOFF.md):
+The decisions, all recorded in [docs/HANDOFF.md](docs/HANDOFF.md):
 
-- **One roster**: Time Stranger's Digimon (those with art), with no V-Pet versions. The first egg hatches a random In-Training I.
+- **One roster, one partner**: Time Stranger's Digimon with no V-Pet versions, raised one at a time. There are no teams anywhere, so every battle is 1-on-1. The first egg hatches a random In-Training I. Armor, Hybrid and a few forms that need Time Stranger-only mechanics can be met in the wild but not raised.
 - **Time Stranger evolution**: you choose among the branches whose conditions are met. The stage timers become minimums, evolution is always offered and never forced, and de-digivolution is allowed. A Mega+ stage follows Mega.
-- **Stats from Time Stranger**: each Digimon grows from its Time Stranger level-1 stats to its maximum ones, one level per hour, plus training. HP grows with age only. Training is how you reach the late evolutions: the IV scales each session's gain (70% to 130%) instead of capping it, so no evolution is out of reach because of a bad IV.
-- **Battles stay central**: wins earn the XP that training costs, boss badges set an Agent Rank, and every Digimon keeps at least one evolution that needs no battles.
-- **Firmware work**: more frames per action, larger sprite files, the new sad and special-attack slots, the attack animation chosen by move type, longer battle animation windows, and the new backdrop. socquique's later battery and drawing improvements should be ported too.
+- **Stats from Time Stranger**: each Digimon grows from its Time Stranger level-1 stats to its level-99 ones, one level per hour, plus training. HP grows with age only, and each de-digivolution adds 10% to it (up to double), which is how the hardest evolutions are reached. Training bridges to the late evolutions: the IV scales each session's gain (70% to 130%), so no evolution is out of reach because of a bad IV.
+- **Battles**: Time Stranger's attributes and its 11 elements, with each Digimon's own weaknesses. 44 learnable skills plus every Digimon's signature skills, simplified for 1-on-1, and six status effects.
+- **Progress**: a 13-boss ladder of villains from the first two anime seasons (DemiDevimon up to Apocalymon) sets an Agent Rank, with an optional Hard mode; no battling is needed up to Champion. A Digidex by stage fills in as you see, scan (three wild wins or one boss win) and raise Digimon. Fusion (Jogress) with a past partner or a defeated wild Digimon is a stretch goal.
+- **Firmware work**: more frames per action, larger sprite files, the new sad and special-attack slots, the attack animation chosen by skill type, longer battle animation windows, and the new backdrop. socquique's later battery and drawing improvements should be ported too.
 
-Still open: how evolution and the 72-hour farewell are offered, eggs and wild Digimon without versions, battle timing, and art for a public build.
+Still open: how evolution and the 72-hour farewell are offered, battle timing and balance, and art for a public build.
 
 ## The current firmware (TamaDigi 1.0.0)
 

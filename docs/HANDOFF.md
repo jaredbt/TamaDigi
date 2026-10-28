@@ -1,6 +1,6 @@
 # Handoff: custom TamaDigi (Time Stranger roster)
 
-Status as of 2026-10-27. Supersedes the original notes on the `claude/handoff`
+Status as of 2026-10-28. Supersedes the original notes on the `claude/handoff`
 branch of `jaredbt/Esp-J` (archived).
 
 ## What this is
@@ -40,18 +40,25 @@ credits all four authors.
   the first two clash with existing projects, the last reads as joop0810's next
   version). The README calls it "TamaDigi: Time Stranger fork".
 - **Time Stranger data is in the repo**: `tools/data/time-stranger/` (stats,
-  evolution requirements, and the `unlock_check.py` behind the training decision).
+  evolution requirements, attributes, elemental resistances, every skill and each
+  Digimon's skills, the story bosses, `unlock_check.py` behind the training
+  decision and `roster_audit.py` behind the pipeline decisions). A review copy of
+  the skills ("TamaDigi: Time Stranger skills") is in the owner's Google Drive.
+- **Every design and data decision for v1 is made** (2026-10-28): the design
+  table below. Only presentation details are left (see "Still open").
 
 ### Next, in order
 
-1. The versionless design is decided (2026-10-28; the design table above).
-   Left for later: how evolution and the farewell are offered (see "Still open").
-2. Build the data pipeline: replace the 87-Digimon roster in `tools/digimon_data.py`
-   with the Time Stranger roster and Approach B stats, and regenerate.
-3. Before the board arrives: pull the hardware bring-up notes back from upstream's
+1. Build the data pipeline and the firmware cutover **on a branch with a PR**
+   (CI is the only test run, and `main` deploys Pages): replace the 87-Digimon
+   roster in `tools/digimon_data.py` with the Time Stranger data under the design
+   table's rules, regenerate, and make the firmware changes listed below. The PR
+   must include v1.0.0 save detection and the rewritten `upgrade_test` section.
+   Jogress is a stretch goal.
+2. Before the board arrives: pull the hardware bring-up notes back from upstream's
    CLAUDE.md (`git show f7f02f8:CLAUDE.md`: "Hardware bring-up order", "First
    bring-up, actually done", "Found by hand on the board, not by any test").
-4. After the rework: rebuild the README's "game manual" of exact numbers
+3. After the rework: rebuild the README's "game manual" of exact numbers
    (upstream's is at `git show f7f02f8:README.md`).
 
 ### What joop0810's conversion left out
@@ -67,7 +74,7 @@ stale test comments saying Ver.3 has no Baby I art (it has, now).
 
 | # | Decision |
 |---|---|
-| Roster | Time Stranger's (~448 forms), limited to Digimon with art. **One single roster**: no "versions" (joop0810's term is dropped). The first egg hatches a random In-Training I; de-digivolution then makes every Digimon reachable in principle. Open: later eggs, wild-encounter pools and boss ladders without versions |
+| Roster | Time Stranger's, **one single roster**: no "versions" (joop0810's term is dropped). v1 has **469 forms** (all 475 except the Aegiomon line); 448 sit on the evolution tree, and Armor, Hybrid, the 12 wild-only forms and (until Jogress) the fusion-only forms can be met but not raised (see Stages, Wild-only Digimon, Jogress). A form with no art never hatches, evolves or appears (the existing `NO_ART` mechanism). The first egg hatches a random In-Training I; eggs, wild Digimon and the boss ladder are their own rows |
 | Evolution | Time Stranger style: choose among branches whose conditions are met. TamaDigi's stage timers (6/24/48/60/72 h) are **minimums**; evolution is offered, never forced ("keep form" re-offers next level) |
 | De-digivolve | Allowed (Q5): into any form that evolves into the current one, if it is in the Digidex. The earlier form then waits out its stage again (Q8) |
 | Level | Stays as age (Q4); no XP-based level |
@@ -82,19 +89,19 @@ stale test comments saying Ver.3 has no Baby I art (it has, now).
 | Hard mode | Easy: your partner fights at its real level. Hard: if your partner is above the boss's level it is scaled down to it, never up, so waiting cannot win a Hard badge. Hard badges are separate and optional; Agent Rank counts Easy badges only; Hard gives about double the training reward (Q6, Q6b) |
 | Partner leaves | After a farewell, runaway or release the partner leaves for good: marked "raised" in the Digidex and added to a short partner history on the tamer card (name, final form, age, how it ended); then the next egg (Q8) |
 | v1.0.0 saves | **Not carried forward** (Q9). The new firmware recognises a v1.0.0 save, says so, and starts a new game (the installer backs the save up first). `upgrade_test`'s frozen v1.0.0 save then checks it is detected and replaced cleanly, never misread |
-| Digidex | A stage picker (In-Training I ... Mega+, with counts) replaces the version picker; inside, the existing 16-per-page grid in Time Stranger dex order (Q5, Q5b). Smooth scrolling: revisit later |
-| Digidex states | Unseen (silhouette, "???"), seen (met in the wild or a boss fight: name and sprite), scanned (stats and its evolution requirements: which forms digivolve into it and the stats/rank each route needs), raised (was your partner: everything plus your record). When choosing an evolution, a branch into a scanned or raised Digimon shows its requirements, any other shows "???" (Q7, Q7b). Scanning (Q7c): no scan chips; each wild win against a Digimon adds a third of a scan, so three wild wins mark it scanned; beating a boss scans it fully. The Digidex shows partial progress ("Scan 1/3", "2/3") (Q7d). The bag keeps only recovery disks and stat chips |
+| Digidex | A stage picker (In-Training I ... Mega+, then Armor and Hybrid, with counts) replaces the version picker; inside, the existing 16-per-page grid in Time Stranger dex order (Q5, Q5b). Smooth scrolling: revisit later |
+| Digidex states | Unseen (silhouette, "???"), seen (met in the wild or a boss fight: name and sprite), scanned (stats and its evolution requirements: which forms digivolve into it and the stats/rank each route needs), raised (was your partner: everything plus your record). When choosing an evolution, a branch into a scanned or raised Digimon shows its requirements, any other shows "???" (Q7, Q7b). Scanning (Q7c): no scan chips; each wild win against a Digimon adds a third of a scan, so three wild wins mark it scanned; beating a boss scans it fully. The Digidex shows partial progress ("Scan 1/3", "2/3") (Q7d). The bag keeps recovery disks, stat chips and the ALL CURE item (it also clears Crystallization) |
 | Stages | Mega+ is a stage after Mega, from 72 h (Q11). Armor and Hybrid cannot be raised in v1 but are **wild-only** (2026-10-28), placed in wild encounters by stat tier: Champion tier for the 8 Digi-Egg Armor forms and Agunimon, Lobomon, Lanamon, BurningGreymon, Calmaramon, KendoGarurumon; Ultimate for Aldamon, Beowolfmon; Mega for Rapidmon (Armor), Magnamon, EmperorGreymon, MagnaGarurumon (and Detached). The Digidex stage picker gains Armor and Hybrid pages. **Aegiomon and its five Aegiochusmon forms are left out of v1 entirely** (2026-10-28): neither partners nor wild Digimon, so the v1 roster is 469 forms, 448 of them raisable in principle |
 | Elements (Q13, 2026-10-28) | **Time Stranger's own system**: 11 elements (Fire, Water, Plant, Ice, Electricity, Earth, Steel, Wind, Light, Dark, Null), and each Digimon takes 0, 0.5, 1, 1.5 or 2x damage from each (`tools/data/time-stranger/resistances.tsv`), on top of the Vaccine > Virus > Data > Vaccine triangle (Free, Unknown, No Data neutral; `attributes.tsv`). Replaces the one-element-per-Digimon chart |
 | Skills (Q14, 2026-10-28) | **Time Stranger's own skills**, and the game calls them skills, not moves. Each Digimon gets its special (signature) skills and the attachment skills it learns by level (`tools/data/time-stranger/skills.json`), converted to TamaDigi's battle format. SP costs go with the SP stat; personality skills (passives) are for later |
-| Skill learning (Q14b, 2026-10-28) | Four skill slots, as today. Becoming a form (by digivolving **or de-digivolving**) gives its special skills at once; each of its attachment skills unlocks **ceil(Time Stranger learn level / 5) hours later** (level 2 -> +1 h, 25 -> +5 h, 45 -> +9 h), because Time Stranger counts learn levels per form and TamaDigi's level is age (taken literally, MetalGreymon would get 5 skills the moment it evolves). Skills already in a slot are skipped. Learned skills carry over on evolution and de-digivolution, **special skills included**: any form can use any skill in its slots (an Agumon that was a Greymon keeps Mega Flame; it earned it). A free slot fills silently; a full set makes an offer (replace a slot or skip). **Dropped or skipped is gone**: no record of past skills; to get one back, de-digivolve into the form that has it (e.g. Greymon -> Agumon for Pepper Breath). Botamon -> WarGreymon at stage minimums: 14 offers over three days. Later: all-enemies/all-allies skills are weaker per target in Time Stranger and may need a boost in 1-on-1 battles |
+| Skill learning (Q14b, 2026-10-28) | Four skill slots, as today. Becoming a form (by digivolving **or de-digivolving**) gives its special skills at once; each of its attachment skills unlocks **ceil(Time Stranger learn level / 5) hours later** (level 2 -> +1 h, 25 -> +5 h, 45 -> +9 h), because Time Stranger counts learn levels per form and TamaDigi's level is age (taken literally, MetalGreymon would get 5 skills the moment it evolves). Skills already in a slot are skipped. Learned skills carry over on evolution and de-digivolution, **special skills included**: any form can use any skill in its slots (an Agumon that was a Greymon keeps Mega Flame; it earned it). A free slot fills silently; a full set makes an offer (replace a slot or skip). **Dropped or skipped is gone**: no record of past skills; to get one back, de-digivolve into the form that has it (e.g. Greymon -> Agumon for Pepper Breath). Botamon -> WarGreymon at stage minimums gave 14 offers over three days before the 44-skill merge (fewer now: other tiers of a known family are skipped). Targets: see Learnable and Signature skills |
 | Status effects (2026-10-28) | Keep it simple. **Injury** takes over the engine's Burn (Pokemon-style chip damage each turn and halved physical attack), caused by any element, so Burn's "Fire can't be burned" immunity goes. **Crystallization** takes over the engine's Freeze: no actions until it wears off (Freeze's per-turn thaw chance) or the ALL CURE item clears it; Freeze's "Water can't be frozen" immunity goes. **Deep Slumber** folds into Sleep and **Deadly Poison** into Poison. **Chaos** (11 skills) and **Instant Death** (7) are dropped as effects: those skills keep their damage, and Death Lure keeps its SPI drop. Paralysis, Confusion and Sleep map directly |
 | Learnable skills (2026-10-28) | Time Stranger's 181 attachment skills become **44**. (1) **One skill per I/II/III family**; its power comes from the partner's **level**, in the stage-timer bands: tier I below level 25, II at 25-60, III from 61. Level is age and never drops, so a de-digivolved partner keeps its power (Greymon -> Agumon: Wolkenapalm stays at 60). Learnset entries for another tier of a family already known are skipped. (2) **All-enemies families fold into their single-target twin** (Time Stranger has exactly one of each per element and physical/magic, e.g. Ignition Flare into Wolkenapalm), using the single-target powers: **22 attack skills**, one per element and physical/magic. (3) **22 support skills**: one up and one down skill each for ATK, DEF, magic attack, magic defence and speed (Field = Charge, Break = Bind in 1-on-1), physical and magic charge, Heal and X-Heal, one status cure, remove buffs, remove debuffs, and one skill each for Sleep, Confusion, Paralysis, Poison and Crystallization. Dropped: party-only skills (Reflect, Taunt, Guts, Reverse, Revive, immunity barriers), crit up/down, and the 13 skills no Digimon has. |
 | Signature skills (2026-10-28) | All 613 special skills stay (cutting to one per Digimon was considered and rejected: it removes ~150 entries, no rules, and most Megas' second finisher). Each keeps its **name, element, physical/magic, power, hit count and accuracy, plus at most one effect** from: one of the six statuses (with a chance), a stat up or down, drain, recoil, heal, moves first, never misses, or a lost next turn. **Dropped**: trait bonuses, all-enemies targeting (single target in 1-on-1; all-enemies signatures such as Mega Flame need a power boost, ~55-60), conditional clauses ("if the target has already acted", "the lower the user's HP"), SP costs; percent-of-HP damage becomes ordinary power. Counter skills (Maul Attack, Dragon's Roar, Graceful Lance, Weltgeist) become plain attacks with the counter's element and power; Monkey Wrench keeps its ATK/magic-attack drop. Attract Echo, Brain Rupture, Breath of the Gods, Table Flip and Purge Shine are dropped; every Digimon keeps at least one signature (dropping all ten would have left Grizzlymon and KingEtemon with none). After this the 613 signatures have about 325 distinct behaviours |
 | SP requirements (Q15, 2026-10-28) | SP is dropped as a stat, so each evolution's SP minimum becomes an age minimum: the level at which the source form's untrained SP would reach it (as HP already works) |
 | Wild-only Digimon (2026-10-28) | Twelve forms need a Time Stranger mechanic TamaDigi lacks and are **wild-only in v1** (in the Digidex, seen and scanned, never raised): Agent Skills (Jupitermon, Jupitermon WM, Chronomon HM, Chronomon DM, Agumon (Bond of Bravery), Gabumon (Bond of Friendship)), Talent (Lucemon, Lucemon CM, Lucemon SM, Parallelmon), items (Imperialdramon PM, Magnamon (X Antibody)). Later stand-ins: Bond for Agent Skills and Talent, boss rewards for items. The fusion-only forms are wild-only too until Jogress ships |
 | Jogress (2026-10-28) | One partner, so fusion uses a second Digimon from outside the party: your partner fuses with **either a Digimon in your partner history** (it must have left as that exact form; the history entry stays) **or a wild Digimon you just defeated** (a prompt after the win; declining is a normal win). Time Stranger's Agent Rank requirement stays (rank 8, Millenniummon and Mastemon 7); its personality requirement goes. Once your partner is eligible for a fusion (right form and rank), its fusion partner appears far more often in the wild (about 1 battle in 5 instead of ~1 in 200). De-digivolving a fused Digimon returns to your own half (Omnimon -> WarGreymon); the HP boost applies as usual. Makes the 16 fusion-only Digimon raisable (Omnimon and its forms, Millenniummon, Mastemon, GraceNovamon, Alphamon: Ouryuken, both Chaosmon, Examon, Craniamon + Enbarrmon, Titamon + SkullBaluchimon); Susanomon needs two Hybrids, which are not in v1. **A stretch goal for v1**: built if time allows; until it ships, the fusion-only Digimon are wild-only |
-| Stats storage (2026-10-28) | The built-in species table stores Time Stranger's **raw** level-1 and level-99 values for HP, ATK, DEF, speed, magic attack (INT) and magic defence (SPI) as **16-bit numbers** (24 bytes a Digimon, about 11 KB for 454 forms in flash); the scale factor (~0.1) is one constant applied in firmware, so balance can be tuned without regenerating data. Saves are unaffected (IVs, training and the de-digivolve count stay bytes); calculated stats are already 16-bit (worst case 487 HP, x2.0 boost = 974) |
+| Stats storage (2026-10-28) | The built-in species table stores Time Stranger's **raw** level-1 and level-99 values for HP, ATK, DEF, speed, magic attack (INT) and magic defence (SPI) as **16-bit numbers** (24 bytes a Digimon, about 11 KB for the 469 forms in flash); the scale factor (~0.1) is one constant applied in firmware, so balance can be tuned without regenerating data. Saves are unaffected (IVs, training and the de-digivolve count stay bytes); calculated stats are already 16-bit (worst case 487 HP, x2.0 boost = 974) |
 | Stat mapping (Q12a/b) | HP, ATK, DEF, SPD direct; INT -> Special Attack; SPI -> Special Defense; **SP dropped** |
 | Stat formula (Q12e) | **Approach B**: rebuild TamaDigi's formula on Time Stranger growth. Each species grows linearly from its TS level-1 to its TS max (level 99) stats (`tools/data/time-stranger/stats.tsv`, 475 forms incl. personality), times one scale factor (~0.1), plus training. TamaDigi level = TS level, one per hour. Requirements convert with the same factor; no per-stage scaling. Battle balance must be redone |
 | HP (Q12c, Q16) | **Not trainable**: grows with age only (stats still reach Time Stranger's maximum at level 99), so HP requirements act as timing gates (e.g. Agumon -> Greymon at ~hour 37). **De-digivolve HP boost (Q16, 2026-10-28)**: each de-digivolution multiplies the partner's calculated HP by a further 10% (x1.1 after one, x1.2 after two ...), **capped at x2.0**, kept through later evolutions and reset with a new partner; the save stores the count. This is TamaDigi's stand-in for Time Stranger's level-reset loops (which carry stats over and which its requirements assume); training already covers the other stats. It makes all 66 HP requirements that exceed the source form's level-99 HP reachable: 45 need one loop, 11 two, 7 three, 2 four, Belphemon SM -> RM eight (x1.8). Example: Greymon de-digivolves at 40, is Greymon again at 58 with x1.1, and Greymon -> Kimeramon (2030 HP) opens at level 68 instead of 81. Known pacing: without loops, HP gates make typical Mega evolutions open around level 88 |
@@ -148,12 +155,35 @@ is a candidate).
   saturation, night 45% / 66% plus a blue tint (`art/backdrops/`). Original art,
   safe to commit.
 - No cream panel behind the buttons; they float on the backdrop.
-- Open: light PARTY/EXPLORE labels at night (dark ones are hard to read).
+- Open: light tile labels (EXPLORE and the rest) at night; dark ones are hard to read. The PARTY tile goes with the party.
 
 ## Firmware change list (none made yet)
 
+From the design table (each row has the detail):
+
+- **Species table** (`dex.h` from `tools/digimon_data.py`): the 469 forms in Time
+  Stranger's dex order; raw 16-bit level-1 and level-99 stats; attribute; the
+  11-element resistance row; stage (seven stages plus Armor/Hybrid wild tiers);
+  flags for wild-only and never-raised forms; short display names for the 29
+  over 15 characters.
+- **Stat formula** (Approach B): linear growth from level-1 to level-99 values,
+  times one scale constant, plus training; the de-digivolve HP multiplier
+  (x1.1 per de-digivolve, cap x2.0; one count in the save).
+- **Evolution table**: stat minimums, Agent Rank (applied from Ultimate on), and
+  SP minimums turned into age minimums; offered, never forced; de-digivolution
+  into any known earlier form.
+- **Skills**: 44 learnable skills (power by level band) plus the simplified
+  signatures; learn timing (specials at once, attachment skills at learn level / 5
+  hours); 16-bit skill IDs in the save; fixed hit counts; percent-HP damage gone.
+- **Battle**: Time Stranger element and attribute multipliers replace the type
+  chart; six statuses (Injury from Burn, Crystallization from Freeze, element
+  immunities removed); 1-on-1 only.
+- **Progress**: Agent Rank from badges, the 13-boss single-Digimon ladder with
+  Hard mode, wild encounters by stage (65/25/10), eggs, Digidex states with scan
+  progress (no scan chips), partner history, Jogress (stretch goal).
+
 - **Detect and replace v1.0.0 saves** (decided: not carried forward). The Digidex
-  and the move IDs are positional in saved data, so the new firmware must
+  and the move (now skill) IDs are positional in saved data, so the new firmware must
   recognise a v1.0.0 save and start fresh rather than misread it. Rewrite
   `upgrade_test`'s v1.0.0 section to check exactly that, with the decision in its
   comment; never regenerate its frozen save to make it pass.
@@ -195,6 +225,12 @@ is a candidate).
 ## Still open
 
 - How evolution is offered, and how the 72-hour farewell is offered (revisit later).
-- Battle timing (above).
-- Public-build art.
+- Battle timing (above), and the balance pass: the stat scale constant and boosts
+  for all-enemies signatures such as Mega Flame (~55-60).
+- Jogress (a v1 stretch goal); later stand-ins for the wild-only forms (Bond for
+  Agent Skills and Talent, boss rewards for items); personality skills (passives);
+  separate INT/SPI training mini-games.
+- Public-build art: only 73 of the 87 Digimon Color sprites map onto Time Stranger
+  forms; the Vital Bracelet sprites (kongtaehun/digimon-assets-VB, no licence,
+  Bandai's art) cover at least 188 forms by name.
 - Model check for the 13 bosses (needs the game files in `tools/prerender/models/`).

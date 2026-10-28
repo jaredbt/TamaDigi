@@ -24,7 +24,7 @@ non-commercial fan project: the code is MIT, the sprites are Bandai's.
 | `tools/emu/` | Desktop emulator: runs the real firmware in an SDL window, plus the test suites |
 | `web/` | ESP Web Tools installer + `sprites-<version>.pak`; `web/firmware/` holds the release binaries |
 | `docs/HANDOFF.md` | **Read first.** The Time Stranger rework: every design decision, the firmware change list, what is open |
-| `tools/data/time-stranger/` | Time Stranger stats and evolution requirements for the rework (nothing reads them yet) |
+| `tools/data/time-stranger/` | Time Stranger data for the rework: stats, evolution requirements, attributes, elemental resistances, skills, story bosses, and the audits behind the pipeline decisions (nothing in the firmware reads them yet) |
 | `tools/prerender/` | Captures Time Stranger models as TPK2 sprites. Private builds only: never commit its gitignored output |
 | `art/backdrops/` | The original V-Pet-style landscape backdrop (day and night), not drawn by the firmware yet |
 
