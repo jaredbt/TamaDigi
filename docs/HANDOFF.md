@@ -80,6 +80,8 @@ stale test comments saying Ver.3 has no Baby I art (it has, now).
 | Eggs | After the first, each egg hatches a random In-Training I (7 in the roster), leaning toward lines with Digimon you have not raised yet; the colour-variant roll stays; the empty rare/legendary egg tiers go (Q2) |
 | Wild Digimon | From the whole roster (no Armor/Hybrid), by the stage your partner's level has reached: 65% that stage, 25% one behind, 10% one ahead at your level. Mega+ appears only for a Mega+ partner; for a Mega the "ahead" roll stays Mega (Q3, Q3b, Q3c) |
 | Boss ladder | One ladder of 13 single Digimon, unlocked in order: 8 area bosses (1-2 Rookie, 3-5 Champion, 6-8 Ultimate; each gives a badge), 4 elites (Mega), a champion (Mega+). Levels stretched over the 72-hour life (Q4, Q4a) |
+| Partner leaves | After a farewell, runaway or release the partner leaves for good: marked "raised" in the Digidex and added to a short partner history on the tamer card (name, final form, age, how it ended); then the next egg (Q8) |
+| v1.0.0 saves | **Not carried forward** (Q9). The new firmware recognises a v1.0.0 save, says so, and starts a new game (the installer backs the save up first). `upgrade_test`'s frozen v1.0.0 save then checks it is detected and replaced cleanly, never misread |
 | Digidex | A stage picker (In-Training I ... Mega+, with counts) replaces the version picker; inside, the existing 16-per-page grid in Time Stranger dex order (Q5, Q5b). Smooth scrolling: revisit later |
 | Stages | Mega+ is a stage after Mega, from 72 h (Q11). Armor, Hybrid and Jogress left out of v1 |
 | Stat mapping (Q12a/b) | HP, ATK, DEF, SPD direct; INT -> Special Attack; SPI -> Special Defense; **SP dropped** |
@@ -139,10 +141,12 @@ is a candidate).
 
 ## Firmware change list (none made yet)
 
-- **Carry v1.0.0 saves forward.** The Digidex and the move IDs are positional in
-  saved data, so the new roster and move table need a migration from v1.0.0
-  numbering, or a written decision to drop v1.0.0 saves. `upgrade_test` fails
-  until one of the two is done; never regenerate its frozen save to pass it.
+- **Detect and replace v1.0.0 saves** (decided: not carried forward). The Digidex
+  and the move IDs are positional in saved data, so the new firmware must
+  recognise a v1.0.0 save and start fresh rather than misread it. Rewrite
+  `upgrade_test`'s v1.0.0 section to check exactly that, with the decision in its
+  comment; never regenerate its frozen save to make it pass.
+- Remove the party and box (one partner, no teams): battles become 1-on-1.
 
 - Raise the 24-frames-per-action cap (`PmdAct.ms[24]`) and the 3 MB sprite file
   cap (Greymon is already 2.8 MB).
@@ -179,10 +183,10 @@ is a candidate).
 
 ## Still open
 
-- Versionless design, in progress: Hard mode in a 1-on-1 world; what scanning does
-  without a party or box; where a partner goes after a farewell, runaway or
-  release; what happens to v1.0.0 saves' party and box; which Digimon the 13
-  bosses are.
+- Versionless design, in progress: boss levels and Hard mode in a 1-on-1 world;
+  what scanning does without a party or box (Digidex states unseen / seen /
+  scanned / raised, scans revealing evolution requirements); which Digimon the
+  13 bosses are.
 
 - How evolution is offered, and how the 72-hour farewell is offered (revisit later).
 - Battle timing (above).
