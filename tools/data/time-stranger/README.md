@@ -8,7 +8,7 @@ pipeline will.
 |---|---|---|
 | `stats.tsv` | Level-1 and maximum (level 99) stats of 475 Digimon, with stage and personality | the game's own stat data, transcribed 2026-10-27 |
 | `evolutions.json` | Evolution requirements of 475 forms | [MelbearX123/digivolve-target](https://github.com/MelbearX123/digivolve-target) `server/data/digimon_evolutions_clean.json` at commit `e31958f`, MIT (`evolutions.LICENSE`) |
-| `bosses.tsv` | The game's boss fights in story order, matched to the roster's names and stages: the pool the boss ladder is picked from | [Game8's boss list](https://game8.co/games/Digimon-Story-Time-Stranger/archives/553558), 2026-10-27; stages from `stats.tsv` |
+| `bosses.tsv` | The game's boss fights in story order, matched to the roster's names and stages (the ladder itself uses anime villains; these could return as optional fights) | [Game8's boss list](https://game8.co/games/Digimon-Story-Time-Stranger/archives/553558), 2026-10-27; stages from `stats.tsv` |
 | `unlock_check.py` | When an untrained Digimon could first take each evolution under Approach B | this project |
 
 ## `stats.tsv`
