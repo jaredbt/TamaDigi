@@ -44,10 +44,8 @@ credits all four authors.
 
 ### Next, in order
 
-1. Finish the versionless design (paused 2026-10-27; see "Versionless design:
-   where it paused" below). Most of it is decided; two questions and the boss
-   picks remain. It decides the data model and the save layout, so it comes
-   before code.
+1. The versionless design is decided (2026-10-28; the design table above).
+   Left for later: how evolution and the farewell are offered (see "Still open").
 2. Build the data pipeline: replace the 87-Digimon roster in `tools/digimon_data.py`
    with the Time Stranger roster and Approach B stats, and regenerate.
 3. Before the board arrives: pull the hardware bring-up notes back from upstream's
@@ -80,7 +78,7 @@ stale test comments saying Ver.3 has no Baby I art (it has, now).
 | One partner | **No teams, anywhere** (Q4a): no player party and no boss teams. One partner Digimon at a time, V-Pet style; every battle is 1-on-1 |
 | Eggs | After the first, each egg hatches a random In-Training I (7 in the roster), leaning toward lines with Digimon you have not raised yet; the colour-variant roll stays; the empty rare/legendary egg tiers go (Q2) |
 | Wild Digimon | From the whole roster (no Armor/Hybrid), by the stage your partner's level has reached: 65% that stage, 25% one behind, 10% one ahead at your level. Mega+ appears only for a Mega+ partner; for a Mega the "ahead" roll stays Mega (Q3, Q3b, Q3c) |
-| Boss ladder | One ladder of 13 single Digimon, unlocked in order: 8 area bosses (each gives a badge), 4 elites (Mega), a champion (Mega+). Levels (Q6b): area 15, 22, 32, 40, 47, 54, 58, 60; elites 64, 66, 68, 70; champion 80. The picks are a mashup of the first two anime seasons' villains, filled out with Time Stranger story bosses (`tools/data/time-stranger/bosses.tsv`) (Q10). Must-haves (Q10b): DemiDevimon (Rookie, area 1), Ogremon, Unimon, Devimon, Etemon, Myotismon, Kimeramon, Arukenimon, Mummymon, MaloMyotismon. Q10a's "Champions fill the Rookie slots" now covers only the slots DemiDevimon doesn't take. The full lineup is still open |
+| Boss ladder | One ladder of 13 single Digimon, unlocked in order: 8 area bosses (each gives a badge), 4 elites (Mega), a champion (Mega+). A mashup of the villains from the anime's first two seasons (Adventure, Adventure 02) (Q10, Q10b). Lineup (Q10e, 2026-10-28), level and stage: area 1 DemiDevimon 15 Rookie; 2 Ogremon 22, 3 Unimon 32, 4 Devimon 40 (Champions); 5 Etemon 47, 6 Myotismon 54, 7 Mummymon 58, 8 Arukenimon 60 (Ultimates); elites Machinedramon 64, Piedmon 66, BlackWarGreymon 68, MaloMyotismon 70; champion Apocalymon 80. The Ultimate tier opens right after the 4th badge gives rank 5, as Mega opens after the 6th gives rank 7. Time Stranger's own story bosses (`tools/data/time-stranger/bosses.tsv`) are not on the ladder; they could return as optional post-champion fights. To do: check the model viewer has a model for each (all 13 are in `stats.tsv`) |
 | Hard mode | Easy: your partner fights at its real level. Hard: if your partner is above the boss's level it is scaled down to it, never up, so waiting cannot win a Hard badge. Hard badges are separate and optional; Agent Rank counts Easy badges only; Hard gives about double the training reward (Q6, Q6b) |
 | Partner leaves | After a farewell, runaway or release the partner leaves for good: marked "raised" in the Digidex and added to a short partner history on the tamer card (name, final form, age, how it ended); then the next egg (Q8) |
 | v1.0.0 saves | **Not carried forward** (Q9). The new firmware recognises a v1.0.0 save, says so, and starts a new game (the installer backs the save up first). `upgrade_test`'s frozen v1.0.0 save then checks it is detected and replaced cleanly, never misread |
@@ -186,27 +184,7 @@ is a candidate).
 
 ## Still open
 
-### Versionless design: where it paused (2026-10-27)
-
-Q10a and Q7c were answered on 2026-10-28 (see the table above). Still open:
-
-- **Q10, the 13 bosses.** A mashup of the villains from the anime's first two
-  seasons (Adventure, Adventure 02), filled out with Time Stranger story bosses
-  (`tools/data/time-stranger/bosses.tsv`). Every pick must be in `stats.tsv`
-  (Daemon, for one, is not). The user's ten must-haves are in the table above:
-  1 Rookie, 3 Champions, 5 Ultimates, 1 Mega, one more Ultimate than the 8 area
-  slots hold. Proposed (2026-10-28): Arukenimon and Mummymon share area 8 as two
-  back-to-back 1-on-1 fights for one badge; the free elites and champion go to
-  Machinedramon, Piedmon, BlackWarGreymon and Apocalymon. Then: check the model
-  viewer has a model for each.
-
-Pool by stage: Champion 8 (Kuwagamon, Raremon, Cyclonemon, Greymon (Blue),
-Fugamon, Ogremon, Hyogamon, Witchmon), Ultimate 7, Mega 16, Mega+ 4 (Titamon +
-SkullBaluchimon, Lucemon SM, Beelzemon BM, Belphemon RM), plus 2 Mega+ DLC
-Omnimons. Ladder slots: 5 Champion, 3 Ultimate, 4 Mega, 1 Mega+.
-
-### Other open items
-
 - How evolution is offered, and how the 72-hour farewell is offered (revisit later).
 - Battle timing (above).
 - Public-build art.
+- Model check for the 13 bosses (needs the game files in `tools/prerender/models/`).
