@@ -9,6 +9,8 @@ pipeline will.
 | `stats.tsv` | Level-1 and maximum (level 99) stats of 475 Digimon, with stage and personality | the game's own stat data, transcribed 2026-10-27 |
 | `evolutions.json` | Evolution requirements of 475 forms | [MelbearX123/digivolve-target](https://github.com/MelbearX123/digivolve-target) `server/data/digimon_evolutions_clean.json` at commit `e31958f`, MIT (`evolutions.LICENSE`) |
 | `bosses.tsv` | The game's boss fights in story order, matched to the roster's names and stages (the ladder itself uses anime villains; these could return as optional fights) | [Game8's boss list](https://game8.co/games/Digimon-Story-Time-Stranger/archives/553558), 2026-10-27; stages from `stats.tsv` |
+| `attributes.tsv` | Each Digimon's dex number (the game's Field Guide order, which `stats.tsv` follows row for row) and attribute | the game's data, read from Game8's Digimon list, 2026-10-28 |
+| `roster_audit.py` | What the data pipeline has to deal with: stages, kept and dropped evolutions, reachability, training and storage limits, bosses, display names, public art | this project |
 | `unlock_check.py` | When an untrained Digimon could first take each evolution under Approach B | this project |
 
 ## `stats.tsv`
@@ -44,3 +46,14 @@ It grows each Digimon linearly from its level-1 to its maximum stats over
 levels 1–99, one level per hour, and reports when each evolution's stat
 requirements are first met, against TamaDigi's stage minimums. Evolutions that
 need Jogress, items, Agent Skills or Talent are left out.
+
+## `roster_audit.py`
+
+```bash
+python3 -I tools/data/time-stranger/roster_audit.py
+```
+
+It applies the decided filters (no Armor or Hybrid; no evolution that needs
+Jogress, an item, Agent Skills or Talent) and prints one section per check.
+Nothing reads its output; it is the evidence for the pipeline's decisions in
+`docs/HANDOFF.md`.

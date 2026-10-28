@@ -1,0 +1,476 @@
+dex	name	attribute
+1	Kuramon	No Data
+2	Choromon	No Data
+3	Dodomon	No Data
+4	Pabumon	No Data
+5	Punimon	No Data
+6	Botamon	No Data
+7	Poyomon	No Data
+8	Kapurimon	No Data
+9	Koromon	No Data
+10	Tanemon	No Data
+11	Tsunomon	No Data
+12	Tsumemon	No Data
+13	Tokomon	No Data
+14	Dorimon	No Data
+15	Nyaromon	No Data
+16	Pagumon	No Data
+17	Yokomon	No Data
+18	Bukamon	No Data
+19	Motimon	No Data
+20	Wanyamon	No Data
+21	Agumon	Vaccine
+22	Kudamon	Vaccine
+23	Gomamon	Vaccine
+24	Coronamon	Vaccine
+25	Zubamon	Vaccine
+26	Solarmon	Vaccine
+27	Terriermon	Vaccine
+28	Tentomon	Vaccine
+29	ToyAgumon	Vaccine
+30	Tapirmon	Vaccine
+31	Hyokomon	Vaccine
+32	Biyomon	Vaccine
+33	Falcomon	Vaccine
+34	Salamon	Vaccine
+35	Bearmon	Vaccine
+36	Penmon	Vaccine
+37	Monodramon	Vaccine
+38	Ryudamon	Vaccine
+39	Lucemon	Vaccine
+40	Elecmon	Data
+41	Gaomon	Data
+42	Crabmon	Data
+43	Gabumon	Data
+44	Kamemon	Data
+45	Kokuwamon	Data
+46	Gotsumon	Data
+47	Kotemon	Data
+48	Shoutmon	Data
+49	Dracomon	Data
+50	Dorumon	Data
+51	Patamon	Data
+52	Huckmon	Data
+53	Palmon	Data
+54	Floramon	Data
+55	Muchomon	Data
+56	Lalamon	Data
+57	Lunamon	Data
+58	Renamon	Data
+59	Lopmon	Data
+60	Impmon	Virus
+61	Otamamon	Virus
+62	Gazimon	Virus
+63	Gizamon	Virus
+64	Guilmon	Virus
+65	Goblimon	Virus
+66	Shamamon	Virus
+67	Syakomon	Virus
+68	SnowGoblimon	Virus
+69	Chuumon	Virus
+70	Dracmon	Virus
+71	Hagurumon	Virus
+72	DemiDevimon	Virus
+73	FunBeemon	Virus
+74	Betamon	Virus
+75	Mushroomon	Virus
+76	Armadillomon	Free
+77	Veemon	Free
+78	Hawkmon	Free
+79	Wormmon	Free
+80	Keramon	Unknown
+81	Aegiomon	Vaccine
+82	Ikkakumon	Vaccine
+83	Airdramon	Vaccine
+84	Angemon	Vaccine
+85	Kabuterimon	Vaccine
+86	Gargomon	Vaccine
+87	Garurumon	Vaccine
+88	Ginryumon	Vaccine
+89	Grizzlymon	Vaccine
+90	Greymon	Vaccine
+91	Coredramon (Blue)	Vaccine
+92	GeoGreymon	Vaccine
+93	Strikedramon	Vaccine
+94	Snimon	Vaccine
+95	ZubaEagermon	Vaccine
+96	Sorcermon	Vaccine
+97	Gatomon	Vaccine
+98	Dobermon	Vaccine
+99	Birdramon	Vaccine
+100	Firamon	Vaccine
+101	Veedramon	Vaccine
+102	Buraimon	Vaccine
+103	Peckmon	Vaccine
+104	Mojyamon	Vaccine
+105	Frigimon	Vaccine
+106	Unimon	Vaccine
+107	Raptordramon	Vaccine
+108	Deputymon	Vaccine
+109	Leomon	Vaccine
+110	Reppamon	Vaccine
+111	Icemon	Data
+112	Wizardmon	Data
+113	Witchmon	Data
+114	Gaogamon	Data
+115	Gawappamon	Data
+116	Kiwimon	Data
+117	Kyubimon	Data
+118	Clockmon	Data
+119	Centarumon	Data
+120	Sunflowmon	Data
+121	Seadramon	Data
+122	Coelamon	Data
+123	Shellmon	Data
+124	Starmon	Data
+125	Tankmon	Data
+126	MudFrigimon	Data
+127	Dinohyumon	Data
+128	Tyrannomon	Data
+129	Turuiemon	Data
+130	Togemon	Data
+131	Drimogemon	Data
+132	Dorugamon	Data
+133	BaoHuckmon	Data
+134	Blimpmon	Data
+135	Meramon	Data
+136	Monochromon	Data
+137	Lekismon	Data
+138	IceDevimon	Virus
+139	Wendigomon	Virus
+140	Woodmon	Virus
+141	Ogremon	Virus
+142	Octomon	Virus
+143	Guardromon	Virus
+144	ShellNumemon	Virus
+145	Growlmon	Virus
+146	Kuwagamon	Virus
+147	Gekomon	Virus
+148	Geremon	Virus
+149	Coredramon (Green)	Virus
+150	GoldNumemon	Virus
+151	Golemon	Virus
+152	Cyclonemon	Virus
+153	Sangloupmon	Virus
+154	Sukamon	Virus
+155	Tuskmon	Virus
+156	Devimon	Virus
+157	Deltamon	Virus
+158	Dokugumon	Virus
+159	Nanimon	Virus
+160	Numemon	Virus
+161	Bakemon	Virus
+162	Hyogamon	Virus
+163	Fugamon	Virus
+164	Flymon	Virus
+165	PlatinumSukamon	Virus
+166	BlackGatomon	Virus
+167	Vegiemon	Virus
+168	Minotarumon	Virus
+169	Musyamon	Virus
+170	Mekanorimon	Virus
+171	Raremon	Virus
+172	Waspmon	Virus
+173	Aquilamon	Free
+174	Ankylomon	Free
+175	ExVeemon	Free
+176	Guardromon (Gold)	Free
+177	Stingmon	Free
+178	Kurisarimon	Unknown
+179	Submarimon	Free
+180	Shurimon	Free
+181	Digmon	Free
+182	Nefertimon	Free
+183	Flamedramon	Free
+184	Pegasusmon	Free
+185	Halsemon	Free
+186	Lighdramon	Free
+187	Agunimon	Variable
+188	Lobomon	Variable
+189	Lanamon	Variable
+190	BurningGreymon	Variable
+191	Calmaramon	Variable
+192	KendoGarurumon	Variable
+193	Aegiochusmon	Vaccine
+194	Aegiochusmon: Green	Vaccine
+195	Aegiochusmon: Dark	Vaccine
+196	Aegiochusmon: Blue	Vaccine
+197	Aegiochusmon: Holy	Vaccine
+198	MegaKabuterimon	Vaccine
+199	Andromon	Vaccine
+200	Wingdramon	Vaccine
+201	AeroVeedramon	Vaccine
+202	ExTyrannomon	Vaccine
+203	Angewomon	Vaccine
+204	Garudamon	Vaccine
+205	GrapLeomon	Vaccine
+206	Grademon	Vaccine
+207	GreatGrizzlymon	Vaccine
+208	Cerberusmon	Vaccine
+209	Cerberusmon WM	Vaccine
+210	Cyberdramon	Vaccine
+211	JewelBeemon	Vaccine
+212	Zudomon	Vaccine
+213	Chirinmon	Vaccine
+214	Duramon	Vaccine
+215	Parrotmon	Vaccine
+216	IceLeomon	Vaccine
+217	Hisyaryumon	Vaccine
+218	Butenmon	Vaccine
+219	Flaremon	Vaccine
+220	Whamon	Vaccine
+221	MagnaAngemon	Vaccine
+222	Mammothmon	Vaccine
+223	MetalGreymon	Vaccine
+224	Monzaemon	Vaccine
+225	Crowmon	Vaccine
+226	RizeGreymon	Vaccine
+227	Rapidmon	Vaccine
+228	LoaderLeomon	Vaccine
+229	WereGarurumon	Vaccine
+230	Scorpiomon	Data
+231	Enbarrmon	Data
+232	Antylamon	Data
+233	Meteormon	Data
+234	OmniShoutmon	Data
+235	Kimeramon	Data
+236	CatchMamemon	Data
+237	Crescemon	Data
+238	SuperStarmon	Data
+239	SkullBaluchimon	Data
+240	SaviorHuckmon	Data
+241	Sirenmon	Data
+242	Taomon	Data
+243	Digitamamon	Data
+244	SkullMeramon	Data
+245	Deramon	Data
+246	Triceramon	Data
+247	DoruGreymon	Data
+248	Knightmon	Data
+249	Divermon	Data
+250	Pandamon	Data
+251	Pumpkinmon	Data
+252	BigMamemon	Data
+253	Piximon	Data
+254	HippoGryphonmon	Data
+255	Brachiomon	Data
+256	Volcanomon	Data
+257	MasterBlimpmon	Data
+258	MachGaogamon	Data
+259	Mamemon	Data
+260	MegaSeadramon	Data
+261	MetalMamemon	Data
+262	Lilamon	Data
+263	Lillymon	Data
+264	Locomon	Data
+265	Astamon	Virus
+266	Arukenimon	Virus
+267	Myotismon	Virus
+268	Etemon	Virus
+269	Okuwamon	Virus
+270	Orochimon	Virus
+271	Garbagemon	Virus
+272	Gigadramon	Virus
+273	CannonBeemon	Virus
+274	Groundramon	Virus
+275	Sharkmon	Virus
+276	Shaujinmon	Virus
+277	Cherrymon	Virus
+278	SkullGreymon	Virus
+279	SkullSatamon	Virus
+280	SkullSeadramon	Virus
+281	DarkSuperStarmon	Virus
+282	Dragomon	Virus
+283	Tankdramon	Virus
+284	ShogunGekomon	Virus
+285	Datamon	Virus
+286	Phantomon	Virus
+287	BlackKingNumemon	Virus
+288	BlueMeramon	Virus
+289	Vademon	Virus
+290	Matadormon	Virus
+291	Mummymon	Virus
+292	Mistymon	Virus
+293	Megadramon	Virus
+294	WarGrowlmon	Virus
+295	MetalTyrannomon	Virus
+296	Lucemon CM	Virus
+297	LadyDevimon	Virus
+298	Wisemon	Virus
+299	WaruSeadramon	Virus
+300	Shakkoumon	Free
+301	Silphymon	Free
+302	Dinobeemon	Free
+303	Paildramon	Free
+304	Infermon	Unknown
+305	Aldamon	Variable
+306	Beowolfmon	Variable
+307	Apollomon	Vaccine
+308	Alphamon	Vaccine
+309	UlforceVeedramon	Vaccine
+310	Varodurumon	Vaccine
+311	Venusmon	Vaccine
+312	WarGreymon	Vaccine
+313	Ouryumon	Vaccine
+314	Ophanimon	Vaccine
+315	ClavisAngemon	Vaccine
+316	Craniamon	Vaccine
+317	Eaglemon	Vaccine
+318	Chronomon HM	Vaccine
+319	Cherubimon (Black)	Vaccine
+320	Cherubimon (Good)	Vaccine
+321	Goldramon	Vaccine
+322	ShineGreymon	Vaccine
+323	Justimon	Vaccine
+324	SkullMammothmon	Vaccine
+325	SlashAngemon	Vaccine
+326	Kentaurosmon	Vaccine
+327	Slayerdramon	Vaccine
+328	Seraphimon	Vaccine
+329	MegaGargomon	Vaccine
+330	Durandamon	Vaccine
+331	Neptunemon	Vaccine
+332	HiAndromon	Vaccine
+333	BanchoLeomon	Vaccine
+334	HerculesKabuterimon	Vaccine
+335	Phoenixmon	Vaccine
+336	Magnadramon	Vaccine
+337	Mastemon	Vaccine
+338	MarineAngemon	Vaccine
+339	Marsmon	Vaccine
+340	Jupitermon	Vaccine
+341	Ravemon	Vaccine
+342	UltimateBrachiomon	Data
+343	Vulcanusmon	Data
+344	Gankoomon	Data
+345	Kuzuhamon	Data
+346	GroundLocomon	Data
+347	Gryphonmon	Data
+348	Ceresmon	Data
+349	Ceresmon Medium	Data
+350	SaberLeomon	Data
+351	Sakuyamon	Data
+352	Jesmon	Data
+353	JumboGamemon	Data
+354	Dianamon	Data
+355	Dynasmon	Data
+356	Leopardmon	Data
+357	Leopardmon LM	Data
+358	Dorugoramon	Data
+359	PileVolcanomon	Data
+360	PrinceMamemon	Data
+361	Plesiomon	Data
+362	Boltmon	Data
+363	MirageGaogamon	Data
+364	MetalGarurumon	Data
+365	MetalSeadramon	Data
+366	MedievalGallantmon	Data
+367	Rosemon	Data
+368	Lotosmon	Data
+369	AvengeKidmon	Virus
+370	Ebemon	Virus
+371	VenomMyotismon	Virus
+372	AncientWisemon	Virus
+373	Gaiomon	Virus
+374	ChaosGallantmon	Virus
+375	Chaosdramon	Virus
+376	Callismon	Virus
+377	Gundramon	Virus
+378	KingEtemon	Virus
+379	GranDracmon	Virus
+380	Chronomon DM	Virus
+381	Zanbamon	Virus
+382	ZombiePlutomon	Virus
+383	Darkdramon	Virus
+384	TigerVespamon	Virus
+385	Titamon	Virus
+386	TyrantKabuterimon	Virus
+387	Creepymon	Virus
+388	Gallantmon	Virus
+389	Bacchusmon	Virus
+390	Bacchusmon DM	Virus
+391	Barbamon	Virus
+392	Piedmon	Virus
+393	Puppetmon	Virus
+394	Pharaohmon	Virus
+395	Pukumon	Virus
+396	PlatinumNumemon	Virus
+397	Plutomon	Virus
+398	Breakdramon	Virus
+399	MaloMyotismon	Virus
+400	BeelStarmon	Virus
+401	Beelzemon	Virus
+402	Belphemon SM	Virus
+403	MagnaKidmon	Virus
+404	Minervamon	Virus
+405	Millenniummon	Virus
+406	Machinedramon	Virus
+407	Megidramon	Virus
+408	MetalEtemon	Virus
+409	Merukimon	Virus
+410	Junomon	Virus
+411	Junomon HM	Virus
+412	RustTyrannomon	Virus
+413	Leviamon	Virus
+414	Lilithmon	Virus
+415	LordKnightmon	Virus
+416	Imperialdramon DM	Free
+417	Imperialdramon FM	Free
+418	Vikemon	Free
+419	Valkyrimon	Free
+420	GranKuwagamon	Free
+421	Diaboromon	Unknown
+422	Rapidmon (Armor)	Vaccine
+423	Magnamon	Free
+424	EmperorGreymon	Variable
+425	MagnaGarurumon	Variable
+426	MagnaGarurumon (Detached)	Variable
+427	Alphamon: Ouryuken	Vaccine
+428	Craniamon + Enbarrmon	Vaccine
+429	Imperialdramon PM	Vaccine
+430	Omnimon	Vaccine
+431	Omnimon Zwart	Vaccine
+432	Chaosmon	Vaccine
+433	Chaosmon: Valdur Arm	Vaccine
+434	GraceNovamon	Vaccine
+435	ShineGreymon BM	Vaccine
+436	Susanomon	Vaccine
+437	Jupitermon WM	Vaccine
+438	Ravemon BM	Vaccine
+439	Examon	Data
+440	MirageGaogamon BM	Data
+441	Rosemon BM	Data
+442	Titamon + SkullBaluchimon	Virus
+443	Gallantmon CM	Virus
+444	Beelzemon BM	Virus
+445	Belphemon RM	Virus
+446	Mervamon	Virus
+447	Lucemon SM	Virus
+448	Armageddemon	Unknown
+449	Agumon (Bond of Bravery)	Unknown
+450	Apocalymon	Unknown
+451	Gabumon (Bond of Friendship)	Unknown
+452	CresGarurumon	Data
+453	Parallelmon	Virus
+454	BlitzGreymon	Virus
+455	Omnimon Alter-B	Virus
+456	Omnimon Alter-S	Virus
+457	Omnimon Zwart Defeat	Virus
+458	BanchoMamemon	Data
+459	BanchoLillymon	Data
+460	BanchoGolemon	Virus
+461	BanchoStingmon	Free
+462	Omnimon MM	Vaccine
+463	UlforceVeedramon (X Antibody)	Vaccine
+464	Magnamon (X Antibody)	Vaccine
+465	Jesmon (X Antibody)	Data
+466	Gallantmon (X Antibody)	Virus
+467	Omnimon (X Antibody)	Vaccine
+468	Agumon (Black)	Virus
+469	Gabumon (Black)	Virus
+470	Garurumon (Black)	Virus
+471	Greymon (Blue)	Virus
+472	MetalGreymon (Blue)	Virus
+473	WereGarurumon (Black)	Virus
+474	BlackWarGreymon	Virus
+475	MetalGarurumon (Black)	Virus
