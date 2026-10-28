@@ -10,15 +10,13 @@
 //   * it must not compound: retiring early twice is still one day, not two
 //   * retiring a creature that HAS earned its farewell must cost nothing
 //
-// And, since it stopped banking: an EARLY retire gives the creature up for good
-// and must not pay like the good ending either. Both halves are pinned, because
-// each is invisible from the other -- the creature vanishing is obvious on the
-// party screen, while lastEnd quietly deciding the next egg's rarity and variant
-// odds is not visible anywhere at all.
+// And an EARLY retire must not pay like the good ending: lastEnd quietly decides
+// the next egg's rarity and variant odds, which is visible nowhere at all. (It
+// also used to decide whether the creature was banked into the party; the party
+// and box were removed by design, so every ending now lets the partner go.)
 #include "Arduino.h"
 #include "Preferences.h"
 #include "pet.h"
-#include "party.h"
 #include <cstdio>
 #ifndef TAMA_NATIVE_TEST
 uint32_t g_seed=41; FakeSerial Serial; FakeESP ESP; FakeWire Wire;
@@ -37,7 +35,7 @@ static void ck(bool ok,const char*w){printf("%s  %s\n",ok?"PASS":"FAIL",w); if(!
 // Ends the ceremony the way the firmware does -- by letting time pass into
 // Pet::update() -- rather than by calling the two halves by hand, which would
 // stop testing the order they run in.
-static void finish(Pet &p, Party &q){
+static void finish(Pet &p){
 #ifdef TAMA_NATIVE_TEST
   delay(CEREMONY_MS + 1000);
   p.update(millis());
@@ -45,10 +43,6 @@ static void finish(Pet &p, Party &q){
   gNow += CEREMONY_MS + 1000;
   p.update(gNow);
 #endif
-  if (p.endedKind != CER_NONE) {
-    if (!q.add(p.endedMon)) q.boxAdd(p.endedMon);
-    p.endedKind = CER_NONE;
-  }
 }
 
 // a creature part-way through its life: hatched, young, not final form
@@ -62,9 +56,9 @@ int main(){
   ck(EVO_PENALTY_LEVELS == (24*60)/MINUTES_PER_LEVEL,
      "the penalty is a day expressed in levels, not a hardcoded 24");
 
-  // --- a young creature can be retired, and it really is banked
+  // --- a young creature can be retired
   {
-    Pet p; Party q; p.begin(); q.begin();
+    Pet p; p.begin();
     young(p, 4, 21);                        // a AGUMON, nowhere near 3 days
     ck(!p.canFarewellNow(), "a young creature is not offered a farewell");
     ck(p.canRetireNow(), "but it can be retired on demand");
@@ -72,12 +66,7 @@ int main(){
     p.startRetire();
     ck(p.ceremony == CER_FAREWELL, "retiring runs the farewell ceremony");
     ck(p.retireIsEarly(), "and knows this one was early");
-    finish(p, q);
-    // THE CHANGE: an early retire gives the creature up. It used to bank
-    // exactly as a farewell does, which made this the good ending with a small
-    // tax on it rather than a real decision.
-    ck(q.count() == 0, "an early retire does NOT bank the creature");
-    ck(p.endedKind == CER_NONE, "so nothing is left waiting for a party slot");
+    finish(p);
     ck(p.lastEnd == CER_RELEASE,
        "and the next egg is neutral, not blessed -- or this is a variant farm");
     ck(p.isEgg(), "and a new egg is waiting");
@@ -95,7 +84,7 @@ int main(){
 
   // --- retiring one that HAS earned its farewell is free
   {
-    Pet p; Party q; p.begin(); q.begin();
+    Pet p; p.begin();
     p.dbgHatchAs(6, false);                 // GREYMON: final form
     p.ageMinutes = FAREWELL_AGE_MIN + 60;
     p.fullness=p.joy=p.energy=p.hygiene=100;
@@ -103,49 +92,42 @@ int main(){
        "a creature past three days in final form retires for nothing");
     p.startRetire();
     ck(!p.retireIsEarly(), "an earned retire is not an early one");
-    finish(p, q);
+    finish(p);
     ck(p.evoPenalty() == 0, "and hands the next creature no debt");
-    // The other side of the rule, and the one a naive "retire never banks"
-    // would break: this IS the farewell, reached by a different button.
-    ck(q.count() == 1 && q.slots[0].dex == 6,
-       "an EARNED retire still banks the creature, exactly as a farewell does");
+    // The other side of the rule: this IS the farewell, reached by a different
+    // button, so it ends the way a farewell does.
     ck(p.lastEnd == CER_FAREWELL, "and still blesses the next egg");
+    ck(p.isEgg(), "with a new egg in its place");
   }
 
   // --- it does not compound
   {
-    Pet p; Party q; p.begin(); q.begin();
-    // Tests share one NVS store within a process, so this Party loads whatever
-    // the EARNED-retire block above banked. Start from a known-empty one or the
-    // "none of the three was banked" check below reads the previous block's
-    // GREYMON and fails for the wrong reason.
-    for (int i = 0; i < PARTY_SLOTS; i++) q.releaseAt(i);
+    Pet p; p.begin();
     for (int i = 0; i < 3; i++) {
       young(p, 4, 10);
       p.startRetire();
-      finish(p, q);
+      finish(p);
     }
     ck(p.evoPenalty() == EVO_PENALTY_LEVELS,
        "three early retires in a row still cost one day, not three");
-    ck(q.count() == 0, "and none of the three was banked");
   }
 
   // --- a normal farewell clears a debt inherited from before
   {
-    Pet p; Party q; p.begin(); q.begin();
+    Pet p; p.begin();
     young(p, 4, 10);
-    p.startRetire(); finish(p, q);
+    p.startRetire(); finish(p);
     ck(p.evoPenalty() == EVO_PENALTY_LEVELS, "debt taken on");
     p.dbgHatchAs(6, false);
     p.ageMinutes = FAREWELL_AGE_MIN + 60;
     p.fullness=p.joy=p.energy=p.hygiene=100;
-    p.startFarewell(); finish(p, q);
+    p.startFarewell(); finish(p);
     ck(p.evoPenalty() == 0, "and paid off by raising the next one properly");
   }
 
   // --- what cannot be retired
   {
-    Pet p; Party q; p.begin(); q.begin();
+    Pet p; p.begin();
     p.newEgg();
     ck(!p.canRetireNow(), "an egg cannot be retired");
     young(p, 4, 10);
@@ -158,9 +140,9 @@ int main(){
 
   // --- and it survives a reload, debt included
   {
-    Pet p; Party q; p.begin(); q.begin();
+    Pet p; p.begin();
     young(p, 7, 12);
-    p.startRetire(); finish(p, q);
+    p.startRetire(); finish(p);
     Pet again; again.begin();
     ck(again.evoPenalty() == EVO_PENALTY_LEVELS, "the debt is persisted");
     ck(again.isEgg(), "and so is the egg it came with");

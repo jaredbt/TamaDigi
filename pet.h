@@ -3,7 +3,13 @@
 #include <Preferences.h>
 #include "dex.h"
 #include "trainers.h"   // GYM_REGIONS sizes the badge masks
-#include "party.h"
+
+#define MOVE_SLOTS 4    // the same four every tamer gets in the real games
+// The largest the creature and player checkpoint blobs may be, read buffers
+// included. Here rather than in pet.cpp because save.cpp sizes the backup's
+// per-value ceiling from them; see the notes beside their uses in pet.cpp.
+#define PET_CKPT_CAP 192
+#define PLAYER_CKPT_CAP 512
 
 // 1 tick = 1 minute of play. Lower this value to test faster
 // (e.g. 5000UL = the stats drop 12x faster).
@@ -101,6 +107,11 @@ enum : uint16_t {
 
 uint8_t moveUnlockLevel(int16_t dex, uint8_t idx);
 
+// THE stat formula: a Digimon's base, its level, the IV's share and training.
+// Pet's own stat getters and combatantFromPet() (which may cap the level) both
+// call it, so there is one copy of the maths.
+uint16_t petCalcStat(uint8_t base, uint8_t iv, uint8_t lvl, uint8_t tr);
+
 // ---------------------------------------------------------------------------
 // Which versions have their sprite pack on the microSD.
 //
@@ -176,12 +187,6 @@ public:
   uint32_t lastSeenEpoch = 0;   // last RTC time seen (for offline progression)
   uint8_t ceremony = CER_NONE;  // farewell/runaway/release in progress
   uint8_t lastEnd = CER_NONE;   // how the previous one ended (affects the egg)
-  // A finished ceremony hands the creature over here before newEgg() wipes the
-  // live state. The UI drains it (endedKind back to CER_NONE) once the pet has
-  // either taken a party slot or been let go. Only farewell and release fill
-  // it; a runaway leaves endedKind at CER_NONE and the pet is simply gone.
-  PartyMon endedMon;
-  uint8_t endedKind = CER_NONE;
   // Digidex bitmaps, one bit per Digimon. Widening these is SAFE on an existing
   // save: getBytes() copies only what was stored, and the array is zeroed by its
   // initialiser, so a 19-byte blob from the Ver.1-only build lands in the front
@@ -272,7 +277,9 @@ public:
   // another thing to do. Returns the joy actually gained.
   uint8_t playMemo(uint16_t best);
 
-  // battle stats: real gen-1 base + level + IV + training
+  // battle stats: real gen-1 base + level + IV + training. Each is
+  // petCalcStat() at level(); combatantFromPet() asks the same function at a
+  // capped level, so the formula has one home.
   uint16_t atkStat() const;
   uint16_t defStat() const;
   uint16_t speStat() const;
@@ -296,9 +303,9 @@ public:
   // move carries its own; a level-0 entry is a TM/tutor/egg move, which the
   // data gives no level at all, and those unlock together at TM_LEVEL.
   //
-  // It is a free function, not a Pet method, because the move PICKER needs the
-  // identical answer for a banked party member. Having its own gate is what let
-  // a level 22 AGUMON be offered FIRE BLAST.
+  // It is a free function, not a Pet method, so the move PICKER asks the
+  // identical question. Having its own gate is what let a level 22 AGUMON be
+  // offered FIRE BLAST.
 
   // Moves reachable at this level that are not already known, for the learn
   // prompt. Returns how many were written into out (at most max).
@@ -306,29 +313,11 @@ public:
 
   // Player-wide, like the streak and the Digidex: badges outlive the creature
   // that earned them, so newEgg() must never clear this.
-  // A creature brought back out of the party or box. It is FROZEN: it does not
-  // age, cannot digivolve, and cannot be lost -- a companion rather than a
-  // contender. The cost is that its level never rises again, so it stops
-  // improving; ageMinutes is simply set to match its banked level, which keeps
-  // level() working untouched rather than needing a second source of truth.
+  // A creature brought back out of the old box (BRING BACK, removed with the
+  // party and box). It is FROZEN: it does not age, cannot digivolve, and cannot
+  // be lost. Nothing sets it any more, but a save made while one was live still
+  // loads one, so the flag and every check on it stay.
   bool frozen = false;
-  void reviveFrom(const PartyMon &m);
-
-  // The live creature as a storable record. THE single place a pet becomes a
-  // PartyMon: the farewell, a swap and a wild capture all go through it, and
-  // CLAUDE.md § "A rule enforced in one path but not its twin" is a list of what
-  // happens when three callers each keep their own copy of that.
-  PartyMon toPartyMon() const;
-  // Make a stored creature the focused one -- the one that ages, levels,
-  // digivolves and is cared for. Unlike reviveFrom() it is NOT frozen: it picks up
-  // its own care state and carries on. A record from before care state existed
-  // (stateVersion 0) starts from its banked level with fresh stats, which is
-  // the only honest reading of a save that never held them.
-  //
-  // It does NOT bank whatever is currently live -- the caller owns that, since
-  // only it knows whether there is a slot free. Calling this without storing
-  // the previous pet first destroys it.
-  void switchTo(const PartyMon &m);
 
   // The player's own name, alongside the badges and the streak: it belongs to
   // whoever is playing, not to the creature, so newEgg() must never clear it.
@@ -359,8 +348,8 @@ public:
   uint8_t avatar = 0;       // which player sprite, 0..3
   // Ver.1's ladder, under the keys it has always used. Ver.2 and Ver.3 live in
   // a SEPARATE array under new keys rather than widening these -- purely
-  // additive, so an existing save cannot be misread, exactly the reasoning that
-  // put the box under its own key instead of growing the party blob.
+  // additive, so an existing save cannot be misread, the same reasoning as
+  // the append-only checkpoint records.
   uint16_t badges = 0;      // bit n = tamer n beaten on easy
   uint16_t badgesHard = 0;  // ... and on hard
   uint16_t badgesX[GYM_REGIONS - 1] = { 0 };
@@ -429,15 +418,15 @@ public:
   void syncClock(uint32_t nowEpoch);  // applies the time elapsed while powered off
   void setClock(uint32_t nowEpoch);   // sets the time without applying progression
   void startFarewell();  // also usable from the serial console (BYE)
-  // Retire on demand. Before the farewell is earned this is the SAME ceremony
-  // -- the creature is banked exactly as it would be -- but it hands the next
+  // Retire on demand. Before the farewell is earned this is the SAME ceremony,
+  // but it hands the next
   // creature EVO_PENALTY_LEVELS on every digivolution threshold. Retiring one that
   // has already earned its farewell costs nothing: it is then just the button.
   void startRetire();
   bool canRetireNow() const;
   bool retireIsFree() const { return canFarewellNow(); }
   // Was the retire NOW IN PROGRESS an early one? THE single answer, asked by
-  // snapshotForParty() and by the tests. Distinct from retireIsFree(), which asks
+  // the tests. Distinct from retireIsFree(), which asks
   // whether a retire started right now WOULD be free: this one remembers what the
   // retire that is already running actually was, and outlives the moment it began.
   bool retireIsEarly() const { return retirePending; }
@@ -559,32 +548,9 @@ public:
   // deferred periodic save: tick() marks it pending and the loop flushes it
   // when the screen is dimmed/off (the flash write freezes
   // both cores for ~1s: this way it is neither seen nor cuts the touch)
-  // The handover has been resolved: the creature took a party or box slot, or
-  // the player let it go. Persisted straight away, because it now lives in the
-  // pet checkpoint -- clearing it only in RAM would re-offer the same creature
-  // on the next boot, which is the mirror of the bug that made it durable.
-  void clearEnded() {
-    if (endedKind == CER_NONE) return;
-    endedKind = CER_NONE;
-    endedMon = PartyMon();
-    saveNow();
-  }
-  // A creature is waiting for a slot. Used in place of reaching for endedKind so
-  // there is one answer, and so the durable copy cannot be set without being
-  // written -- see CLAUDE.md § "A rule enforced in one path but not its twin".
-  void setEnded(const PartyMon &m, uint8_t kind) {
-    endedMon = m;
-    endedKind = kind;
-    saveNow();
-  }
   bool savePending() const { return pendingSave; }
-  // Which generation the creature's checkpoint is on. Exposed READ-ONLY, and for
-  // one purpose: the focus swap's journal (Party::focusBegin) records this before
-  // it starts, so recovery at boot can tell "the pet half never landed" from "it
-  // landed and the game carried on for an hour" WITHOUT comparing creature
-  // records -- a PartyMon has no identity, so two legitimately identical
-  // creatures are indistinguishable from one duplicated by a torn write. The
-  // counter is the identity the records lack.
+  // Which generation the creature's checkpoint is on. Exposed READ-ONLY, for the
+  // tests that check which slot a save landed in.
   uint32_t petGeneration() const { return saveGeneration; }
   // Is persistence actually WORKING? False means the creature on the panel is
   // not being written anywhere -- NVS would not open, or it is refusing writes
@@ -651,7 +617,6 @@ private:
   void rollIVs();                   // all 4, with the legendary/variant guarantees
   uint8_t ivFromGene(uint8_t gene) const;  // migration of saves with genes
   void defTick(bool resting);       // calm forges defence (see pet.cpp)
-  void snapshotForParty();          // copy into endedMon before newEgg() wipes it
   void checkMedals();
   void tick();
   void applyAutoSleep();

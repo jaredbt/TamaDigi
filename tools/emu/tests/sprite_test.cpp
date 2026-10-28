@@ -9,7 +9,6 @@
 #include "Arduino_GFX_Library.h"
 #include "Preferences.h"
 #include "pet.h"
-#include "party.h"
 #include "sdmon.h"
 #include "noart.h"
 #include <cstdio>

@@ -8,7 +8,6 @@
 #include "Arduino.h"
 #include "Preferences.h"
 #include "pet.h"
-#include "party.h"
 #include "moves.h"
 #include "types.h"
 #include <cstdio>

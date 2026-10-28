@@ -33,11 +33,9 @@
   "host": {
     "anim_test": "Synthetic framebuffer, PMD animation and UI-loop controls",
     "audio_test": "Resumable audio task with host queue and I2S doubles; board codec not modeled",
-    "box_test": "Injected partial/refused NVS writes for atomic party/box tests",
     "console_test": "Synthetic serial input and restart interception in the real sketch",
     "explore_test": "Real Explore UI with synthetic touch, sprites and framebuffer",
     "flush_test": "Host frameReady and synthetic renderer/loop controls",
-    "focus_test": "Real focus UI plus injected NVS failures and synthetic touch",
     "hit_test": "Synthetic geometry, framebuffer and touch hit-area probes",
     "joy_test": "Real minigame UI with synthetic touch and clock control",
     "lan_test": "Real LAN UI with injected peer transport and synthetic touch",

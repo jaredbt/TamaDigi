@@ -8,7 +8,6 @@
 #include "Arduino_GFX_Library.h"
 #include "Preferences.h"
 #include "pet.h"
-#include "party.h"
 #include <cstdio>
 #include <cstring>
 uint32_t g_seed=29; FakeSerial Serial; FakeESP ESP; FakeWire Wire;

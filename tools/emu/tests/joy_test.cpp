@@ -4,7 +4,6 @@
 #include "Arduino_GFX_Library.h"
 #include "Preferences.h"
 #include "pet.h"
-#include "party.h"
 #include <chrono>
 #include <thread>
 #include <cstdio>

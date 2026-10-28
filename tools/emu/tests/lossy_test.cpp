@@ -8,7 +8,6 @@
 #include "Arduino.h"
 #include "Preferences.h"
 #include "pet.h"
-#include "party.h"
 #include "battle.h"
 #include "link.h"
 #include <cstdio>
@@ -67,7 +66,7 @@ static void pair(bool hostA, bool hostB) {
   A.send=toB; B.send=toA;
   A.begin(hostA,"A"); B.begin(hostB,"B");
   A.id = 0x1111; B.id = 0x2222;
-  A.addMon(mon(6,50,"BLAZE")); A.addMon(mon(9,50,"SHELL"));
+  A.addMon(mon(6,50,"BLAZE"));        // one partner a side
   B.addMon(mon(65,50,"SPOON"));
   A.tick(T); B.tick(T);
   A.start();
@@ -80,13 +79,14 @@ int main(){
   run(4000);
   ck(A.state==LINK_READY && B.state==LINK_READY,
      "pairing completes with every third frame dropped");
-  ck(A.theirsN==1 && B.theirsN==2, "and both squads arrive whole");
-  ck(B.theirs[0].dex==6 && B.theirs[1].dex==9, "with nothing missing in the middle");
+  ck(A.theirsN==1 && B.theirsN==1, "and both partners arrive");
+  ck(B.theirs[0].dex==6 && A.theirs[0].dex==65, "the right ones, on both sides");
   printf("      (%d frames, %d dropped)\n", seen, dropped);
 
-  // --- a squad is never half-accepted --------------------------------------
+  // --- a lost partner packet is never mistaken for a partner ---------------
   // The old code set theirsN from the highest index seen, so losing packet 0
-  // left a creature with dex 0 that the battle would happily fight.
+  // left a creature with dex 0 that the battle would happily fight. With one
+  // Digimon a side, losing its only packet must leave the pairing unfinished.
   {
     Link C, D;
     static Link *pC=&C, *pD=&D;
@@ -95,12 +95,12 @@ int main(){
     D.send=[](void*,const uint8_t*b,uint8_t n){ pC->onPacket(b,n); };
     C.begin(true,"C"); D.begin(false,"D");
     C.id=1; D.id=2;
-    C.addMon(mon(6,50,"ONE")); C.addMon(mon(9,50,"TWO")); D.addMon(mon(25,50,"PIKA"));
+    C.addMon(mon(6,50,"ONE")); D.addMon(mon(25,50,"PIKA"));
     C.start();
-    ck(D.state != LINK_READY, "a squad with a hole in it is not READY");
+    ck(D.state != LINK_READY && D.theirsN==0, "a partner that never arrived is not READY");
     for (int i=0;i<40;i++){ T+=200; C.tick(T); D.tick(T); }
-    ck(D.state==LINK_READY && D.theirs[0].dex==6 && D.theirs[1].dex==9,
-       "and the resend fills the hole");
+    ck(D.state==LINK_READY && D.theirsN==1 && D.theirs[0].dex==6,
+       "and the resend delivers it");
   }
 
   // --- a whole fight over a lossy link -------------------------------------
@@ -196,7 +196,7 @@ int main(){
     ck(A.state==LINK_LOST, "and the sender too");
   }
 
-  // --- rematch keeps the squads and resets the turn ------------------------
+  // --- rematch keeps the partners and resets the turn ----------------------
   {
     pair(true,false);
     run(3000);
@@ -211,7 +211,7 @@ int main(){
     run(200);
     ck(A.state==LINK_READY && B.state==LINK_READY, "a rematch reopens both sides");
     ck(A.turn==0 && B.turn==0, "from turn zero");
-    ck(A.theirsN==hadA && B.theirsN==hadB, "with the squads still in hand");
+    ck(A.theirsN==hadA && B.theirsN==hadB, "with the partners still in hand");
   }
 
   printf("%s\n", bad?"FAILURES":"all good");

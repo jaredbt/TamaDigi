@@ -13,7 +13,6 @@
 #include "Arduino_GFX_Library.h"
 #include "Preferences.h"
 #include "pet.h"
-#include "party.h"
 #include "battle.h"
 #include <cstdio>
 #include <cmath>
@@ -31,7 +30,6 @@ extern uint8_t btlMenu;
 extern Combatant btlYou;
 void startBattle(int16_t dex, uint8_t lvl);
 int btlCellIndexAt(int16_t x, int16_t y);
-void partyButtonRects(int *boxTop, int *boxBot, int *closeTop, int *closeBot);
 void uiButtonHeights(int *out, int max, int *n);
 void uiRowHeights(int *out, int max, int *n);
 void gymHeaderRects(int *pillTop, int *pillBot, int *rowTop);
@@ -39,7 +37,6 @@ int uiSleepButton(int *cx, int *cy);
 void uiEggPillRect(int *x, int *y, int *w, int *h, bool hitArea);
 bool uiButtonDisabled(int i);
 void uiButtonAt(int i, int *cx, int *cy, int *half);
-bool monSheetBtn(int16_t x, int16_t y, bool left);
 void uiConfirmRects(int *b1Top, int *b1Bot, int *b2Top, int *b2Bot);
 // The round-panel geometry, asked of the firmware rather than restated here.
 int uiSafeHalfWidth(int y);
@@ -58,9 +55,6 @@ int uiTrainPanelBot();
 int uiTrainPanelHalfW();
 int uiCareArcTop(int i);
 int uiHeaderNameBottom();
-void partySlotPos(int i, int *cx, int *cy);
-int partySlotAt(int16_t x, int16_t y);
-bool partyHubAt(int16_t x, int16_t y);
 #include "badges.h"
 #include "trainers.h"
 bool badgeArtExists(uint8_t region, uint8_t i);
@@ -139,20 +133,6 @@ int main(){
   uint8_t before = btlMenu;
   battleTap(150, 390);
   ck(btlMenu != before, "a low tap in the move grid is actually accepted");
-
-  // The party screen's BOX and CLOSE buttons must not share a pixel. Padding
-  // BOX to make it easier to hit pushed its hit area 8 px into CLOSE, so taps
-  // meant to close the screen opened the box instead -- fixing one target by
-  // stealing from its neighbour.
-  {
-    int boxTop, boxBot, clTop, clBot;
-    partyButtonRects(&boxTop, &boxBot, &clTop, &clBot);
-    ck(boxBot < clTop, "BOX and CLOSE hit areas do not overlap");
-    ck(clTop - boxBot >= 4, "and there is a real gap between them");
-    ck(clBot < 466 && boxTop > 0, "both stay on the panel");
-    printf("      BOX %d..%d, CLOSE %d..%d, gap %d px\n",
-           boxTop, boxBot, clTop, clBot, clTop - boxBot);
-  }
 
   // Three separate "hard to hit" reports came in from the board, all the same
   // mistake: a button sized to fit its label rather than a finger. This holds
@@ -233,11 +213,12 @@ int main(){
   // firmware through uiTapFinger(), because a test that retypes the threshold
   // it is enforcing proves nothing.
   //
-  // THREE controls are still under it and cannot grow where they are: the party
-  // CLOSE bar and the LAN button have no room below a full screen, and the
-  // battle grid cell would push the grid off the panel. The home icons DO reach
+  // TWO controls are still under it and cannot grow where they are: the LAN
+  // button has no room below a full screen, and the battle grid cell would push
+  // the grid off the panel. (The party screen's CLOSE bar was a third; it went
+  // with the party.) The home icons DO reach
   // it -- they draw at 72 px inside a 94 px hit disc, which is the usual answer
-  // here. The count is asserted so a FOURTH cannot appear quietly.
+  // here. The count is asserted so a THIRD cannot appear quietly.
   {
     const int FINGER = uiTapFinger();
     const double PPMM = 466.0 / 1.75 / 25.4;
@@ -266,7 +247,7 @@ int main(){
       for (int i = 0; i < rn; i++) if (r[i] < 44) thin++;
       ck(thin == 0, "and no full-width list row is under the hard floor either");
     }
-    ck(under <= 3, "and no FOURTH control has dropped below the finger floor");
+    ck(under <= 2, "and no THIRD control has dropped below the finger floor");
 
     // The home icons are round and their hit area is a DISC that is bigger than
     // the graphic, so the honest question is whether THAT clears the bezel.
@@ -288,47 +269,6 @@ int main(){
     int clear = 0, bottom = uiHeaderNameBottom();
     for (int i = 0; i < 4; i++) if (uiCareArcTop(i) >= bottom + 12) clear++;
     ck(clear == 4, "every care arc clears the Digimon name band");
-  }
-
-  // The party ring. Its radius is MEASURED off partySlotAt() rather than read
-  // from PSLOT_R, so this checks the hit areas the firmware actually answers
-  // with -- the drawn size and the tapped size are what drift apart.
-  {
-    const int FINGER = uiTapFinger();
-    int c0x, c0y;
-    partySlotPos(0, &c0x, &c0y);
-    int r = 0;
-    while (r < 200 && partySlotAt((int16_t)(c0x + r + 1), (int16_t)c0y) == 0) r++;
-    printf("      party ring: 6 slots, measured %d px across\n", (r + 1) * 2);
-    ck((r + 1) * 2 >= FINGER, "a party slot is at least a finger across");
-
-    int overlap = 0, offGlass = 0, wrongOwner = 0, hubClash = 0;
-    for (int i = 0; i < PARTY_SLOTS; i++) {
-      int ax, ay;
-      partySlotPos(i, &ax, &ay);
-      if (uiSafeHalfWidth(ay) < abs(ax - 233) + r) offGlass++;
-      if (partySlotAt((int16_t)ax, (int16_t)ay) != i) wrongOwner++;
-      if (partyHubAt((int16_t)ax, (int16_t)ay)) hubClash++;
-      for (int j = i + 1; j < PARTY_SLOTS; j++) {
-        int bx2, by2;
-        partySlotPos(j, &bx2, &by2);
-        int dx = ax - bx2, dy = ay - by2;
-        if (dx * dx + dy * dy < (2 * r) * (2 * r)) overlap++;
-      }
-    }
-    ck(overlap == 0, "no two party slots overlap");
-    ck(offGlass == 0, "and every slot is fully on the glass");
-    ck(wrongOwner == 0, "each slot owns its own centre");
-    ck(hubClash == 0, "and none of them reaches into the hub");
-
-    // The hub is the BOX button, in the middle, where a thumb lands. Nothing
-    // else may answer there -- the same rule that keeps the mon sheet's
-    // primary action, not its dead gap, on the centre line.
-    int hy = 0;
-    for (int i = 0; i < PARTY_SLOTS; i++) { int sx, sy; partySlotPos(i, &sx, &sy); hy += sy; }
-    hy /= PARTY_SLOTS;
-    ck(partyHubAt(233, (int16_t)hy) && partySlotAt(233, (int16_t)hy) < 0,
-       "the hub owns the middle of the ring outright");
   }
 
   // THE EGG REGION PILL. Missing it fell through to pet.eggTap(), and three
@@ -403,58 +343,7 @@ int main(){
     ck(pet.ceremony != CER_NONE, "and the tap lets it go, without asking");
   }
 
-  // ---- the party/box detail sheet, where RELEASE is irreversible
-  //
-  // The bounds are DISCOVERED by probing the firmware's own predicate rather
-  // than restated from the PDET_* constants. A test that copies the numbers
-  // passes happily after somebody moves the button and forgets the test, which
-  // is the failure mode section 3 of CLAUDE.md is about.
-  {
-    int lT=999, lB=-1, lL=999, lR=-1, rT=999, rB=-1, rL=999, rR=-1;
-    for (int y = 250; y < 440; y++) {
-      for (int x = 40; x < 430; x++) {
-        if (monSheetBtn(x, y, true)) {
-          if (y < lT) lT = y;  if (y > lB) lB = y;
-          if (x < lL) lL = x;  if (x > lR) lR = x;
-        }
-        if (monSheetBtn(x, y, false)) {
-          if (y < rT) rT = y;  if (y > rB) rB = y;
-          if (x < rL) rL = x;  if (x > rR) rR = x;
-        }
-      }
-    }
-     ck(lB > lT && rB > rT, "both sheet buttons have a hit area at all");
-     ck((lB - lT) >= 44 && (rB - rT) >= 44,
-       "and both are at least UI_TAP_MIN tall -- MAKE ACTIVE used to be 38");
-     ck((lR - lL) >= 44 && (rR - rL) >= 44, "and at least UI_TAP_MIN across");
-    // RELEASE cannot be recovered from, so a finger sliding off BRING BACK must
-    // land on nothing rather than on the destructive one.
-    ck(rL > lR, "they do not overlap");
-    ck(rL - lR >= 8, "and there is a real dead gap between them");
-    // WHERE THE GAP IS MATTERS. The first version centred the pair on 233, which
-    // put the dead gap on the panel's centre line -- the one spot a thumb aims
-    // at, and exactly where every build up to v3.5 drew BRING BACK as a single
-    // full-width button. It was reported as "the bring back button is not
-    // working": the taps were landing between the two.
-    ck(monSheetBtn(233, (lT + lB) / 2, true),
-       "the panel CENTRE lands on the primary button, not in the gap");
-    ck(!monSheetBtn(233, (lT + lB) / 2, false),
-       "and never on the destructive one");
-    // Both must sit on the round panel: the corner furthest from the centre is
-    // the one that falls off a 466 px circle of radius 233.
-    int worst = 0;
-    const int cx = 233, cy = 233;
-    int xs[4] = { lL, lR, rL, rR }, ys[2] = { lT, lB };
-    for (int i = 0; i < 4; i++)
-      for (int j = 0; j < 2; j++) {
-        int dx = xs[i] - cx, dy = ys[j] - cy;
-        int d = (int)(0.5 + __builtin_sqrt((double)(dx*dx + dy*dy)));
-        if (d > worst) worst = d;
-      }
-    ck(worst <= 233, "and every corner is still on the glass");
-  }
-
-  // ---- the confirm panel, which now has three callers
+  // ---- the confirm panel, shared by every confirm dialog
   {
     int b1t, b1b, b2t, b2b;
     uiConfirmRects(&b1t, &b1b, &b2t, &b2b);

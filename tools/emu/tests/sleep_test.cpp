@@ -14,7 +14,6 @@
 #include "Arduino.h"
 #include "Preferences.h"
 #include "pet.h"
-#include "party.h"
 #include <cstdio>
 #ifndef TAMA_NATIVE_TEST
 uint32_t g_seed=23; FakeSerial Serial; FakeESP ESP; FakeWire Wire;

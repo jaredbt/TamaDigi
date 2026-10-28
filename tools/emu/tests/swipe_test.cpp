@@ -2,7 +2,7 @@
 // must never close anything at all.
 //
 // This has been got wrong four separate times -- the move picker, the player
-// card, the boss list and the box -- each found by hand. Paging now lives on the
+// card, the boss list and the (since removed) box -- each found by hand. Paging now lives on the
 // RIM (onRim) and the horizontal swipe is the TILE AXIS, which is what makes
 // the two gestures impossible to confuse; both halves are checked here.
 #include "Arduino.h"
@@ -10,7 +10,6 @@
 #include "Preferences.h"
 #include "pet.h"
 #include "moves.h"
-#include "party.h"
 #include "items.h"
 #include "inventory.h"
 #include <cstdio>
@@ -25,21 +24,17 @@ void onRim(int dir);
 int uiTileIndex(); void uiTileGo(int i);
 uint8_t uiCurrentScreen(); uint8_t uiRimPages(); uint8_t uiRimPage();
 extern Pet pet;
-extern bool cardOpen, galleryOpen, clockOpen, kbOpen, menuOpen, partyOpen, partyPick;
-extern bool trainOpen, movePickOpen, battleOpen, gymOpen, playerOpen, boxOpen, pickOpen;
+extern bool cardOpen, galleryOpen, clockOpen, kbOpen, menuOpen;
+extern bool trainOpen, movePickOpen, battleOpen, gymOpen, playerOpen;
 extern bool exploreOpen;
 extern bool btlWild;
-extern uint8_t cardPage, gymPage, playerPage, movePickPage, boxPage, pickPage, partyDetail;
+extern uint8_t cardPage, gymPage, playerPage, movePickPage;
 extern uint8_t galleryPage; extern bool galleryDirty; extern uint8_t galleryDetail;
 extern uint8_t galleryRegion;
 extern uint8_t gymRegion;
 extern bool gymPick, galleryPick;
-extern uint8_t movePickSlot, movePickParty, boxSel, boxSwapFrom;
-extern uint16_t squadMask;
-extern uint8_t pickTrainer; extern bool pickHard;
+extern uint8_t movePickSlot;
 extern bool bagOpen; extern uint8_t bagPage;
-void pickDefault(uint8_t);
-uint8_t squadCap(uint8_t, bool);
 // Asked of the firmware, not recomputed here: a test that keeps its own copy of
 // RPICK_PER_PAGE proves the transcription, which is how hit_test spent years
 // passing on 12 % REGION_COUNT == 0.
@@ -54,11 +49,10 @@ static uint8_t RPICK_PER_PAGE_T(){ uint8_t n=rpickRegions(rpickModeNow()), p=rpi
 static int bad=0;
 static void clearAll(){
   gymPick=galleryPick=false;
-  cardOpen=galleryOpen=clockOpen=kbOpen=menuOpen=partyOpen=partyPick=false;
-  trainOpen=movePickOpen=battleOpen=gymOpen=playerOpen=boxOpen=pickOpen=false;
+  cardOpen=galleryOpen=clockOpen=kbOpen=menuOpen=false;
+  trainOpen=movePickOpen=battleOpen=gymOpen=playerOpen=false;
   exploreOpen=false;
   bagOpen=false;
-  partyDetail=0; boxSel=boxSwapFrom=0;
 }
 // Page it forward; the page must advance and the screen must stay open. Paging
 // moved from the horizontal swipe to the RIM, which is what freed the
@@ -85,19 +79,12 @@ int main(){
   if (pet.isEgg()) pet.dbgHatchAs(6,false);
   pet.ageMinutes = 60UL*60; pet.relearnFromLevel();
   while (pet.hasLearnOffer()) pet.declineLearn();
-  for (int i=0;i<PARTY_SLOTS;i++){ PartyMon m; m.dex=9+i; m.level=40;
-    m.ivAtk=m.ivDef=m.ivSpe=m.ivHp=20; party.replaceAt(i,m); }
-  for (int i=0;i<BOX_SLOTS;i++){ PartyMon m; m.dex=1+i; m.level=20;
-    m.ivAtk=m.ivDef=m.ivSpe=m.ivHp=20; party.box[i]=m; }
 
   clearAll(); cardOpen=true;                      check("card",     &cardOpen,     &cardPage);
   clearAll(); gymOpen=true; gymPick=false;        check("gyms",     &gymOpen,      &gymPage);
   clearAll(); playerOpen=true;                    check("player",   &playerOpen,   &playerPage);
-  clearAll(); partyOpen=true; boxOpen=true;       check("box",      &boxOpen,      &boxPage);
-  clearAll(); movePickOpen=true; movePickParty=0; movePickSlot=0;
+  clearAll(); movePickOpen=true; movePickSlot=0;
                                                   check("movepick", &movePickOpen, &movePickPage);
-  clearAll(); pickTrainer=7; pickHard=false; pickDefault(squadCap(7,false)); pickOpen=true;
-                                                  check("teampick", &pickOpen,     &pickPage);
   // The bag is paged too. It needs enough DISTINCT items to reach a second page
   // -- with one page it would close on the swipe and the check would fail for
   // the right reason, which is not the same as passing.

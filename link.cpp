@@ -25,7 +25,7 @@ uint16_t linkBuildTag() {
   uint32_t h = 2166136261u;
   const uint16_t bits[] = {
     (uint16_t)MOVE_COUNT, (uint16_t)DEX_COUNT, (uint16_t)MOVE_SLOTS,
-    (uint16_t)TRAINER_TEAM_MAX, (uint16_t)sizeof(LinkMon),
+    (uint16_t)LINK_SQUAD_MAX, (uint16_t)sizeof(LinkMon),
     (uint16_t)sizeof(LinkResult), (uint16_t)SI_COUNT,
   };
   for (uint16_t b : bits) { h ^= b; h *= 16777619u; }
@@ -71,8 +71,8 @@ static void rawSend(Link &l, const uint8_t *pkt, uint8_t n) {
 }
 
 // `keep` marks a packet worth repeating until something supersedes it. Hello
-// and squad are not kept individually -- tick() re-sends those as a set, since
-// losing one of six squad packets must not leave the other five unrepeated.
+// and squad are not kept individually -- tick() re-sends those as a set, so a
+// lost squad packet is repeated along with the hello that announces it.
 static void put(Link &l, uint8_t type, const uint8_t *body, uint8_t n,
                 bool keep = false) {
   if (!l.send || n > LINK_MAX_PAYLOAD) return;
@@ -139,6 +139,7 @@ void Link::begin(bool host, const char *myName) {
   txLive = false;
   txAt = 0;
   resendSeq = 0;
+  answers = 0;
   lastRx = 0;
   sawRx = false;
   armed = false;
@@ -147,7 +148,7 @@ void Link::begin(bool host, const char *myName) {
 }
 
 void Link::addMon(const LinkMon &m) {
-  if (mineN < TRAINER_TEAM_MAX) mine[mineN++] = m;
+  if (mineN < LINK_SQUAD_MAX) mine[mineN++] = m;
 }
 
 void Link::start() {
@@ -266,7 +267,7 @@ void Link::onPacket(const uint8_t *buf, uint8_t len) {
       if (buildTheirs != linkBuildTag()) { state = LINK_REFUSED; return; }
       peerId = (uint16_t)body[HB_ID] | ((uint16_t)body[HB_ID + 1] << 8);
       bool theyHost = (body[HB_FLAGS] & 1) != 0;
-      theirsExpected = body[HB_COUNT] > TRAINER_TEAM_MAX ? TRAINER_TEAM_MAX
+      theirsExpected = body[HB_COUNT] > LINK_SQUAD_MAX ? LINK_SQUAD_MAX
                                                         : body[HB_COUNT];
       memcpy(peerName, body + HB_NAME, LINK_NAME_LEN);
       peerName[LINK_NAME_LEN - 1] = 0;
@@ -285,8 +286,16 @@ void Link::onPacket(const uint8_t *buf, uint8_t len) {
       // and a side that has finished stops listening for it, so without this
       // one lost SQUAD packet deadlocks the pair permanently. Answer with the
       // squad and NOT another hello, or the two would volley forever.
+      //
+      // Every OTHER answer sends it twice. With one Digimon a side the answer
+      // is a single frame, so it always lands at the same position in the
+      // exchange (their hello, their squad, our squad) and a loss with that
+      // period destroyed it on every attempt -- lossy_test reproduces it with
+      // one frame in three dropped. Rotation cannot help a squad of one, so the
+      // answer's LENGTH varies instead; a repeated squad packet is harmless.
       if (state == LINK_READY || state == LINK_WAITING || state == LINK_DONE) {
         sendSquad(*this, resendSeq++);
+        if (answers++ & 1) sendSquad(*this, resendSeq);
         return;
       }
       bool answer = (state == LINK_LISTENING);   // they spoke first
@@ -298,7 +307,7 @@ void Link::onPacket(const uint8_t *buf, uint8_t len) {
     case LM_SQUAD: {
       if (n < 1 + sizeof(LinkMon)) return;
       uint8_t idx = body[0];
-      if (idx >= TRAINER_TEAM_MAX) return;
+      if (idx >= LINK_SQUAD_MAX) return;
       memcpy(&theirs[idx], body + 1, sizeof(LinkMon));
       theirsGot |= (uint16_t)1 << idx;
       if (idx + 1 > theirsN) theirsN = idx + 1;

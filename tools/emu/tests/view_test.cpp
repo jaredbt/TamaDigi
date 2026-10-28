@@ -1,20 +1,16 @@
-// THE VIEW LAYER: the Digidex filter, and the box's on-screen order.
+// THE VIEW LAYER: the Digidex filter. (The box's on-screen order was pinned here
+// too; the party and box were removed by design -- one partner.)
 //
-// Both share one shape and one risk. Neither touches the save -- they change what
-// is DRAWN, not what is stored -- so the thing that can go wrong is not data loss
-// but a MISMATCH: the grid drawn from one calculation and the tap resolved from
-// another, which puts the finger on a different creature than the eye. That
-// shipped in this project before, which is why gymRowRect() and partySlotAt()
-// exist as single answers, and it is what these assertions are pinning.
-//
-// The box sort has a second, sharper failure available to it: if boxSlotFor() is
-// not a BIJECTION, two visual cells resolve to the same real slot and a swap
-// overwrites a creature. That is asserted for every mode.
+// It does not touch the save -- it changes what is DRAWN, not what is stored --
+// so the thing that can go wrong is not data loss but a MISMATCH: the grid drawn
+// from one calculation and the tap resolved from another, which puts the finger
+// on a different creature than the eye. That shipped in this project before,
+// which is why gymRowRect() exists as a single answer, and it is what these
+// assertions are pinning.
 #include "Arduino.h"
 #include "Arduino_GFX_Library.h"
 #include "Preferences.h"
 #include "pet.h"
-#include "party.h"
 #include "dex.h"
 #include <cstdio>
 #include <cstring>
@@ -27,17 +23,15 @@ int FakeSerial::available(){return 0;}
 String FakeSerial::readStringUntil(char){return String("");}
 void setup(); void render();
 extern Pet pet;
-extern Party party;
 
 // the view state and the firmware's own answers about it
-extern uint8_t galleryRegion, galleryPage, galleryFilter, boxSort;
+extern uint8_t galleryRegion, galleryPage, galleryFilter;
 extern int16_t galleryDetail;
 bool galleryPass(int16_t dex);
 uint16_t galleryCount();
 int16_t galleryAt(uint16_t visual);
 uint8_t galleryPages();
 void galleryClampPage();
-uint8_t boxSlotFor(uint8_t visual);
 const char *personalityName();
 int uiGoalCount();
 bool uiGoalMet(int i);
@@ -62,15 +56,14 @@ extern int g_emuCryCount;
 extern int16_t g_emuCryDex;
 void ensureMon();
 void galleryTap(int16_t x, int16_t y);
-// The COUNTS come from the firmware, not from a copy kept here: a filter or an
-// order added to the sketch and not to this list would otherwise go untested in
+// The COUNT comes from the firmware, not from a copy kept here: a filter added
+// to the sketch and not to this list would otherwise go untested in
 // silence. The names below are asserted against them below, which is the cheap
 // half of the same guarantee -- the sketch's enums are file-scope in the .ino and
 // cannot be included.
 uint8_t galleryFilterCount();
-uint8_t boxSortCount();
-enum : uint8_t { GFILT_ALL = 0, GFILT_RAISED, GFILT_CAUGHT, GFILT_VARIANT };
-enum : uint8_t { BSORT_SLOT = 0, BSORT_DEX, BSORT_LEVEL };
+// CAUGHT ("in the party or box") went with the party and box.
+enum : uint8_t { GFILT_ALL = 0, GFILT_RAISED, GFILT_VARIANT };
 
 static int bad=0;
 static void ck(bool ok,const char*w){printf("%s  %s\n",ok?"PASS":"FAIL",w); if(!ok)bad++;}
@@ -104,8 +97,6 @@ int main(){
   // disagree, every loop below is silently skipping a mode.
   ck(galleryFilterCount() == GFILT_VARIANT + 1,
      "this test knows about every Digidex filter the firmware has");
-  ck(boxSortCount() == BSORT_LEVEL + 1,
-     "and about every box order");
   if (pet.awaitingStarter()) pet.chooseStarter(4);
   if (pet.isEgg()) pet.dbgHatchAs(56,false);
   while (pet.hasLearnOffer()) pet.declineLearn();
@@ -115,18 +106,10 @@ int main(){
   galleryPage = 0;
 
   // A known dex state. BIYOMON is live and therefore registered; KUWAGAMON is
-  // registered and variant; LEOMON is in the BOX and was NEVER registered, which is
-  // the case that makes RAISED and CAUGHT different questions rather than two
-  // names for one bit -- registerSpecies() only ever fires for the live creature,
-  // so a wild capture sitting in the box is absent from the dex.
+  // registered and variant; LEOMON was NEVER registered.
   pet.dexReg[(61-1)>>3] |= 1 << ((61-1)&7);          // KUWAGAMON raised
   pet.dexVariantReg[(61-1)>>3] |= 1 << ((61-1)&7);     // ...and in its colour variant
-  {
-    PartyMon lap; lap.dex=60; lap.level=40;
-    party.box[0] = lap;
-    party.boxSave();
-  }
-  ck(!pet.isRegistered(60), "a box-only creature is genuinely NOT in the dex");
+  ck(!pet.isRegistered(60), "LEOMON is genuinely NOT in the dex");
 
   galleryFilter = GFILT_ALL;
   ck(galleryCount() == 17, "ALL shows the whole version");
@@ -140,13 +123,8 @@ int main(){
     const uint16_t n = galleryCount();
     ck(n >= 1, "RAISED shows what has actually been raised");
     ck(galleryPass(56) && galleryPass(61), "including the live creature and KUWAGAMON");
-    ck(!galleryPass(60), "but NOT the one that only ever sat in the box");
+    ck(!galleryPass(60), "but NOT one that was never raised");
   }
-
-  galleryFilter = GFILT_CAUGHT;
-  ck(galleryPass(60), "CAUGHT does show the box-only creature");
-  ck(galleryPass(56), "and the live one");
-  ck(!galleryPass(61), "but not KUWAGAMON, which is in the dex and not in your hands");
 
   galleryFilter = GFILT_VARIANT;
   ck(galleryCount() == 1 && galleryAt(0) == 61, "VARIANT shows only colour-variant records");
@@ -201,107 +179,6 @@ int main(){
     }
     ck(wrong == 0, "every region's grid spans exactly that region");
     galleryRegion = 0;
-  }
-
-  // ------------------------------------------------------------- the box order
-  // A box with holes in it and deliberately unsorted contents.
-  for (int i = 0; i < BOX_SLOTS; i++) party.box[i] = PartyMon();
-  struct { int slot, dex, lvl; } seed[] = {
-    { 0, 149, 55 }, { 1,   6, 90 }, { 3,  25, 12 },
-    { 4, 131, 40 }, { 9,   9, 90 }, { 17, 3, 71 },
-  };
-  for (auto &s : seed) {
-    PartyMon m; m.dex = s.dex; m.level = s.lvl;
-    m.ivAtk = m.ivDef = m.ivSpe = m.ivHp = 20;
-    party.box[s.slot] = m;
-  }
-  party.boxSave();
-
-  // A copy, to prove the sort never touches the data.
-  PartyMon before[BOX_SLOTS];
-  memcpy(before, party.box, sizeof(before));
-
-  for (uint8_t mode = 0; mode < boxSortCount(); mode++) {
-    boxSort = mode;
-    // BIJECTION: every visual position maps to a distinct real slot, and every
-    // real slot is reachable. Anything less means two cells share a creature.
-    std::set<int> hit;
-    bool inRange = true;
-    for (uint8_t v = 0; v < BOX_SLOTS; v++) {
-      const uint8_t s = boxSlotFor(v);
-      if (s >= BOX_SLOTS) inRange = false;
-      hit.insert(s);
-    }
-    char m[110];
-    snprintf(m, sizeof(m), "order %u: every visual cell maps to its own real slot",
-             mode);
-    ck(inRange && hit.size() == BOX_SLOTS, m);
-
-    // and the creatures on screen are the creatures in the box, once each
-    std::set<int> shown;
-    int nonEmpty = 0;
-    for (uint8_t v = 0; v < BOX_SLOTS; v++) {
-      const PartyMon &mm = party.box[boxSlotFor(v)];
-      if (!mm.empty()) { nonEmpty++; shown.insert(boxSlotFor(v)); }
-    }
-    snprintf(m, sizeof(m), "order %u: shows all six creatures and invents none",
-             mode);
-    ck(nonEmpty == 6 && shown.size() == 6, m);
-
-    // EMPTY SLOTS LAST, so the grid reads full-first rather than gap-toothed.
-    bool sawEmpty = false, gapAfter = false;
-    for (uint8_t v = 0; v < BOX_SLOTS; v++) {
-      if (party.box[boxSlotFor(v)].empty()) sawEmpty = true;
-      else if (sawEmpty) gapAfter = true;
-    }
-    snprintf(m, sizeof(m), "order %u: the empty slots are all at the end", mode);
-    ck(mode == BSORT_SLOT ? true : !gapAfter, m);
-
-    snprintf(m, sizeof(m), "order %u: sorting the VIEW left the box untouched", mode);
-    ck(memcmp(before, party.box, sizeof(before)) == 0, m);
-  }
-
-  boxSort = BSORT_SLOT;
-  {
-    bool identity = true;
-    for (uint8_t v = 0; v < BOX_SLOTS; v++) if (boxSlotFor(v) != v) identity = false;
-    ck(identity, "the default order is the slots themselves, unchanged");
-  }
-
-  boxSort = BSORT_DEX;
-  {
-    // 3, 6, 9, 25, 131, 149 -- ascending, then the holes
-    const int want[6] = { 3, 6, 9, 25, 131, 149 };
-    bool ok = true;
-    for (int i = 0; i < 6; i++)
-      if (party.box[boxSlotFor((uint8_t)i)].dex != want[i]) ok = false;
-    ck(ok, "by NUMBER runs up the dex");
-  }
-
-  boxSort = BSORT_LEVEL;
-  {
-    // 90, 90, 71, 55, 40, 12 -- strongest first, and the two 90s keep slot order
-    const int wantLvl[6] = { 90, 90, 71, 55, 40, 12 };
-    bool ok = true;
-    for (int i = 0; i < 6; i++)
-      if (party.box[boxSlotFor((uint8_t)i)].level != wantLvl[i]) ok = false;
-    ck(ok, "by LEVEL puts the strongest first");
-    ck(party.box[boxSlotFor(0)].dex == 6 && party.box[boxSlotFor(1)].dex == 9,
-       "and equal levels stay in slot order, so the order is stable");
-  }
-
-  // A box that is entirely empty must not confuse the permutation.
-  {
-    for (int i = 0; i < BOX_SLOTS; i++) party.box[i] = PartyMon();
-    int wrong = 0;
-    for (uint8_t mode = 0; mode < boxSortCount(); mode++) {
-      boxSort = mode;
-      std::set<int> hit;
-      for (uint8_t v = 0; v < BOX_SLOTS; v++) hit.insert(boxSlotFor(v));
-      if (hit.size() != BOX_SLOTS) wrong++;
-    }
-    ck(wrong == 0, "an empty box is still a clean permutation in every order");
-    boxSort = BSORT_SLOT;
   }
 
   // -------------------------------------------------------- derived personality

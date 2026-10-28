@@ -4,7 +4,6 @@
 #include "Arduino.h"
 #include "Preferences.h"
 #include "pet.h"
-#include "party.h"
 #include "battle.h"
 #include "trainers.h"
 #include "dex.h"

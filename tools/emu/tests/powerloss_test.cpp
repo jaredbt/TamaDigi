@@ -8,7 +8,6 @@
 #include "Arduino.h"
 #include "Preferences.h"
 #include "pet.h"
-#include "party.h"
 #include <cstdio>
 #include <cstring>
 #include <vector>
@@ -278,13 +277,15 @@ int main() {
     }
   }
 
-  // --- the handover, which was only ever in RAM -----------------------------
+  // --- a v2 record still carrying a party handover --------------------------
   //
-  // update() hands the creature over and then newEgg() saves the egg. The party
-  // write does not happen until the player accepts a slot, which may be a banner
-  // or a whole chooser screen later -- and a 4-second hold on the power key in
-  // that window used to lose the creature outright, with the save that erased it
-  // already committed.
+  // v2 appended the creature a farewell handed over while it waited for a party
+  // slot. The party and box were removed by design (one partner), so v3 writes
+  // that span as zeros and the reader skips it. A v2 record with a creature
+  // still waiting in it must load as the egg it holds -- the waiting creature is
+  // let go, as declining the slot always did -- and must NOT fall back to the
+  // legacy keys. The fixture is the current writer's own record with a v2 tail
+  // written into the retired span, not a layout the test restates.
   {
     nvs().clear();
     Pet pet;
@@ -293,48 +294,40 @@ int main() {
     pet.ageMinutes = 80UL * MINUTES_PER_LEVEL;
     strncpy(pet.nick, "BLAZE", sizeof(pet.nick) - 1);
     pet.saveNow();
-
     pet.startFarewell();
     gNow += CEREMONY_MS + 1000;
-    pet.update(gNow);                          // snapshotForParty(), then newEgg()
-    ck(pet.endedKind != CER_NONE, "the farewell hands the creature over");
-    ck(pet.isEgg(), "and leaves a new egg in its place");
+    pet.update(gNow);                          // newEgg(), saved
+    ck(pet.isEgg() && pet.lastEnd == CER_FAREWELL, "a farewell leaves a new egg in its place");
 
-    // Power goes away here, before the player has tapped the banner.
-    Pet rebooted;
-    rebooted.begin();
-    ck(rebooted.endedKind != CER_NONE,
-       "a creature waiting for a party slot survives losing power");
-    ck(rebooted.endedMon.dex == 6 && !strcmp(rebooted.endedMon.nick, "BLAZE"),
-       "and it is the same creature, not a blank record");
-    ck(rebooted.isEgg(),
-       "with the new egg still in place -- the handover did not undo the ceremony");
+    const char *slot = newerSlot("petA", "petB");
+    std::vector<uint8_t> rec = slotBytes(slot);
+    // fixed body 70 + retired tail 52 + crc 2: the span stays, so the next
+    // appended field cannot be read out of a v2 tail
+    ck(rec.size() == 124, "the record keeps the retired v2 tail's span");
+    bool zero = true;
+    for (size_t i = 70; i + 2 < rec.size(); i++) if (rec[i]) zero = false;
+    ck(zero, "and writes it as zeros");
+    if (rec.size() == 124) {
+      rec[4] = 2; rec[5] = 0;                  // version 2
+      rec[70] = CER_FAREWELL;                  // kind
+      rec[72] = 48; rec[73] = 0;               // the stored record's length
+      int16_t dex = 6; memcpy(&rec[74], &dex, 2);
+      memcpy(&rec[74 + 14], "BLAZE", 5);       // its nickname
+      reseal(rec);
+      nvs()[slot] = rec;
+      nvs().erase(std::string(slot) == "petA" ? "petB" : "petA");
+      poisonLegacy();          // so a rejected record cannot pass on the legacy keys
 
-    // And exactly once: taking the slot has to clear the durable copy too.
-    rebooted.clearEnded();
-    Pet again;
-    again.begin();
-    ck(again.endedKind == CER_NONE,
-       "once it has a slot it is not offered again on the next boot");
-  }
-
-  // A runaway is not banked, and an early retire gives the creature up for good.
-  // Neither may leave anything waiting for a slot on the next boot.
-  {
-    nvs().clear();
-    Pet pet;
-    pet.begin();
-    pet.dbgHatchAs(19, false);
-    pet.ageMinutes = 30UL * MINUTES_PER_LEVEL;
-    pet.saveNow();
-    pet.startRunaway();
-    gNow += CEREMONY_MS + 1000;
-    pet.update(gNow);
-
-    Pet rebooted;
-    rebooted.begin();
-    ck(rebooted.endedKind == CER_NONE,
-       "a runaway leaves nothing waiting for a slot, across a reboot too");
+      Pet loaded;
+      loaded.begin();
+      ck(loaded.isEgg() && loaded.lastEnd == CER_FAREWELL,
+         "a v2 record with a creature waiting for a party slot loads its egg");
+      loaded.saveNow();
+      std::vector<uint8_t> after = slotBytes(newerSlot("petA", "petB"));
+      bool cleared = after.size() == 124;
+      for (size_t i = 70; cleared && i + 2 < after.size(); i++) if (after[i]) cleared = false;
+      ck(cleared, "and the next save drops the handover rather than carrying it");
+    }
   }
 
   // --- a record written by an EARLIER build ---------------------------------
@@ -375,8 +368,6 @@ int main() {
              loaded.ageMinutes == 40UL * MINUTES_PER_LEVEL,
          "a v1 checkpoint from an earlier build still loads");
       ck(!strcmp(loaded.nick, "TUBBY"), "including the last field of the v1 body");
-      ck(loaded.endedKind == CER_NONE,
-         "and having no v2 tail reads as nothing waiting for a slot");
     }
   }
 

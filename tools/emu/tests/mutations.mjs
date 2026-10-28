@@ -7,7 +7,7 @@ import { runCommand } from './bounded.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '../../..');
-const core = ['gbsynth', 'pet', 'i18n', 'party', 'battle', 'link', 'save', 'inventory', 'wild'];
+const core = ['gbsynth', 'pet', 'i18n', 'battle', 'link', 'save', 'inventory', 'wild'];
 
 function replaceOnce(source, before, after) {
   assert(source.split(before).length === 2, 'mutation anchor must occur exactly once');
@@ -50,11 +50,11 @@ const mutations = [
         '  Pet(const Pet &) = delete;\n  Pet &operator=(const Pet &) = delete;',
         '  Pet(const Pet &) = default;\n  Pet &operator=(const Pet &) = default;');
       files['TamaDigi.ino'] = replaceOnce(files['TamaDigi.ino'],
-        '    combatantFromPet(btlSquad[btlSquadN++], pet, maxLvl);',
-        '    Pet capped = pet;\n' +
-        '    if (maxLvl && capped.level() > maxLvl)\n' +
-        '      capped.ageMinutes = (uint32_t)(maxLvl - 1) * MINUTES_PER_LEVEL;\n' +
-        '    combatantFromPet(btlSquad[btlSquadN++], capped);');
+        '  combatantFromPet(btlYou, pet, maxLvl);',
+        '  Pet capped = pet;\n' +
+        '  if (maxLvl && capped.level() > maxLvl)\n' +
+        '    capped.ageMinutes = (uint32_t)(maxLvl - 1) * MINUTES_PER_LEVEL;\n' +
+        '  combatantFromPet(btlYou, capped);');
     },
   },
   {
@@ -101,26 +101,6 @@ async function main() {
       await positive(directory, mutation.case);
       console.log(`PASS restored fix: ${mutation.case}`);
     }
-    const partyFile = join(directory, 'party.cpp');
-    const partySource = await readFile(partyFile, 'utf8');
-    const anchor = '      memcpy(&slots[i], old + i * oldStride, oldStride);';
-    const boxTest = join(directory, 'box-regression');
-    for (const broken of [false, true, false]) {
-      await writeFile(partyFile, broken ? replaceOnce(partySource, anchor, `${anchor}\n    save();`) : partySource);
-      await checked(['g++', '-std=c++17', '-O1', '-w', `-I${directory}/tools/emu`, `-I${directory}`,
-        '-o', boxTest, join(directory, 'tools/emu/tests/box_test.cpp'),
-        ...['pet', 'party', 'i18n'].map((name) => join(directory, `${name}.cpp`))],
-      { timeoutMs: 120000 }, 'compile combined legacy migration control');
-      const result = await runCommand([boxTest], { timeoutMs: 30000, echo: false });
-      if (broken) {
-        assert(!result.ok && result.code === 1 && !result.timedOut &&
-          result.output.includes('FAIL  short legacy party migration waits for the 18-slot box before checkpointing') &&
-          result.output.includes('FAIL  combined legacy migration survives checkpoint reload'),
-        `premature migration checkpoint was not detected: ${result.failure}\n${result.output}`);
-        console.log('PASS mutation premature legacy party checkpoint loses box');
-      } else assert(result.ok, `fixed combined legacy migration failed: ${result.failure}\n${result.output}`);
-    }
-    console.log('PASS restored combined legacy party/box migration');
     console.log('PASS mandatory original-defect mutations complete: 2');
   } finally {
     await rm(directory, { recursive: true, force: true });

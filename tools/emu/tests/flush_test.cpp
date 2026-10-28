@@ -6,7 +6,6 @@
 #include "Arduino_GFX_Library.h"
 #include "Preferences.h"
 #include "pet.h"
-#include "party.h"
 #include <cstdio>
 #include <cstring>
 uint32_t g_seed=7; FakeSerial Serial; FakeESP ESP; FakeWire Wire;
@@ -20,12 +19,11 @@ uint8_t uiCurrentScreen();
 extern const char *const SCREEN_NAME[];
 extern Arduino_Canvas *gfx;
 extern Pet pet;
-extern bool cardOpen, galleryOpen, clockOpen, kbOpen, menuOpen, partyOpen, partyPick;
+extern bool cardOpen, galleryOpen, clockOpen, kbOpen, menuOpen;
 extern bool trainOpen, movePickOpen, battleOpen, gymOpen, playerOpen;
 extern bool exploreOpen;
 extern uint8_t cardPage;
-extern uint8_t partyDetail, boxDetail;
-extern bool boxOpen, releaseConfirm;
+extern uint32_t confirmUntil;
 extern bool bagOpen;
 // The four minigames, the paged settings screen and the player's pages. The
 // minigames were NEVER covered here, which is a gap in the one test that exists
@@ -34,20 +32,18 @@ extern bool bagOpen;
 extern bool gameOpen, sackOpen, spdOpen, memoOpen;
 extern uint8_t clockPage, playerPage;
 void startGame(); void startSack(); void startSpeedGame(); void startMemoGame();
-extern Party party;
 void startBattle(int16_t dex, uint8_t lvl);
 extern uint32_t sdTransferAt;
 
 static int bad = 0;
 static void clearAll(){
-  cardOpen=galleryOpen=clockOpen=kbOpen=menuOpen=partyOpen=partyPick=false;
+  cardOpen=galleryOpen=clockOpen=kbOpen=menuOpen=false;
   trainOpen=movePickOpen=battleOpen=gymOpen=playerOpen=false;
   exploreOpen=false;
-  boxOpen=releaseConfirm=false;
+  confirmUntil=0;
   bagOpen=false;
   gameOpen=sackOpen=spdOpen=memoOpen=false;
   clockPage=0; playerPage=0;
-  partyDetail=boxDetail=0;
 }
 static void check(const char *name){
   gfx->frameReady = false;
@@ -82,7 +78,6 @@ int main(){
   clearAll(); gymOpen=true;      check("gyms");
   clearAll(); playerOpen=true;   check("player");
   clearAll(); menuOpen=true;     check("menu");
-  clearAll(); partyOpen=true;    check("party");
   clearAll(); bagOpen=true;      check("bag");
   clearAll(); clockOpen=true;    check("clock");
   // Settings is two pages now, and the second one is where brightness and the
@@ -106,18 +101,9 @@ int main(){
   for (uint8_t p=0;p<4;p++){ clearAll(); cardOpen=true; cardPage=p;
     char n[16]; snprintf(n,sizeof(n),"card%u",p); check(n); }
   clearAll(); startBattle(9,50); check("battle");
-  // The detail sheets and the release confirm drawn over them. A creature has to
-  // be IN the slot: an empty one falls through to the grid, which flushes for a
-  // different reason and would pass without ever drawing a sheet.
-  {
-    PartyMon m; m.dex=25; m.level=30; m.ivAtk=m.ivDef=m.ivSpe=m.ivHp=20;
-    snprintf(m.nick,sizeof(m.nick),"PIKA");
-    party.slots[0]=m; party.box[0]=m; party.save(); party.boxSave();
-  }
-  clearAll(); partyOpen=true; partyDetail=1;                      check("partysheet");
-  clearAll(); partyOpen=true; partyDetail=1; releaseConfirm=true;  check("partyconfirm");
-  clearAll(); partyOpen=true; boxOpen=true; boxDetail=1;           check("boxsheet");
-  clearAll(); partyOpen=true; boxOpen=true; boxDetail=1; releaseConfirm=true; check("boxconfirm");
+  // The release confirm, drawn over the main screen. (The party and box
+  // sheets, and their own release confirm, went with the party and box.)
+  clearAll(); confirmUntil=millis()+10000; check("relconfirm");
 
   // The transfer screen stands in for whatever was up while a pack streams in,
   // so it flushes and names itself like any other -- and never covers a fight.
@@ -130,7 +116,6 @@ int main(){
   clearAll();                       crumbIs("main");
   clearAll(); trainOpen=true;       crumbIs("train");
   clearAll(); menuOpen=true;        crumbIs("menu");
-  clearAll(); partyOpen=true;       crumbIs("party");
   clearAll(); exploreOpen=true;     crumbIs("explore");
   clearAll(); gymOpen=true;         crumbIs("gym");
   clearAll(); playerOpen=true;      crumbIs("player");

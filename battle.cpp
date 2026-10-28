@@ -16,26 +16,21 @@ static void fill(Combatant &c, int16_t dex, uint8_t lvl, uint16_t hp,
 }
 
 void combatantFromPet(Combatant &c, const Pet &p, uint8_t levelCap) {
-  PartyMon stats;
-  stats.dex = p.speciesId;
-  stats.level = levelCap && p.level() > levelCap ? levelCap : p.level();
-  stats.ivAtk = p.ivAtk; stats.ivDef = p.ivDef;
-  stats.ivSpe = p.ivSpe; stats.ivHp = p.ivHp;
-  stats.trAtk = p.trAtk; stats.trDef = p.trDef; stats.trSpe = p.trSpe;
-  fill(c, stats.dex, (uint8_t)stats.level, party.vitOf(stats), party.atkOf(stats),
-    party.defOf(stats), party.spaOf(stats), party.spdOf(stats), party.speOf(stats));
+  const int16_t dex = p.speciesId;
+  const uint8_t lvl = levelCap && p.level() > levelCap ? levelCap : p.level();
+  if (dex < 1 || dex > DEX_COUNT) {   // an egg: no stats, as it always had
+    fill(c, dex, lvl, 0, 0, 0, 0, 0, 0);
+    return;
+  }
+  const DexEntry &d = DEX_TBL[dex];
+  // Special reuses the physical IV and training, the same rule as Pet::spaStat().
+  fill(c, dex, lvl, petCalcStat(d.bHp, p.ivHp, lvl, 10),
+       petCalcStat(d.bAtk, p.ivAtk, lvl, p.trAtk), petCalcStat(d.bDef, p.ivDef, lvl, p.trDef),
+       petCalcStat(d.bSpA, p.ivAtk, lvl, p.trAtk), petCalcStat(d.bSpD, p.ivDef, lvl, p.trDef),
+       petCalcStat(d.bSpe, p.ivSpe, lvl, p.trSpe));
   for (int i = 0; i < MOVE_SLOTS; i++) c.moves[i] = p.moves[i];
   c.variant = p.variant;
   const char *nm = p.nick[0] ? p.nick : DEX_TBL[p.speciesId].name;
-  snprintf(c.name, sizeof(c.name), "%s", nm);
-}
-
-void combatantFromParty(Combatant &c, const PartyMon &m) {
-  fill(c, m.dex, (uint8_t)m.level, party.vitOf(m), party.atkOf(m), party.defOf(m),
-       party.spaOf(m), party.spdOf(m), party.speOf(m));
-  for (int i = 0; i < MOVE_SLOTS; i++) c.moves[i] = m.moves[i];
-  c.variant = m.variant != 0;
-  const char *nm = m.nick[0] ? m.nick : DEX_TBL[m.dex].name;
   snprintf(c.name, sizeof(c.name), "%s", nm);
 }
 

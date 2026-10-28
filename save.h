@@ -5,7 +5,7 @@
 // A whole-save backup, over the serial console.
 //
 // A run is weeks of real time living in one NVS partition, and there is now a
-// lot in it: the creature, the party, the box, both badge ladders, the Digidex,
+// lot in it: the creature, both badge ladders, the Digidex,
 // the streak, the tamer name. Nothing could get it back out.
 //
 // The backup is KEY-DRIVEN, not a struct of fields. SAVE_FIELDS lists every key
@@ -26,7 +26,9 @@
 // Shared EXPORT/IMPORT ceiling, including every checkpoint.
 //
 // Raised from 4096 when the party and box became one atomic record, then from
-// 8192 when the box doubled to 36 slots. saveExport() returns 0 rather than
+// 8192 when the box doubled to 36 slots. The party and box are gone, but it
+// stays: saveImport() still has to take a backup made while they existed.
+// saveExport() returns 0 rather than
 // truncating, so outgrowing this turns EXPORT into "EXPORT FAIL" -- the backup
 // simply stops existing. save_test prints the margin and fails below a quarter
 // spare.
@@ -66,7 +68,7 @@ size_t saveExportSize();
 // in both directions. Before: the firmware still holds the old creature in RAM,
 // so anything that saves in that window writes it straight back into the store
 // that was just cleared -- saveInhibited guards the flush hooks, but not
-// Party::save() or Inventory::save(). After: a cut mid-clear leaves a store that
+// Inventory::save(). After: a cut mid-clear leaves a store that
 // is neither the old save nor a new game, and nothing records which was intended.
 //
 // So the INTENT is recorded first, and the wipe happens at the TOP OF THE NEXT

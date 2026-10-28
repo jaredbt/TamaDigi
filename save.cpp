@@ -2,19 +2,24 @@
 #include <Arduino.h>
 #include <Preferences.h>
 #include <string.h>
-#include "party.h"   // MAX_VAL is derived from the box, see below
+#include "pet.h"         // the checkpoint caps that size MAX_VAL, see below
+#include "inventory.h"   // ...and the bag
 
 // Every key the firmware persists. Adding one here is the whole job of adding
 // it to the backup; save_test fails if a key exists in NVS and not in this list.
 //
 // Legacy fields migrate on load; exports keep checkpoints and standalone keys.
+//
+// pbA/pbB, the party+box checkpoint, are NOT here any more: the party and box
+// were removed by design (one partner). A device or a .tpsave that still holds
+// them loads without them -- export leaves them out and import skips them as
+// unknown keys.
 const SaveField SAVE_FIELDS[] = {
   { "init", SK_BOOL },
   // The alternating checkpoints -- everything about the creature and the
   // player lives here now. This IS the save; nothing below is redundant with it.
   { "petA", SK_BYTES }, { "petB", SK_BYTES },
   { "plyA", SK_BYTES }, { "plyB", SK_BYTES },
-  { "pbA", SK_BYTES },  { "pbB", SK_BYTES },
   // What has no checkpoint of its own
   { "bag", SK_BYTES },
   // settings, so a restored device plays the way it did
@@ -28,18 +33,16 @@ const SaveField SAVE_FIELDS[] = {
 };
 const uint16_t SAVE_FIELD_COUNT = sizeof(SAVE_FIELDS) / sizeof(SAVE_FIELDS[0]);
 
-// The largest single value in the backup. It USED to be the box -- BOX_SLOTS
-// whole records -- and is now the party+box CHECKPOINT, which holds both arrays
-// plus its own header. Getting this wrong does not fail loudly: readField()
-// returns -1 for anything longer, so the oversized key is quietly left out and
-// the backup is silently partial. That already happened once, when this was the
-// literal 768 and a PartyMon grew past 42 bytes.
+// The largest single value in the backup: the biggest of the blobs listed above.
+// Getting this wrong does not fail loudly: readField() returns -1 for anything
+// longer, so the oversized key is quietly left out and the backup is silently
+// partial. That already happened once, when this was the literal 768 and the
+// box record grew past it.
 //
-// DERIVED, never a literal, and derived from the same expression party.cpp uses
-// so the two cannot drift.
-#define PAIR_BLOB_MAX (18 + sizeof(PartyMon) * (PARTY_SLOTS + BOX_SLOTS) + 2)
-#define MAX_VAL (PAIR_BLOB_MAX > sizeof(PartyMon) * BOX_SLOTS \
-                 ? PAIR_BLOB_MAX : sizeof(PartyMon) * BOX_SLOTS)
+// DERIVED, never a literal, from the same caps the records are read with.
+#define MAX_OF(a, b) ((a) > (b) ? (a) : (b))
+#define MAX_VAL MAX_OF(MAX_OF((size_t)PET_CKPT_CAP, (size_t)PLAYER_CKPT_CAP), \
+                       (size_t)ITEM_COUNT)
 
 static uint16_t crc16(const uint8_t *p, size_t n) {
   uint16_t c = 0xFFFF;
@@ -61,7 +64,8 @@ static uint8_t widthOf(uint8_t kind) {
 }
 
 // Reads one field out of NVS. Returns its length, or -1 if the key is absent --
-// absent is normal (a fresh save has no party) and is simply left out.
+// absent is normal (a fresh save has written only one of each checkpoint pair) and is
+// simply left out.
 static int readField(Preferences &p, const SaveField &f, uint8_t *val) {
   if (!p.isKey(f.key)) return -1;
   switch (f.kind) {
@@ -180,7 +184,13 @@ bool saveImport(const uint8_t *in, size_t n) {
     size_t vat = at + 1 + klen;
     uint8_t kind = in[vat];
     uint16_t vlen = (uint16_t)in[vat + 1] | ((uint16_t)in[vat + 2] << 8);
-    if (vlen > MAX_VAL) return false;
+    // Only a key we would WRITE is held to MAX_VAL. An unknown one is skipped in
+    // pass two whatever its size, so bounding it here would refuse every older
+    // backup that still carries the party+box record (pbA/pbB), which is far
+    // larger than anything this build stores.
+    char key[16] = {0};
+    memcpy(key, in + at + 1, klen);
+    if (vlen > MAX_VAL && fieldFor(key, kind)) return false;
     if (vat + 3 + vlen > n - 2) return false;
     uint8_t w = widthOf(kind);
     if (w && vlen != w) return false;          // a scalar of the wrong width
