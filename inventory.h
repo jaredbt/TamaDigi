@@ -12,8 +12,8 @@
 // the array keeps its zero initialiser, so a blob written before an item
 // existed reads back with that item at zero.
 //
-// Its own NVS key, not part of the pet blob. Same reasoning that put the box
-// under its own key: purely additive changes cannot misread an existing save.
+// Its own NVS key, not part of the pet blob, so purely additive changes cannot
+// misread an existing save.
 constexpr uint8_t BAG_STACK_MAX = 99;
 
 class Inventory {

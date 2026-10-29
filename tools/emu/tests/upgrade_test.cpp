@@ -16,23 +16,22 @@
 //     regenerate the blob to make the test pass: that throws away the only copy
 //     of what v1.0.0 actually wrote.
 //
-//  2. The LEGACY shapes the loaders still migrate: a short Digidex bitmap, a
-//     party blob with the pre-moves record size, none of the keys added since
-//     (box, region, per-version badges, movesets), a v1 player checkpoint, and
-//     -- the other direction -- a save from a build with a BIGGER dex or more
-//     slots, which is what rolling back through the installer does once the
-//     roster grows. These came from TamaPoke, where they guarded real saves;
+//  2. The LEGACY shapes the loaders still migrate: a short Digidex bitmap,
+//     none of the keys added since (region, per-version badges, movesets), a v1
+//     player checkpoint, and -- the other direction -- a save from a build with
+//     a BIGGER dex, which is what rolling back through the installer does once
+//     the roster grows. These came from TamaPoke, where they guarded real saves;
 //     the Digimon conversion deleted the test rather than renumbering it, so
 //     every dex number here is derived from DEX_COUNT, never a literal from
 //     whichever roster was current when it was written.
 //
-// The dangerous one is the party. Party::begin() infers the old record size
-// from the blob length, and a misread there does not fail loudly: it invents a
-// party out of misaligned bytes, and a stray byte is often a valid dex number.
+// The party and box were removed by design: one partner, no teams. A save that
+// still holds them (the legacy "party"/"box" blobs, or the pbA/pbB checkpoint)
+// must load without crashing and with them ignored, never misread into the
+// partner; the checks that used to pin their contents now pin exactly that.
 #include "Arduino.h"
 #include "Preferences.h"
 #include "pet.h"
-#include "party.h"
 #include "save.h"
 #include "inventory.h"
 #include <cstdio>
@@ -50,15 +49,12 @@ void sfxPlay(uint8_t){}
 static int bad=0;
 static void ck(bool ok,const char*w){printf("%s  %s\n",ok?"PASS":"FAIL",w); if(!ok)bad++;}
 
-// A PartyMon as it was BEFORE moves[] was appended: identical fields in
-// identical order, just without the trailing moves[]. It has to be an exact
-// PREFIX of the current struct or the length-based migration cannot work -- and
-// getting `medals` wrong here is what made this test fail against correct code
-// the first time, by putting nick[] two bytes out.
 // The Digidex bitmap an older, smaller-dex build stored: shorter than today's.
 constexpr size_t OLD_DEX_BYTES = (DEX_COUNT + 7) / 8 > 4 ? (DEX_COUNT + 7) / 8 - 4 : 1;
 constexpr int OLD_TOP_DEX = OLD_DEX_BYTES * 8;
 
+// A party record as the oldest builds stored it, before moves[] was appended.
+// Only written now, as a legacy key a loader must step over.
 struct OldPartyMon {
   int16_t dex;
   uint16_t level;
@@ -381,8 +377,8 @@ static void checkV1Save() {
     Pet wipe; wipe.begin(); wipe.factoryReset();
   }
   ck(saveImport(V1_0_0_SAVE, sizeof(V1_0_0_SAVE)), "the v1.0.0 save imports");
-  Pet pet; Party pty; Inventory inv;
-  pet.begin(); pty.begin(); inv.begin();
+  Pet pet; Inventory inv;
+  pet.begin(); inv.begin();
 
   ck(pet.speciesId == 12 && pet.variant, "the creature is still a colour-variant METALGREYMON");
   ck(pet.level() == 52, "at level 52");
@@ -406,25 +402,21 @@ static void checkV1Save() {
   ck(registeredExactly(pet, {1, 2, 3, 5, 12, 18, 35, 71, 87}), "the Digidex holds exactly what it did");
   ck(pet.isVariantRegistered(12), "including the colour-variant entry");
 
-  ck(pty.count() == 4, "the party still has four members");
-  bool ok = true;
-  for (int i = 0; i < 4; i++) {
-    const PartyMon &m = pty.slots[i];
-    char want[8]; snprintf(want, sizeof(want), "PAL%d", i);
-    if (m.dex != 3 + i * 2 || m.level != 30 + i || strcmp(m.nick, want)) ok = false;
-    if (m.ivAtk != 12 + i || m.trAtk != 10 * i || m.medals != 2 + i) ok = false;
-    if (m.moves[0] != 1 + i || m.moves[1] != 5 + i) ok = false;
-    if ((bool)m.variant != (i == 1)) ok = false;
+  // The blob still carries the v1.0.0 party (four members) and box (five) in its
+  // pbA/pbB checkpoint. The party and box were REMOVED BY DESIGN -- one partner,
+  // no teams -- so they are not carried forward: the import skips the record,
+  // nothing writes it back, and the partner checked above loads intact. Spotting
+  // a v1.0.0 save and starting a new game instead (the decision recorded in
+  // docs/HANDOFF.md) comes with the Time Stranger data cutover, which rewrites
+  // this section; until then these are the checks that hold.
+  {
+    Preferences p; p.begin("tamadigi", true);
+    ck(!p.isKey("pbA") && !p.isKey("pbB"),
+       "the v1.0.0 party and box are ignored, not written back");
+    p.end();
   }
-  ck(ok, "every party member keeps its species, level, IVs, training, medals, moves and name");
-  ck(pty.boxCount() == 5, "the box still holds five");
-  ok = true;
-  for (int i = 0; i < 5; i++) {
-    const PartyMon &m = pty.box[i];
-    char want[8]; snprintf(want, sizeof(want), "BOX%d", i);
-    if (m.dex != 80 + i || m.level != 60 + i || strcmp(m.nick, want)) ok = false;
-  }
-  ck(ok, "and each boxed Digimon is the one that was stored");
+  ck(pet.speciesId == 12 && pet.level() == 52 && !strcmp(pet.nick, "BLAZE"),
+     "and ignoring them leaves the partner intact");
 
   ck(inv.count(IT_SCANCHIP) == 12 && inv.count(IT_LGRECOVERY) == 2 && inv.count(IT_ALLCURE) == 1 &&
      inv.distinctCount() == 4, "the bag survives");
@@ -437,13 +429,6 @@ int main(){
   {
     Pet wipe; wipe.begin(); wipe.factoryReset();
   }
-  // If this ever fails, the migration cannot work at all: Party::begin() infers
-  // the old record size from the blob length and copies that many bytes into
-  // the front of each new record.
-  ck(sizeof(OldPartyMon) < sizeof(PartyMon),
-     "the old record is shorter than the new one");
-  ck(offsetof(OldPartyMon, nick) == offsetof(PartyMon, nick),
-     "and every field before moves[] sits at the same offset");
 
   // --- write a save the way an older build would have
   {
@@ -475,8 +460,9 @@ int main(){
     oldVariant[3] = 0x08;                                           // dex 28
     p.putBytes("dexsh", oldVariant, sizeof(oldVariant));
 
-    // a party in the OLD record layout, no moves[]
-    OldPartyMon op[PARTY_SLOTS];
+    // a party in the OLD record layout, no moves[]. The party is gone, so this is
+    // a key the loader must step over without letting it touch the partner.
+    OldPartyMon op[6];                       // the six party slots it had
     memset(op, 0, sizeof(op));
     for (int i = 0; i < 4; i++) {
       op[i].dex = (int16_t)(20 + i * 11);
@@ -492,8 +478,8 @@ int main(){
   }
 
   // --- now load it with the CURRENT code, as an update would
-  Pet pet; Party pty;
-  pet.begin(); pty.begin();
+  Pet pet;
+  pet.begin();
 
   ck(pet.speciesId == 12, "the creature survives the update");
   ck(pet.level() == 40, "at the level it was");
@@ -520,24 +506,13 @@ int main(){
   for (int d = OLD_TOP_DEX + 1; d <= DEX_COUNT; d++) if (pet.isRegistered(d)) stray = true;
   ck(!stray, "and nothing past the old bitmap is falsely registered");
 
-  // THE DANGEROUS ONE: a party blob of the old stride
-  ck(pty.count() == 4, "the party still has four members");
-  bool ok = true;
-  for (int i = 0; i < 4; i++) {
-    const PartyMon &m = pty.slots[i];
-    char want[8]; snprintf(want, sizeof(want), "OLD%d", i);
-    if (m.dex != 20 + i * 11 || m.level != 44 + i) ok = false;
-    if (strcmp(m.nick, want)) ok = false;
-    if (m.ivAtk != 15 + i) ok = false;
+  // The old party blob is ignored: the partner above loaded from its own keys,
+  // and nothing re-saves the party.
+  {
+    Preferences p; p.begin("tamadigi", true);
+    ck(!p.isKey("pbA") && !p.isKey("pbB"), "an old party blob is not migrated into a new record");
+    p.end();
   }
-  ck(ok, "every banked creature keeps its species, level, IVs and nickname");
-  ck(pty.slots[2].medals == 5, "and the medals it earned in life");
-  bool freshMoves = true;
-  for (int i = 0; i < 4; i++)
-    if (pty.slots[i].moves[0] || pty.slots[i].moves[3]) freshMoves = false;
-  ck(freshMoves, "the moveset a pre-moves save never had comes up empty, not garbage");
-  ck(pty.slots[1].variant, "a banked colour variant is still one");
-  ck(pty.boxCount() == 0, "the box, which did not exist then, comes up empty");
 
   // the new settings take their defaults rather than garbage
   ck(pet.region < REGION_COUNT, "the egg region defaults sanely");
@@ -549,8 +524,8 @@ int main(){
     ck(n > 0, "an upgraded save exports");
     pet.factoryReset();
     ck(saveImport(buf, n), "and imports again");
-    Pet p2; Party q2; p2.begin(); q2.begin();
-    ck(p2.speciesId == 12 && !strcmp(p2.nick, "BLAZE") && q2.count() == 4,
+    Pet p2; p2.begin();
+    ck(p2.speciesId == 12 && !strcmp(p2.nick, "BLAZE"),
        "with the upgraded contents intact");
   }
 
@@ -592,82 +567,6 @@ int main(){
     pr.putBytes("badgX", bigb.data(), bigb.size());
     pr.end();
 
-    // and a party/box blob from a build with MORE slots at the same stride
-    //
-    // TWO SAVES, not one, because the party and box gained a CHECKPOINT (pbA/pbB)
-    // and the checkpoint is deliberately the truth about the pair -- the legacy
-    // "party"/"box" blobs are the migration path and what a downgrade reads. This
-    // block used to write only the legacy blobs and then assert on them, which
-    // after the checkpoint landed described a save no build can produce: a device
-    // whose party came from a LATER build would carry that build's checkpoint too,
-    // and the checkpoint would rightly win. It read as a firmware bug and was a
-    // stale test.
-    //
-    // So both real shapes are covered: a save from BEFORE checkpoints existed
-    // (legacy keys only), and a save from a build with more slots (checkpoint
-    // present, and oversized).
-    {
-      // -- shape 1: legacy keys only, as a pre-checkpoint build left them
-      Preferences pr2; pr2.begin("tamadigi", false);
-      pr2.remove("pbA");
-      pr2.remove("pbB");
-      std::vector<uint8_t> bigp(sizeof(PartyMon) * (PARTY_SLOTS + 3), 0);
-      PartyMon m; m.dex = DEX_COUNT; m.level = 100;
-      snprintf(m.nick, sizeof(m.nick), "DRAGO");
-      memcpy(bigp.data(), &m, sizeof(m));
-      pr2.putBytes("party", bigp.data(), bigp.size());
-      std::vector<uint8_t> bigb2(sizeof(PartyMon) * (BOX_SLOTS + 5), 0);
-      PartyMon b; b.dex = 6; b.level = 100;
-      memcpy(bigb2.data(), &b, sizeof(b));
-      pr2.putBytes("box", bigb2.data(), bigb2.size());
-      pr2.end();
-      Party pq; pq.begin();
-      ck(pq.slots[0].dex == DEX_COUNT && pq.slots[0].level == 100,
-         "a party written by a build with MORE slots keeps its first six");
-      ck(pq.box[0].dex == 6, "and so does the box");
-    }
-    {
-      // -- shape 2: a CHECKPOINT from a build with more slots. Its dimensions
-      // travel in its own header, so the extra records are consumed and dropped
-      // rather than misaligning ours. Built by hand: the running build cannot
-      // write a record with dimensions it does not have.
-      const uint8_t moreParty = PARTY_SLOTS + 2, moreBox = BOX_SLOTS + 4;
-      const size_t mon = sizeof(PartyMon);
-      const size_t fixed = 18;                     // PAIR_FIXED
-      std::vector<uint8_t> blob(fixed + mon * (moreParty + moreBox) + 2, 0);
-      memcpy(blob.data() + 0, "\x4B\x50\x42\x31", 4);   // PAIR_MAGIC "KPB1"
-      uint16_t ver = 1; memcpy(blob.data() + 4, &ver, 2);
-      uint16_t total = (uint16_t)blob.size(); memcpy(blob.data() + 6, &total, 2);
-      uint32_t gen = 9; memcpy(blob.data() + 8, &gen, 4);
-      uint16_t ms = (uint16_t)mon; memcpy(blob.data() + 12, &ms, 2);
-      blob[14] = moreParty;
-      blob[15] = moreBox;
-      // slot 0 of the party, and slot 0 of the box, are what we assert on
-      PartyMon pm; pm.dex = DEX_COUNT - 1; pm.level = 70;
-      snprintf(pm.nick, sizeof(pm.nick), "ICER");
-      memcpy(blob.data() + fixed, &pm, mon);
-      PartyMon bm; bm.dex = 9; bm.level = 55;
-      memcpy(blob.data() + fixed + mon * moreParty, &bm, mon);
-      // CRC-16/CCITT-FALSE over everything before the trailing crc, same as ckpt.h
-      uint16_t crc = 0xFFFF;
-      for (size_t i = 0; i + 2 < blob.size(); i++) {
-        crc ^= (uint16_t)blob[i] << 8;
-        for (int k = 0; k < 8; k++)
-          crc = (crc & 0x8000) ? (uint16_t)((crc << 1) ^ 0x1021) : (uint16_t)(crc << 1);
-      }
-      memcpy(blob.data() + blob.size() - 2, &crc, 2);
-
-      Preferences pr3; pr3.begin("tamadigi", false);
-      pr3.putBytes("pbA", blob.data(), blob.size());
-      pr3.remove("pbB");
-      pr3.end();
-      Party pq2; pq2.begin();
-      ck(pq2.slots[0].dex == DEX_COUNT - 1 && pq2.slots[0].level == 70 &&
-         !strcmp(pq2.slots[0].nick, "ICER"),
-         "a pair CHECKPOINT from a build with more slots keeps its first six");
-      ck(pq2.box[0].dex == 9 && pq2.box[0].level == 55,
-         "and the supported prefix of its box");
-    }
 
     Pet q; q.begin();
     ck(q.isRegistered(25) && q.isRegistered(DEX_COUNT),

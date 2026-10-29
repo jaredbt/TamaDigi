@@ -13,7 +13,6 @@
 #include "Arduino.h"
 #include "Preferences.h"
 #include "pet.h"
-#include "party.h"
 #include "noart.h"   // speciesHasArt / NO_ART_COUNT
 #include <cstdio>
 #include <set>

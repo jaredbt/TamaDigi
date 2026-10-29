@@ -1,4 +1,4 @@
-// The LAN battle as the sketch actually wires it: what squad you fight with,
+// The LAN battle as the sketch actually wires it: which Digimon you fight with,
 // what the guest is allowed to do, and whether a result off the wire lands on
 // the right creature. The protocol itself is link_test's job; this is the half
 // that lives in TamaDigi.ino and that link_test cannot reach.
@@ -9,7 +9,6 @@
 #include "Arduino_GFX_Library.h"
 #include "Preferences.h"
 #include "pet.h"
-#include "party.h"
 #include "battle.h"
 #include "link.h"
 #include <cstdio>
@@ -24,20 +23,10 @@ extern Pet pet;
 extern Link lan;
 extern bool battleOpen, btlLink, btlLinkHost, btlOver, btlWon, lanOpen;
 extern Combatant btlYou, btlFoe;
-extern Combatant btlSquad[];
-extern uint8_t btlSquadN, btlSquadAt, btlFoeAt, btlMenu, btlMsgCount;
-extern uint8_t btlMyAct, btlFoeSquadN;
-extern Combatant btlFoeSquad[];
-extern uint16_t squadMask;
-extern bool pickOpen, lanWantHost;
-extern uint8_t pickTrainer, pickPage;
-extern bool pickHard;
+extern uint8_t btlMenu, btlMsgCount;
+extern uint8_t btlMyAct;
 void startLinkBattle();
-void pickTap(int16_t x, int16_t y);
-void pickDefault(uint8_t cap);
-uint8_t squadCap(uint8_t, bool);
-uint8_t pickChosen();
-#define PICK_LAN 0xFF
+void lanTap(int16_t x, int16_t y);
 
 // The sketch never sets a transport itself -- linkNowBegin does, and there is
 // no radio here -- so one is wired in to see what the UI actually sends.
@@ -63,49 +52,31 @@ int main(){
   for (int i=0;i<4;i++) render();
   if (pet.awaitingStarter()) pet.chooseStarter(4);
   if (pet.isEgg()) pet.dbgHatchAs(6,false);
-  // a party that is deliberately NOT the squad we advertise
-  for (int i=0;i<PARTY_SLOTS;i++){ PartyMon m; m.dex=20+i; m.level=30;
-    m.ivAtk=m.ivDef=m.ivSpe=m.ivHp=20; party.replaceAt(i,m); }
-  squadMask = 0xFFFF;
+  // The live pet is a level-1 BLAZE; what we advertise is deliberately not it.
 
   lan.begin(true,"HOST");
   snprintf(lan.peerName,sizeof(lan.peerName),"%s","RIVAL");
   lan.addMon(mon(9,50,"SHELL"));
-  lan.addMon(mon(21,50,"SNORE"));
   lan.theirs[0]=mon(6,50,"BLAZE");
-  lan.theirs[1]=mon(4,50,"SPOON");
-  lan.theirsN=2;
+  lan.theirsN=1;
   lan.state=LINK_READY;
   lan.send=capture;
 
   startLinkBattle();
   ck(battleOpen && btlLink && btlLinkHost, "the host starts a linked battle");
-  // The party above is full of level-30 nobodies and the live pet is level 1.
-  // If the squad were rebuilt from squadMask we would fight with those instead
-  // of what the peer was told we have -- which is exactly the desync to avoid.
-  ck(btlSquadN==2, "the squad is the advertised one, not the current party");
-  ck(btlYou.dex==9 && btlYou.level==50, "and leads with what we sent");
-  ck(!strcmp(btlSquad[1].name,"SNORE"), "including the rest of it");
-  ck(btlFoe.dex==6 && btlFoe.hp==btlFoe.maxHp, "the rival leads with theirs, at full health");
+  // If the fight were rebuilt from the live pet we would fight with a level-1
+  // instead of what the peer was told we have -- exactly the desync to avoid.
+  ck(btlYou.dex==9 && btlYou.level==50, "we fight with what we advertised, not the live pet");
+  ck(btlFoe.dex==6 && btlFoe.hp==btlFoe.maxHp, "the rival fights with theirs, at full health");
 
-  // --- the peer's team is LIVE, not rebuilt each time it is looked at
-  ck(btlFoeSquadN==2, "the peer's whole team is held as combatants");
-  btlFoeSquad[1].hp = 7;
-  ck(btlFoeSquad[1].hp==7 && btlFoeSquad[1].maxHp>7,
-     "so a creature that switches out can stay hurt");
-
-  // --- the guest ASKS to switch; it never switches on its own, because the
-  // host is the only side that may spend a turn
+  // --- one Digimon a side: the old DIGIMON (switch) cell does nothing at all,
+  // and in particular sends nothing the host would spend a turn on
   btlLinkHost = false;
   lan.state = LINK_READY;
-  btlMenu = 2;                       // the DIGIMON list
-  uint8_t was = btlSquadAt;
+  btlMenu = 0;
   sent = 0;
-  battleTap(69 + 168 + 10, 286 + 10);   // cell 1 of the switch grid
-  ck(btlSquadAt==was, "the guest does not switch locally");
-  ck(sent==1 && lastPkt[0]==LM_ACT, "it sends the request instead");
-  ck(LINK_ACT_IS_SWITCH(lastPkt[3]) && LINK_ACT_SLOT(lastPkt[3])==1,
-     "and the request names the slot it wants");
+  battleTap(69 + 10, 332 + 10);         // bottom-left cell of the menu grid
+  ck(sent==0 && btlMenu==0, "the empty cell where SWITCH was is inert");
 
   // --- the host LATCHES its own action instead of throwing it away
   btlLinkHost = true;
@@ -134,11 +105,9 @@ int main(){
 
   // --- a result off the wire moves the guest's battle, and only once
   btlLink = true; btlLinkHost = false; btlMenu = 0; btlMsgCount = 0;
-  btlYou = btlSquad[btlSquadAt];
   LinkResult r{};
   r.hostHp = btlFoe.maxHp/2; r.guestHp = btlYou.maxHp/4;
   r.hostMove = 1; r.guestMove = 1; r.hostDmg = 5; r.guestDmg = 7;
-  r.hostIdx = 0; r.guestIdx = 0;
   r.guestAil = AIL_BURN;
   memcpy(lan.result,&r,sizeof(r)); lan.resultN=sizeof(r); lan.resultNew=true;
   render();
@@ -148,12 +117,6 @@ int main(){
   uint16_t hpNow = btlYou.hp;
   render();
   ck(btlYou.hp==hpNow, "so a second frame does not replay the turn");
-
-  // --- the rival's next creature arrives when the host says so
-  r.hostIdx = 1; r.hostHp = 60;
-  memcpy(lan.result,&r,sizeof(r)); lan.resultNew=true;
-  render();
-  ck(btlFoeAt==1 && btlFoe.dex==4, "the rival's next creature comes off the wire");
 
   // --- and the guest never decides the ending
   lan.youWon = true; lan.state = LINK_DONE;
@@ -167,29 +130,25 @@ int main(){
   render();
   ck(!lan.resultNew && btlYou.hp==before, "a runt result is dropped, not half-applied");
 
-  // --- the team you pick is the team that gets offered
+  // --- HOST offers the partner, and only the partner. There is no team
+  // picker any more: one partner means nothing to pick.
   {
-    lanOpen = false; battleOpen = false; btlLink = false;
-    for (int i=0;i<PARTY_SLOTS;i++){ PartyMon m; m.dex=30+i*5; m.level=45;
-      m.ivAtk=m.ivDef=m.ivSpe=m.ivHp=20; party.replaceAt(i,m); }
-    lanWantHost = true;
-    pickTrainer = PICK_LAN; pickHard = false; pickPage = 0;
-    pickDefault(squadCap(PICK_LAN, false));
-    ck(squadCap(PICK_LAN,false)==TRAINER_TEAM_MAX,
-       "a LAN battle is uncapped: bring what you like");
-    pickOpen = true;
-
-    // keep only the live pet and party slot 1 (bits 0 and 2)
-    squadMask = (1 << 0) | (1 << 2);
-    ck(pickChosen()==2, "two chosen");
-    lan.begin(true,"T");
-    pickTap(300, 366);                    // FIGHT (right of BACK now)
-    ck(!pickOpen && lanOpen, "confirming the team opens the LAN screen");
-    ck(lan.mineN==2, "and offers exactly what was chosen, not the whole party");
-    ck(lan.mine[1].dex==35, "including the right party member");
+    lanOpen = true; battleOpen = false; btlLink = false;
+    lan.state = LINK_OFF;
+    lanTap(233, 120 + 28);                // HOST
+    ck(lanOpen, "HOST keeps the LAN screen up");
+    ck(lan.mineN==1 && lan.mine[0].dex==pet.speciesId,
+       "and offers the live partner");
+    ck(lan.mine[0].level==pet.level(), "at its own level");
     // the emulator has no radio, so the offer cannot go anywhere -- but the
-    // squad must still have been built, which is the half that matters here
+    // partner must still have been offered, which is the half that matters here
     ck(lan.state==LINK_REFUSED, "with no radio it says so rather than hanging");
+
+    // an egg has nobody to bring
+    pet.newEgg();
+    lan.state = LINK_OFF;
+    lanTap(233, 120 + 28);
+    ck(lan.state==LINK_OFF, "an egg cannot host a LAN battle");
   }
 
   printf("%s\n", bad?"FAILURES":"all good");

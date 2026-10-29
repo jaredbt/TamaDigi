@@ -4,7 +4,7 @@
 #include "moves.h"
 #include "noart.h"   // speciesHasArt(): the egg pool skips what cannot be drawn
 #include "audio.h"
-#include "ckpt.h"   // the alternating CRC-checked record format, shared with party.cpp
+#include "ckpt.h"   // the alternating CRC-checked record format
 #include <stddef.h>
 
 // Reads a blob that may be LONGER than the array we are reading it into.
@@ -42,12 +42,14 @@ static void loadBlob(Preferences &p, const char *key, void *dst, size_t n) {
 
 // --- the creature ----------------------------------------------------------
 static constexpr uint32_t PET_CORE_MAGIC = 0x31504B54UL;  // "TKP1"
-// v2 appended the pending party handover; see PET_TAIL_* below. v1 records
-// still read -- they simply have no tail, which is exactly "nothing waiting for
-// a party slot", the right default.
-static constexpr uint16_t PET_CORE_VERSION = 2;
-// Generous enough to read a record from a later build; see ckptRead().
-static constexpr size_t PET_CORE_CAP = 192;
+// v2 appended the pending party handover; v3 retired it with the party (see
+// PET_TAIL_* below). v1 and v2 records still read: the tail is skipped.
+static constexpr uint16_t PET_CORE_VERSION = 3;
+// Generous enough to read a record from a later build; see ckptRead(). NEVER
+// lower it below a v2 record (PET_TAIL_V2_END + CKPT_CRC, 124 bytes): a record
+// too big for the buffer is rejected, and a rejected checkpoint falls back to
+// the legacy keys, which is the torn-write path the checkpoint replaced.
+static constexpr size_t PET_CORE_CAP = PET_CKPT_CAP;
 
 // The fixed part of the record: byte-for-byte the v1 body, which is why a
 // checkpoint already on a device still validates. PetCoreSnapshot below is
@@ -89,36 +91,18 @@ static_assert(offsetof(PetCoreSnapshot, wins) == PET_FIXED - 1,
               "pet checkpoint fixed layout changed");
 static_assert(sizeof(PetCoreSnapshot) >= PET_FIXED, "PET_FIXED overruns the struct");
 
-// The v2 tail: the creature a finished ceremony handed over, still waiting for a
-// party slot.
+// The v2 tail, RETIRED. It held the creature a finished farewell or release
+// handed over while it waited for a party slot: a ceremony kind (u8), a reserved
+// byte, the stored record's length (u16) and the record itself, 48 bytes in its
+// last layout. The party and box were removed by design (one partner, no teams),
+// so nothing is handed over any more and a v2 tail is read past and ignored.
 //
-// It lives INSIDE the creature's own record rather than under a key of its own,
-// and that is the entire point. update() calls snapshotForParty() and then
-// newEgg(), which saves the new egg immediately -- but the handover itself was
-// only ever in RAM (Pet::endedMon), and the party write does not happen until
-// the player accepts a slot, which may be a banner or a whole chooser screen
-// later. Power off in between and the creature was gone, with the save that
-// erased it already committed. A 4-second hold on the power key at exactly that
-// moment is an ordinary thing for a player to do.
-//
-// Two keys with a generation threshold cannot fix that without a two-phase
-// commit: whichever order they are written in, there is a window where the
-// handover is durable but the egg is not, or the reverse, and the recovery rule
-// then has to distinguish "the egg never landed" from "this was consumed ages
-// ago" -- which it cannot do from a generation number alone without eventually
-// resurrecting a creature that is still alive. Putting it in the same blob as
-// the egg means they commit together or not at all, and there is no window and
-// no rule to get wrong.
-//
-// The PartyMon goes LAST because it grows: it has gained moves[] and then a
-// whole care block, and Party::begin() migrates the party blob by length for
-// that reason. Its stored length travels with it so the same prefix rule
-// applies here.
-static constexpr size_t PET_TAIL_KIND = PET_FIXED;          // u8  ceremony kind
-static constexpr size_t PET_TAIL_RSVD = PET_FIXED + 1;      // u8  reserved, 2-byte aligns the next
-static constexpr size_t PET_TAIL_MONLEN = PET_FIXED + 2;    // u16 stored sizeof(PartyMon)
-static constexpr size_t PET_TAIL_MON = PET_FIXED + 4;       // the record itself
-static constexpr size_t PET_BODY = PET_TAIL_MON + sizeof(PartyMon);
+// The SPAN stays reserved, and is written as zeros, because of the append-only
+// rule: a field appended at PET_FIXED would be read out of the kind byte of
+// every v2 record still on a device. So the next field goes at PET_BODY.
+static constexpr size_t PET_TAIL_V2_LEN = 4 + 48;
+static constexpr size_t PET_TAIL_V2_END = PET_FIXED + PET_TAIL_V2_LEN;
+static constexpr size_t PET_BODY = PET_TAIL_V2_END;
 static_assert(PET_BODY + CKPT_CRC <= PET_CORE_CAP, "raise PET_CORE_CAP");
 
 // Takes a validated blob and copies whatever body prefix the stored record and
@@ -179,10 +163,10 @@ static constexpr uint16_t PLAYER_VERSION = 2;   // v2 appended memoHi; see below
 // directions keep working. No magic bump, no version check.
 static constexpr size_t PLAYER_FIXED_V1 = 42;
 static constexpr size_t PLAYER_FIXED = 44;   // v2: + memoHi at offset 42
-static constexpr size_t PLAYER_CAP = 512;
+static constexpr size_t PLAYER_CAP = PLAYER_CKPT_CAP;
 static constexpr size_t PLAYER_DEX_BYTES = (DEX_COUNT + 7) / 8;
-// DERIVED from the tables, never restated: CLAUDE.md § "sizeof(PartyMon) is
-// load-bearing in four places" is what a literal here costs. Failing this is
+// DERIVED from the tables, never restated: CLAUDE.md § "A record's size is
+// load-bearing" is what a literal here costs. Failing this is
 // the signal to raise PLAYER_CAP, not to trim the record.
 static constexpr size_t PLAYER_MAX =
     PLAYER_FIXED + 2 * PLAYER_DEX_BYTES + 4 * (GYM_REGIONS - 1) +
@@ -331,8 +315,7 @@ void Pet::begin() {
   // destination untouched when the key is missing, and the fresh-install path
   // returns without ever calling load(). Without this a begin() after a factory
   // reset keeps the old Digidex alive in RAM -- the firmware reboots on WIPE so
-  // it never showed there, but anything calling begin() twice would see it, and
-  // Party::begin() already guards the same way for the same reason.
+  // it never showed there, but anything calling begin() twice would see it.
   memset(badgesX, 0, sizeof(badgesX));
   memset(badgesHardX, 0, sizeof(badgesHardX));
   memset(dexReg, 0, sizeof(dexReg));
@@ -475,7 +458,6 @@ void Pet::syncClock(uint32_t nowEpoch) {
 void Pet::update(uint32_t nowMs) {
   // end of the ceremony: the creature leaves and a new egg remains
   if (ceremony != CER_NONE && millis() > ceremonyUntil) {
-    snapshotForParty();  // hand it over BEFORE newEgg() erases everything
     newEgg();
     return;
   }
@@ -565,158 +547,6 @@ void Pet::tick() {
   // periodic autosave: do NOT write to flash here (this runs inside the loop,
   // while animating); just mark it and let the loop flush it when the screen dims
   if (++ticksSinceSave >= 5) pendingSave = true;
-}
-
-// Copies the creature into endedMon so it can be offered a party slot, since
-// newEgg() is about to wipe every field. Only the two endings the player CHOSE
-// qualify: a runaway ran off after an hour of total neglect, and letting it
-// come back on the team would remove the cost from the one ending that has any.
-// Brings a banked creature back as the live pet, frozen.
-void Pet::reviveFrom(const PartyMon &m) {
-  if (m.empty()) return;
-  ceremony = CER_NONE;
-  neglectTicks = 0;
-  speciesId = m.dex;
-  prevSpeciesId = -1;
-  eggTaps = 0;
-  starterPick = false;
-  variant = m.variant != 0;
-  ivAtk = m.ivAtk; ivDef = m.ivDef; ivSpe = m.ivSpe; ivHp = m.ivHp;
-  trAtk = m.trAtk; trDef = m.trDef; trSpe = m.trSpe;
-  for (int i = 0; i < MOVE_SLOTS; i++) moves[i] = m.moves[i];
-  // its banked level expressed as an age, so level() needs no special case
-  ageMinutes = (uint32_t)(m.level ? m.level - 1 : 0) * MINUTES_PER_LEVEL;
-  lastLearnLevel = level();     // do not replay every gate it already passed
-  learnQCount = 0;
-  medals = m.medals;
-  careMistakes = 0;
-  mistakeCooldown = 0;
-  sleeping = false;
-  bond = 0;
-  bondToday = 0;
-  berryKnown = false;
-  weight = 0;
-  fullness = joy = energy = 80;
-  hygiene = 100;
-  poops = 0;
-  frozen = true;
-  strncpy(nick, m.nick, sizeof(nick) - 1);
-  nick[sizeof(nick) - 1] = 0;
-  registerSpecies(speciesId);
-  save();
-}
-
-// THE single place a live pet becomes a stored record. The farewell, a focus
-// swap and a wild capture all end up here; three callers each keeping their own
-// copy of this is the exact shape of CLAUDE.md § "A rule enforced in one path
-// but not its twin", and a field forgotten in one of them would silently blank
-// that field for whichever creature took that route.
-PartyMon Pet::toPartyMon() const {
-  PartyMon m;
-  m.dex = speciesId;
-  m.level = level();
-  m.medals = medals;
-  m.ivAtk = ivAtk;
-  m.ivDef = ivDef;
-  m.ivSpe = ivSpe;
-  m.ivHp = ivHp;
-  m.trAtk = trAtk;
-  m.trDef = trDef;
-  m.trSpe = trSpe;
-  m.variant = variant ? 1 : 0;
-  for (int i = 0; i < MOVE_SLOTS; i++) m.moves[i] = moves[i];
-  strncpy(m.nick, nick, sizeof(m.nick) - 1);
-  m.nick[sizeof(m.nick) - 1] = 0;
-  m.stateVersion = 1;
-  m.fullness = fullness;
-  m.joy = joy;
-  m.energy = energy;
-  m.hygiene = hygiene;
-  m.poops = poops;
-  m.weight = weight;
-  m.bond = bond;
-  m.berryKnown = berryKnown ? 1 : 0;
-  m.careMistakes = careMistakes;
-  m.evoDeclinedLv = evoDeclinedLv;
-  m.lastLearnLevel = lastLearnLevel;
-  m.ageMinutes = ageMinutes;
-  return m;
-}
-
-// Make a stored creature the focused one. reviveFrom()'s twin, and the two are
-// deliberately different: that one hands back a frozen companion, this one
-// hands back a creature that carries on living.
-void Pet::switchTo(const PartyMon &m) {
-  if (m.empty()) return;
-  ceremony = CER_NONE;
-  neglectTicks = 0;
-  speciesId = m.dex;
-  prevSpeciesId = -1;
-  eggTaps = 0;
-  starterPick = false;
-  variant = m.variant != 0;
-  ivAtk = m.ivAtk; ivDef = m.ivDef; ivSpe = m.ivSpe; ivHp = m.ivHp;
-  trAtk = m.trAtk; trDef = m.trDef; trSpe = m.trSpe;
-  for (int i = 0; i < MOVE_SLOTS; i++) moves[i] = m.moves[i];
-  medals = m.medals;
-  mistakeCooldown = 0;
-  sleeping = false;
-  sleepAuto = SLEEP_NONE;
-  bondToday = 0;
-  learnQCount = 0;
-  frozen = false;          // the whole point: it ages and levels again
-  wins = 0;                // a party record does not carry its stage's wins
-  if (m.hasCareState()) {
-    ageMinutes = m.ageMinutes;
-    fullness = m.fullness;
-    joy = m.joy;
-    energy = m.energy;
-    hygiene = m.hygiene;
-    poops = m.poops;
-    weight = m.weight;
-    bond = m.bond;
-    berryKnown = m.berryKnown != 0;
-    careMistakes = m.careMistakes;
-    evoDeclinedLv = m.evoDeclinedLv;
-    lastLearnLevel = m.lastLearnLevel;
-  } else {
-    // Banked before care state was stored, so its banked level is all there is.
-    // Starting it fresh is the only honest reading -- inventing a care history
-    // would be worse than admitting the save never had one.
-    ageMinutes = (uint32_t)(m.level ? m.level - 1 : 0) * MINUTES_PER_LEVEL;
-    fullness = joy = energy = 80;
-    hygiene = 100;
-    poops = 0;
-    weight = 0;
-    bond = 0;
-    berryKnown = false;
-    careMistakes = 0;
-    evoDeclinedLv = 0;
-    lastLearnLevel = level();   // do not replay every gate it already passed
-  }
-  strncpy(nick, m.nick, sizeof(nick) - 1);
-  nick[sizeof(nick) - 1] = 0;
-  registerSpecies(speciesId);
-  save();
-}
-
-void Pet::snapshotForParty() {
-  endedKind = CER_NONE;
-  if (isEgg()) return;
-  if (ceremony != CER_FAREWELL && ceremony != CER_RELEASE) return;
-  // An EARLY retire gives the creature up for good -- it is not banked at all.
-  // Retiring one that has EARNED its farewell still banks it, because that is
-  // simply the farewell reached by another button. retirePending is still set
-  // here: update() snapshots before newEgg() spends it, and that ordering is
-  // what this depends on, so retire_test drives the real update() rather than
-  // calling the two halves by hand.
-  if (retireIsEarly()) return;
-  endedMon = toPartyMon();
-  endedKind = ceremony;
-  // Deliberately NOT saved here. update() calls this and then newEgg(), whose
-  // save() writes the handover into the same checkpoint blob as the new egg --
-  // so the creature being banked and the creature replacing it commit together.
-  // Saving here as well would only add a write that could tear against that one.
 }
 
 // flushes the pending periodic save (the loop calls it at a moment with no
@@ -1065,32 +895,32 @@ void Pet::rename(const char *name) {
 // the formula is TamaDigi's (flat base + level), not the games': with
 // the canonical x level/100 on the base, a newly hatched creature would show
 // single-digit stats, which on a pet screen looks like a bug.
-static uint16_t calcStat(uint8_t base, uint8_t iv, uint8_t lvl, uint8_t tr) {
+uint16_t petCalcStat(uint8_t base, uint8_t iv, uint8_t lvl, uint8_t tr) {
   return (uint16_t)base + lvl + (uint16_t)iv * lvl / 100 + tr;
 }
 
 uint16_t Pet::atkStat() const {
-  return isEgg() ? 0 : calcStat(DEX_TBL[speciesId].bAtk, ivAtk, level(), trAtk);
+  return isEgg() ? 0 : petCalcStat(DEX_TBL[speciesId].bAtk, ivAtk, level(), trAtk);
 }
 uint16_t Pet::defStat() const {
-  return isEgg() ? 0 : calcStat(DEX_TBL[speciesId].bDef, ivDef, level(), trDef);
+  return isEgg() ? 0 : petCalcStat(DEX_TBL[speciesId].bDef, ivDef, level(), trDef);
 }
 uint16_t Pet::speStat() const {
-  return isEgg() ? 0 : calcStat(DEX_TBL[speciesId].bSpe, ivSpe, level(), trSpe);
+  return isEgg() ? 0 : petCalcStat(DEX_TBL[speciesId].bSpe, ivSpe, level(), trSpe);
 }
 // vitality is not trained (nothing raises it), so it carries a fixed +10
 // in place of training, like the HP's +Level+10 in the games
 uint16_t Pet::vitStat() const {
-  return isEgg() ? 0 : calcStat(DEX_TBL[speciesId].bHp, ivHp, level(), 10);
+  return isEgg() ? 0 : petCalcStat(DEX_TBL[speciesId].bHp, ivHp, level(), 10);
 }
 // Special reuses the physical IV and training against the Digimon' special base
 // stat, which is what keeps DEVIMON (50 Atk / 135 SpA) a real attacker without
 // adding IVs or migrating saves.
 uint16_t Pet::spaStat() const {
-  return isEgg() ? 0 : calcStat(DEX_TBL[speciesId].bSpA, ivAtk, level(), trAtk);
+  return isEgg() ? 0 : petCalcStat(DEX_TBL[speciesId].bSpA, ivAtk, level(), trAtk);
 }
 uint16_t Pet::spdStat() const {
-  return isEgg() ? 0 : calcStat(DEX_TBL[speciesId].bSpD, ivDef, level(), trDef);
+  return isEgg() ? 0 : petCalcStat(DEX_TBL[speciesId].bSpD, ivDef, level(), trDef);
 }
 
 // ---------- moves ----------
@@ -1776,14 +1606,8 @@ bool Pet::saveCoreSnapshot() {
   snapshot.wins = wins;
   strncpy(snapshot.nick, nick, sizeof(snapshot.nick) - 1);
 
-  uint8_t buf[PET_CORE_CAP] = {};
+  uint8_t buf[PET_CORE_CAP] = {};   // the retired v2 tail stays zero
   memcpy(buf, &snapshot, PET_FIXED);
-  // The pending handover rides along, so the new egg and the creature it
-  // replaced commit in the same write.
-  buf[PET_TAIL_KIND] = endedKind;
-  buf[PET_TAIL_RSVD] = 0;
-  ckptWr16(buf + PET_TAIL_MONLEN, (uint16_t)sizeof(PartyMon));
-  memcpy(buf + PET_TAIL_MON, &endedMon, sizeof(PartyMon));
 
   uint16_t total = ckptSeal(buf, PET_BODY, PET_CORE_MAGIC, PET_CORE_VERSION, nextGen);
   const char *key = ckptSlot(nextGen, "petA", "petB");
@@ -1812,28 +1636,9 @@ bool Pet::loadCoreSnapshot() {
   PetCoreSnapshot snapshot;
   petCoreFromBytes(buf, n, snapshot);
 
-  // The v2 tail, if this record has one. A v1 blob stops at PET_FIXED and both
-  // fields keep their initialisers, which reads as "nothing waiting for a slot".
-  const size_t body = n - CKPT_CRC;
-  endedKind = CER_NONE;
-  endedMon = PartyMon();
-  if (body >= PET_TAIL_MON) {
-    size_t monLen = ckptRd16(buf + PET_TAIL_MONLEN);
-    if (monLen && PET_TAIL_MON + monLen <= body) {
-      // Prefix rule again: a record from before PartyMon grew lands in the front
-      // and the care block keeps its initialisers, which stateVersion 0 already
-      // means "predates care state". A longer one is truncated.
-      memcpy(&endedMon, buf + PET_TAIL_MON,
-             monLen < sizeof(PartyMon) ? monLen : sizeof(PartyMon));
-      uint8_t kind = buf[PET_TAIL_KIND];
-      // Only the two endings that actually bank a creature, and only if there
-      // is one: a junk kind must not park an empty record in the chooser.
-      if ((kind == CER_FAREWELL || kind == CER_RELEASE) && !endedMon.empty())
-        endedKind = kind;
-      else
-        endedMon = PartyMon();
-    }
-  }
+  // A v2 record's handover tail is ignored: petCoreFromBytes() copied only the
+  // PET_FIXED prefix. A creature that was still waiting for a party slot when
+  // the save was made is let go, as declining the slot always did.
 
   saveGeneration = snapshot.generation;
   ageMinutes = snapshot.ageMinutes;

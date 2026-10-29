@@ -16,7 +16,7 @@ trap 'rm -rf "$TMP"' EXIT
 mkdir -p "$OUT"
 
 # Keep this list in step with the tables in README.md § Screens.
-SHOTS="main region btlmenu btlmoves gympick gymsj dexpick gallery gallery2 player player2 box egg lanready pick moves win explore wild"
+SHOTS="main region btlmenu btlmoves gympick gymsj dexpick gallery gallery2 player player2 egg lanready moves win explore wild"
 
 # THE SPRITES HAVE TO BE THERE. tools/sdcard/mons/*.bin is gitignored -- it is a
 # build intermediate -- so a fresh checkout renders every creature as a bare dex

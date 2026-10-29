@@ -10,7 +10,7 @@ bash tools/emu/build.sh
 tools/emu/tamadigi-emu --scale 2 --fast 60
 ```
 
-It compiles `TamaDigi.ino`, `pet.cpp`, `i18n.cpp` and `party.cpp` **unmodified**.
+It compiles `TamaDigi.ino`, `pet.cpp`, `i18n.cpp` and the other firmware sources **unmodified**.
 Only the hardware layer is replaced, so what you see is what the panel draws —
 the same 466×466 RGB565 framebuffer, the same 5×7 font, the same code paths.
 
@@ -33,7 +33,7 @@ that is not a measurement of FreeRTOS scheduling or the hardware watchdog.
 | **Click** | touch |
 | **Drag** | swipe (gestures resolve on release, as on the device) |
 | **Hold 3 s** on the pet | the release dialog |
-| **Type in the terminal** | the serial console — `STATS`, `IV 31 31 31 31`, `EGG 150 1`, `PARTY`, `LVL 73`, `WIPE`… |
+| **Type in the terminal** | the serial console — `STATS`, `IV 31 31 31 31`, `EGG 150 1`, `LVL 73`, `WIPE`… |
 | **Esc** or close the window | quit (state is saved) |
 
 Pixels outside the round bezel are **dimmed**, not hidden: the framebuffer is
@@ -61,7 +61,7 @@ sips -s format png shot.ppm --out shot.png     # macOS; or use ImageMagick
 ```
 
 `--shot` accepts `main`, `battle`, `profile`, `medals`, `progress`, `gallery`,
-`clock`, `menu`, `party`, `partyfull`, `egg`, `starter`. `--lvl`, `--iv` and
+`clock`, `menu`, `egg`, `starter`. `--lvl`, `--iv` and
 `--dex` set up the pet first.
 
 ## How it works
@@ -130,14 +130,14 @@ failures, not skips. Logs are kept when `TAMA_TEST_LOG_DIR` is set. All test sav
 are disposable; the runner does not read or overwrite your `tamadigi.nvs` or
 backups.
 
-`workflow_test` runs 11 scenarios in four audio modes: enabled, disabled, volume
+`workflow_test` runs 9 scenarios in four audio modes: enabled, disabled, volume
 zero and a full queue of pending effects. The scenarios cover easy and hard boss
-wins, wild wins, boss/wild losses and fleeing, capture into the party or box, and
-early dismissal of boss/wild victory narration. Each drives the real selection,
+wins, wild wins, boss/wild losses and fleeing, and early dismissal of boss/wild
+victory narration. (Two capture scenarios went with the party and box.) Each drives the real selection,
 battle and result handlers, then runs at least 30 simulated seconds on the main
 screen with rendering, touch/menu and serial checks. It requires healthy saving,
 then writes real firmware checkpoints to disk and execs a fresh process. Reload
-compares creature identity and training, every party/box slot, all badge masks,
+compares the partner's identity, care and training, all badge masks,
 both complete dex bitmaps, inventory, player progress and audio settings.
 
 The actual `audio.cpp` task and synth run on a resumable worker thread. Queue
@@ -150,7 +150,7 @@ wait. It detects the original busy loop, but is not the ESP32 task watchdog.
 
 Required workflow milestones are battle start, result dismissal, 30-second idle
 and fresh-process reward/collection reload. The completion marker must report
-all 44 cases. Each case has a 45-second wall-clock deadline, and the runner also
+all 36 cases. Each case has a 45-second wall-clock deadline, and the runner also
 bounds compilation and entire suites. An unexpected firmware restart fails.
 
 `mutations.mjs` builds disposable copies of the real sources. It first proves
@@ -158,9 +158,6 @@ the fixed workflow passes, restores either the copied `Pet`/Preferences ownershi
 defect or the stopped-music active-voices defect, requires the corresponding
 saving/starvation failure after battle start, then restores the fix and requires
 a pass again. An unrelated failure or timeout is not accepted as detection.
-It also restores the premature legacy-party checkpoint write and requires the
-combined shorter-party/18-slot-box migration checks to fail, then pass again
-after restoration. This protects the migration fix found by the native probe.
 
 The Firmware tests workflow runs the full host and native gates for pushes and
 pull requests. The native emulator download is version- and checksum-pinned.
@@ -201,7 +198,7 @@ It does not accept an unrelated panic or timeout as assertion coverage.
 The separate native probe uses Espressif's
 [esp-emulator](https://github.com/espressif/esp-emulator) v0.44.0, the same
 16 MB flash partition scheme and 8 MB octal PSRAM. It compiles production Pet,
-Party, Inventory and save code against the real Arduino/ESP-IDF APIs, without
+Inventory and save code against the real Arduino/ESP-IDF APIs, without
 the SDL Preferences or scheduler doubles:
 
 ```bash
@@ -209,8 +206,8 @@ node tools/emu/tests/native.mjs /path/to/esp-emu
 ```
 
 The probe uses a disposable merged flash image. It requires UART application
-milestones for PSRAM allocation/content verification, legacy creature/dex/party/
-18-slot box migration, checkpoint writes and software reboot. It poisons legacy
+milestones for PSRAM allocation/content verification, legacy creature/dex
+migration (with old party and box blobs present and ignored), checkpoint writes and software reboot. It poisons legacy
 keys before reboot so a broken checkpoint reader cannot pass via fallback. A
 second emulator process must load the saved flash and preserve rewards. It then
 deliberately starves a registered real task watchdog. Version 0.44.0 intercepts

@@ -71,13 +71,13 @@ Every image comes straight from the emulator (`bash tools/make_screens.sh`) and 
 |---|---|---|---|
 | <img src="docs/screens/btlmenu.png" width="200"> | <img src="docs/screens/btlmoves.png" width="200"> | <img src="docs/screens/wild.png" width="200"> | <img src="docs/screens/explore.png" width="200"> |
 
-| Boss ladders | Ver.2 bosses | Victory | Choose a party |
-|---|---|---|---|
-| <img src="docs/screens/gympick.png" width="200"> | <img src="docs/screens/gymsj.png" width="200"> | <img src="docs/screens/win.png" width="200"> | <img src="docs/screens/pick.png" width="200"> |
+| Boss ladders | Ver.2 bosses | Victory |
+|---|---|---|
+| <img src="docs/screens/gympick.png" width="200"> | <img src="docs/screens/gymsj.png" width="200"> | <img src="docs/screens/win.png" width="200"> |
 
-| Digidex | Ver.1 | Ver.2 | Box |
-|---|---|---|---|
-| <img src="docs/screens/dexpick.png" width="200"> | <img src="docs/screens/gallery.png" width="200"> | <img src="docs/screens/gallery2.png" width="200"> | <img src="docs/screens/box.png" width="200"> |
+| Digidex | Ver.1 | Ver.2 |
+|---|---|---|
+| <img src="docs/screens/dexpick.png" width="200"> | <img src="docs/screens/gallery.png" width="200"> | <img src="docs/screens/gallery2.png" width="200"> |
 
 | Tamer card | Badges | Attacks | LAN battle |
 |---|---|---|---|
@@ -91,7 +91,7 @@ Every image comes straight from the emulator (`bash tools/make_screens.sh`) and 
 | Stages | Basic → Stage 1 → Stage 2 | **Digi-Egg → Baby I → Baby II → Rookie → Champion → Ultimate → Mega** |
 | Types | 18 Pokémon types | **9 elements** + the **attribute triangle** Vaccine > Virus > Data > Vaccine |
 | Regions | Kanto, Johto … | **V-Pet versions**: Ver.1 to Ver.5 |
-| Catching | Poké Balls | **Scan chips** (Scan, Super, Hyper, Master) |
+| Catching | Poké Balls, a party and a box | **None**: one partner at a time, and every battle is 1-on-1 |
 | Healing/training | Potions, Protein … | **Recovery disks** (S/M/L), Full Recovery disk, Attack/Defence/Speed chip |
 | Food | Berries, candy | **Meat, fish, mushroom** (every Digimon has a favourite food), **protein** |
 | Gyms | Gym leaders + badges | **Boss ladders** per version + their own badges |
@@ -113,7 +113,7 @@ One level equals one hour of real time. When a stage's time is up, the **digivol
 - **Care mistake**: a need (food, joy, energy, hygiene) drops to 10 or below (at most one per hour).
 - **Training**: the sum of strength, defence and speed (punching bag, reaction test, ball game, victories, chips).
 - Care mistakes and victories **start counting again after every digivolution**, as on the real V-Pet.
-- A Champion with no victories stays a Champion. It still reaches the end of its life: after 3 days any Digimon from Champion up can **say goodbye**, and it then joins the party.
+- A Champion with no victories stays a Champion. It still reaches the end of its life: after 3 days any Digimon from Champion up can **say goodbye**, and a new Digi-Egg takes its place.
 - The **PROGRESS** card (swipe up on the status card) shows care mistakes, training, the hours until digivolution and the victories still missing.
 
 Example, Ver.1 – **Agumon** becomes:
@@ -146,8 +146,9 @@ That makes **87 Digimon** in all, each with its own coloured art. The trees foll
 - Turn-based with 4 attacks. Signature attacks come with digivolution (Pepper Breath, Mega Flame, Giga Destroyer …).
 - **Element table** (Fire, Water, Plant, Electric, Wind, Earth, Light, Dark, Neutral) with 2×/½× and no immunities.
 - **Attribute triangle:** Vaccine beats Virus, Virus beats Data, Data beats Vaccine (×1.3 or ×0.8). Babies are *Free* and neutral.
-- **Explore:** wild Digimon matched to your level (level 10 → Rookies, from level 25 Champions too). Weaken them and use a **scan chip** to take their data into your party or box.
-- **Boss ladders:** per version, 8 areas, 4 elite bosses and a champion, on Easy and Hard. Victories train your Digimon and count toward digivolution.
+- **One partner, 1-on-1:** your Digimon is the only one you have. There is no party or box, and every fight is your partner against one opponent.
+- **Explore:** wild Digimon matched to your level (level 10 → Rookies, from level 25 Champions too). Wins can drop items.
+- **Boss ladders:** per version, 8 areas, 4 elite bosses and a champion, on Easy and Hard. Each boss fights alone, with the strongest Digimon of its old team. Victories train your Digimon and count toward digivolution.
 - **LAN battle** between two devices over ESP-NOW.
 
 ### Sprites

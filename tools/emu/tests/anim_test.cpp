@@ -4,7 +4,6 @@
 #include "Arduino_GFX_Library.h"
 #include "Preferences.h"
 #include "pet.h"
-#include "party.h"
 #include "battle.h"
 #include <cstdio>
 uint32_t g_seed=31; FakeSerial Serial; FakeESP ESP; FakeWire Wire;

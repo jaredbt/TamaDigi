@@ -3,7 +3,6 @@
 #include <esp_heap_caps.h>
 #include <esp_task_wdt.h>
 #include "pet.h"
-#include "party.h"
 #include "inventory.h"
 #include "save.h"
 
@@ -57,20 +56,15 @@ void seedLegacy() {
   oldDex[(LEGACY_TOP_DEX - 1) >> 3] |= 1 << ((LEGACY_TOP_DEX - 1) & 7);
   oldDex[LEGACY_DEX_BYTES - 1] |= 1;
   require(seed.putBytes("dexreg", oldDex, sizeof(oldDex)) == sizeof(oldDex), "legacy dex failed");
-  const size_t stride = offsetof(PartyMon, stateVersion);
-  uint8_t oldParty[PARTY_SLOTS * stride] = {0};
-  for (int index = 0; index < PARTY_SLOTS; index++) {
-    PartyMon member;
-    member.dex = 25 + index;
-    member.level = 40 + index;
-    memcpy(oldParty + index * stride, &member, stride);
-  }
+  // A legacy party (six 30-byte records) and an 18-slot box (48-byte records),
+  // as old builds stored them. The party and box were removed by design (one
+  // partner), so these are keys the loader must step over without touching the
+  // partner; their bytes are deliberately dex-number-shaped.
+  uint8_t oldParty[6 * 30];
+  memset(oldParty, 25, sizeof(oldParty));
   require(seed.putBytes("party", oldParty, sizeof(oldParty)) == sizeof(oldParty), "legacy party failed");
-  PartyMon oldBox[BOX_V323_SLOTS];
-  for (int index = 0; index < BOX_V323_SLOTS; index++) {
-    oldBox[index].dex = DEX_COUNT - index;
-    oldBox[index].level = 50 + index;
-  }
+  uint8_t oldBox[18 * 48];
+  memset(oldBox, 50, sizeof(oldBox));
   require(seed.putBytes("box", oldBox, sizeof(oldBox)) == sizeof(oldBox), "legacy box failed");
   seed.end();
 }
@@ -82,14 +76,6 @@ void checkCollection() {
           "live IVs changed");
   require(strcmp(pet.nick, "NATIVE") == 0 && pet.badges == 5, "player or nickname changed");
   require(pet.isRegistered(LEGACY_TOP_DEX) && pet.isRegistered(4), "legacy dex bits lost");
-  for (int index = 0; index < PARTY_SLOTS; index++)
-    require(party.slots[index].dex == 25 + index && party.slots[index].level == 40 + index,
-            "short legacy party record lost");
-  for (int index = 0; index < BOX_V323_SLOTS; index++)
-    require(party.box[index].dex == DEX_COUNT - index && party.box[index].level == 50 + index,
-            "18-slot legacy box lost");
-  for (int index = BOX_V323_SLOTS; index < BOX_SLOTS; index++)
-    require(party.box[index].empty(), "new box slots not empty");
   require(pet.saveHealthy() && !pet.savePending(), "native saving unhealthy");
 }
 
@@ -101,7 +87,6 @@ void setup() {
   const uint8_t phase = control.getUChar("phase", 0);
   if (phase == 0) seedLegacy();
   pet.begin();
-  party.begin();
   bag.begin();
   checkCollection();
   if (phase == 0) {
@@ -113,8 +98,6 @@ void setup() {
     require(poison.begin("tamadigi", false), "poison namespace failed");
     require(poison.putShort("dexn", 1) > 0 && poison.putString("nick", "POISON") > 0 &&
             poison.putUShort("badg", 0) > 0, "legacy poisoning failed");
-    PartyMon empty[BOX_V323_SLOTS];
-    require(poison.putBytes("box", empty, sizeof(empty)) == sizeof(empty), "legacy box poisoning failed");
     poison.end();
     require(control.putUChar("phase", 1) > 0, "reboot marker failed");
     Serial0.println("MILESTONE native-checkpoints-written-rebooting");

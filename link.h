@@ -1,7 +1,6 @@
 #pragma once
 #include <stdint.h>
 #include "battle.h"
-#include "trainers.h"   // TRAINER_TEAM_MAX: a link team is the same size
 
 // Peer-to-peer battles.
 //
@@ -32,9 +31,15 @@
 // whole handshake without a radio, and a deliberately lossy transport exercises
 // all of the above. Only the radio itself is unverifiable here.
 
-#define LINK_PROTO 2        // bump on ANY wire change; a mismatch is refused
+// 3: one Digimon a side (the party was removed by design, so there is nothing
+// to bring but the partner), no switch action, no squad index in a result.
+#define LINK_PROTO 3        // bump on ANY wire change; a mismatch is refused
 #define LINK_MAX_PAYLOAD 200
 #define LINK_NAME_LEN 12
+// How many creatures a side brings: the partner, and only the partner. The
+// squad exchange below still counts and indexes them, so a lost SQUAD packet is
+// detected the same way it always was; the count is simply 1.
+#define LINK_SQUAD_MAX 1
 
 #define LINK_RESEND_MS 400
 // Resends are jittered, and that is not decoration. A fixed interval can lock
@@ -46,19 +51,14 @@
 #define LINK_PAIR_TIMEOUT_MS 20000    // waiting for a peer that may not exist
 #define LINK_BATTLE_TIMEOUT_MS 12000  // mid-fight, where one is known to be there
 
-// An action is a move slot, or a switch with the high bit set. One message
-// rather than two, so turn matching and resend have a single path -- which is
-// the place a second message type would most easily drift out of step.
+// An action is a move slot. There used to be a switch as well, with the high
+// bit set; with one Digimon a side there is nothing to switch to.
 //
 // A move is stored as slot+1 so that 0 can keep meaning "nothing chosen yet".
 // Storing the slot raw would make move slot 0 -- the first move every creature
 // has -- indistinguishable from silence.
-#define LINK_ACT_SWITCH 0x80
 #define LINK_ACT_MOVE(i) ((uint8_t)((i) + 1))
-#define LINK_ACT_SWITCH_TO(i) ((uint8_t)(LINK_ACT_SWITCH | ((i) & 0x0F)))
-#define LINK_ACT_IS_SWITCH(a) (((a) & LINK_ACT_SWITCH) != 0)
-#define LINK_ACT_SLOT(a) \
-  ((uint8_t)(LINK_ACT_IS_SWITCH(a) ? ((a) & 0x0F) : ((a) - 1)))
+#define LINK_ACT_SLOT(a) ((uint8_t)((a) - 1))
 
 enum LinkState : uint8_t {
   LINK_OFF = 0,
@@ -75,7 +75,7 @@ enum LinkState : uint8_t {
 enum LinkMsg : uint8_t {
   LM_HELLO = 1,
   LM_SQUAD,
-  LM_ACT,        // guest -> host: a move slot or a switch, stamped with a turn
+  LM_ACT,        // guest -> host: a move slot, stamped with a turn
   LM_RESULT,     // host -> guest: what happened, stamped with the same turn
   LM_END,
   LM_BYE,        // leaving on purpose, so the peer need not wait for a timeout
@@ -105,7 +105,6 @@ struct LinkResult {
   uint8_t hostAil, guestAil;
   uint8_t hostMove, guestMove;
   uint16_t hostDmg, guestDmg;
-  uint8_t hostIdx, guestIdx;   // which squad member is out on each side
   uint8_t flags;               // bit0 crit, bit1 super, bit2 a faint happened
 };
 
@@ -118,9 +117,9 @@ struct Link {
   uint16_t peerId = 0;
   char peerName[LINK_NAME_LEN] = "";
 
-  LinkMon mine[TRAINER_TEAM_MAX];
+  LinkMon mine[LINK_SQUAD_MAX];
   uint8_t mineN = 0;
-  LinkMon theirs[TRAINER_TEAM_MAX];
+  LinkMon theirs[LINK_SQUAD_MAX];
   uint8_t theirsN = 0;
   uint8_t theirsExpected = 0;  // from their hello, so a lost SQUAD is detectable
   uint16_t theirsGot = 0;      // which slots have actually arrived
@@ -142,6 +141,7 @@ struct Link {
   uint32_t txAt = 0;
   uint32_t lastRx = 0;
   uint8_t resendSeq = 0;       // varies the resend interval, see LINK_JITTER_MS
+  uint8_t answers = 0;         // squad answers to a peer's repeated hello, see onPacket
   bool sawRx = false;          // onPacket has no clock; tick() stamps it
   bool armed = false;
 
@@ -155,7 +155,7 @@ struct Link {
   void onPacket(const uint8_t *buf, uint8_t len);
   void tick(uint32_t now);            // resend + timeout; call once a frame
 
-  void sendAct(uint8_t act);          // guest -> host: a move slot or a switch
+  void sendAct(uint8_t act);          // guest -> host: a move slot
   void sendResult(const uint8_t *blob, uint8_t len);   // host -> guest
   void sendEnd(bool hostWon);
   void sendBye();                     // leaving deliberately

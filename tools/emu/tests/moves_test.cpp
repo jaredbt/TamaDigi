@@ -1,10 +1,10 @@
 // Move storage: learnset population, save/load round-trip, backfill of a save
-// made before moves existed, and the party blob migration. Asserts against the
-// real Pet/Party rather than restating their rules.
+// made before moves existed. Asserts against the real Pet rather than restating
+// its rules. (The party blob migration was checked here too; the party and box
+// were removed by design -- one partner.)
 #include "Arduino.h"
 #include "Preferences.h"
 #include "pet.h"
-#include "party.h"
 #include "dex.h"
 #include "moves.h"
 #include <cstdio>
@@ -105,35 +105,6 @@ int main() {
     if (p.knowsMove(cand[i])) alreadyKnown = true;
   printf("     L100 learnables not yet known: %u\n", n);
   ck(!alreadyKnown, "pendingLearnables never offers a known move");
-
-  // --- party migration: a blob written in the OLD layout (no moves[]) must
-  // survive, with slots still aligned. This is the case that silently
-  // corrupted the party if migrated by a plain getBytes().
-  const size_t oldStride = sizeof(PartyMon) - MOVE_SLOTS;
-  uint8_t legacy[PARTY_SLOTS * (sizeof(PartyMon))];
-  for (int i = 0; i < PARTY_SLOTS; i++) {
-    PartyMon m;
-    m.dex = 1 + i * 10;                // 1, 11, 21, 31, 41, 51
-    m.level = 40 + i;
-    m.ivAtk = m.ivDef = m.ivSpe = m.ivHp = 20;
-    snprintf(m.nick, sizeof(m.nick), "OLD%d", i);
-    memcpy(legacy + i * oldStride, &m, oldStride);   // old records, old stride
-  }
-  Preferences seed;
-  seed.begin("tamadigi", false);
-  seed.putBytes("party", legacy, PARTY_SLOTS * oldStride);
-  seed.end();
-
-  Party pty;
-  pty.begin();
-  bool aligned = true;
-  for (int i = 0; i < PARTY_SLOTS; i++) {
-    if (pty.slots[i].dex != 1 + i * 10 || pty.slots[i].level != 40 + i) aligned = false;
-    printf("     slot %d: dex=%d lvl=%u nick=%s\n",
-           i, pty.slots[i].dex, pty.slots[i].level, pty.slots[i].nick);
-  }
-  ck(aligned, "legacy party blob migrates with slots still aligned");
-  ck(pty.count() == PARTY_SLOTS, "all 6 legacy members survive");
 
   // moveUnlockLevel() is the single answer for when an attack unlocks, for the
   // learn prompt and the move picker alike.

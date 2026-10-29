@@ -1,12 +1,11 @@
 // The peer-to-peer protocol, with two Links cross-wired in one process. The
 // radio cannot be tested here, but the handshake, the version refusal, the
-// squad exchange, the turn flow and every piece of validation can -- and those
+// partner exchange, the turn flow and every piece of validation can -- and those
 // are where a desync would come from. lossy_test covers the same protocol over
 // a channel that drops and duplicates.
 #include "Arduino.h"
 #include "Preferences.h"
 #include "pet.h"
-#include "party.h"
 #include "battle.h"
 #include "link.h"
 #include <cstdio>
@@ -51,13 +50,16 @@ int main(){
   A.send=toB; B.send=toA;
   A.begin(true,"HOST"); B.begin(false,"GUEST");
   A.id=0x1111; B.id=0x2222;
+  // One partner a side: the party was removed by design. A second addMon() is
+  // refused, so nothing but the partner can ever be offered.
   A.addMon(mon(6,50,"BLAZE")); A.addMon(mon(9,50,"SHELL"));
   B.addMon(mon(4,50,"SPOON"));
+  ck(A.mineN==1 && LINK_SQUAD_MAX==1, "a side brings exactly one Digimon");
   A.start();
   ck(A.state==LINK_READY && B.state==LINK_READY, "both reach READY from one hello");
-  ck(B.theirsN==2 && A.theirsN==1, "each ends up with the other's squad");
+  ck(B.theirsN==1 && A.theirsN==1, "each ends up with the other's partner");
   ck(B.theirs[0].dex==6 && A.theirs[0].dex==4, "and the right creatures in it");
-  ck(!strcmp(B.theirs[1].name,"SHELL"), "names survive the wire");
+  ck(!strcmp(B.theirs[0].name,"BLAZE"), "names survive the wire");
   ck(A.isHost && !B.isHost, "the roles stay as they were offered");
 
   // a creature restored from the wire must fight identically
@@ -70,15 +72,14 @@ int main(){
   ck(A.turn==0 && B.turn==0, "both start on turn zero");
   B.sendAct(LINK_ACT_MOVE(0));
   ck(A.hasPeerAct(), "the host receives the guest's action");
-  ck(LINK_ACT_SLOT(A.pendingAct)==0 && !LINK_ACT_IS_SWITCH(A.pendingAct),
+  ck(LINK_ACT_SLOT(A.pendingAct)==0,
      "move slot 0 survives -- it is not confused with silence");
   ck(B.state==LINK_WAITING, "and the guest waits rather than resolving");
 
   A.pendingAct = 0;
   B.state = LINK_READY;
-  B.sendAct(LINK_ACT_SWITCH_TO(3));
-  ck(LINK_ACT_IS_SWITCH(A.pendingAct) && LINK_ACT_SLOT(A.pendingAct)==3,
-     "a switch is carried in the same message as a move");
+  B.sendAct(LINK_ACT_MOVE(3));
+  ck(LINK_ACT_SLOT(A.pendingAct)==3, "so does the last move slot");
 
   uint8_t blob[4]={1,2,3,4};
   A.sendResult(blob,4);
@@ -96,7 +97,7 @@ int main(){
   ck(sizeof(LinkResult) <= LINK_MAX_PAYLOAD, "a result fits in one packet");
   LinkResult r{};
   r.hostHp=111; r.guestHp=222; r.hostMove=33; r.guestMove=44;
-  r.hostDmg=9; r.guestDmg=8; r.hostIdx=1; r.guestIdx=0; r.guestAil=AIL_BURN;
+  r.hostDmg=9; r.guestDmg=8; r.guestAil=AIL_BURN;
   B.resultNew=false;
   A.pendingAct = LINK_ACT_MOVE(0);
   A.sendResult((const uint8_t*)&r,(uint8_t)sizeof(r));
@@ -104,7 +105,7 @@ int main(){
   ck(B.resultNew && B.resultN==sizeof(r), "a full result arrives whole");
   ck(got.hostHp==111 && got.guestHp==222 && got.guestAil==AIL_BURN,
      "health and ailments survive the wire");
-  ck(got.hostIdx==1 && got.guestIdx==0, "so does which creature is out");
+  ck(got.hostDmg==9 && got.guestDmg==8, "so does the damage each side took");
   ck(!A.pendingAct, "resolving clears the action, so it cannot be spent twice");
 
   // the guest never acts on an action; the host never accepts a result
@@ -148,6 +149,22 @@ int main(){
     C.begin(true,"C"); C.id=0x4242;
     hello(C, LINK_PROTO, true, 1, 0x4242, linkBuildTag());
     ck(C.state==LINK_REFUSED, "two devices with the same id refuse rather than guess");
+  }
+
+  // --- a peer that claims a team still gets a 1-on-1
+  {
+    Link C; C.send=[](void*,const uint8_t*,uint8_t){};
+    C.begin(true,"C"); C.id=1;
+    C.addMon(mon(6,50,"C1"));
+    hello(C, LINK_PROTO, false, 6, 2, linkBuildTag());   // "I bring six"
+    ck(C.theirsExpected==1, "a peer announcing six is held to one");
+    uint8_t sq[2+1+sizeof(LinkMon)]={LM_SQUAD,(uint8_t)(1+sizeof(LinkMon)),3};
+    LinkMon lm=mon(9,50,"D4"); memcpy(sq+3,&lm,sizeof(lm));
+    C.onPacket(sq,sizeof(sq));
+    ck(C.theirsN==0 && C.state!=LINK_READY, "and a second creature off the wire is dropped");
+    sq[2]=0;
+    C.onPacket(sq,sizeof(sq));
+    ck(C.theirsN==1 && C.state==LINK_READY, "while its first one completes the pairing");
   }
 
   // --- compatibility

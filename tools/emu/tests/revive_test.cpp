@@ -1,9 +1,13 @@
 // A revived companion is FROZEN: it does not age, cannot digivolve, and cannot be
 // lost. Those three are the whole feature, so each is checked directly.
+//
+// BRING BACK, which made one out of a box creature, went with the party and box
+// (removed by design: one partner). A save made while a frozen companion was
+// live still loads one, so the flag is set directly here and its rules are
+// still pinned.
 #include "Arduino.h"
 #include "Preferences.h"
 #include "pet.h"
-#include "party.h"
 #include "dex.h"
 #include <cstdio>
 static uint32_t g_ms=0;
@@ -21,16 +25,15 @@ static void ck(bool ok,const char*w){printf("%s  %s\n",ok?"PASS":"FAIL",w); if(!
 int main(){
   Pet p; p.begin();
   if (p.awaitingStarter()) p.chooseStarter(4);
-  PartyMon m; m.dex=6; m.level=61; m.variant=1;
-  m.ivAtk=m.ivDef=m.ivSpe=m.ivHp=24; m.trAtk=m.trDef=m.trSpe=35;
-  m.moves[0]=1; m.moves[1]=2;
-  snprintf(m.nick,sizeof(m.nick),"BLAZE");
-
-  p.reviveFrom(m);
-  ck(p.speciesId==6 && p.level()==61, "comes back at the level it was banked at");
-  ck(p.variant && !strcmp(p.nick,"BLAZE"), "keeps its shininess and its name");
-  ck(p.moves[0]==1 && p.moves[1]==2, "and its moveset");
-  ck(p.frozen, "and is marked frozen");
+  // What BRING BACK used to leave behind: a Digimon at its banked level, frozen.
+  p.dbgHatchAs(6, true);
+  p.ageMinutes = 60UL * MINUTES_PER_LEVEL;
+  p.lastLearnLevel = p.level();
+  p.moves[0]=1; p.moves[1]=2;
+  p.rename("BLAZE");
+  p.frozen = true;
+  p.saveNow();
+  ck(p.speciesId==6 && p.level()==61, "a frozen companion at level 61");
 
   // it must not age, however long passes
   uint8_t lvl = p.level();

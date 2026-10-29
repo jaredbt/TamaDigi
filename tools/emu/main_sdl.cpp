@@ -5,7 +5,6 @@
 #include "Arduino_GFX_Library.h"
 #include "Preferences.h"
 #include "pet.h"
-#include "party.h"
 #include "battle.h"
 #include <chrono>
 #include <string>
@@ -127,26 +126,19 @@ extern bool gShowAllAvatars;
 // Unlocks the emulator-only console commands (MAX). The firmware compiles them
 // and never sets this; see the note beside it in TamaDigi.ino.
 extern bool gEmuDebug;
-#define PICK_LAN 0xFF
-uint8_t squadCap(uint8_t, bool);
 #include "link.h"
 extern Link lan;
 void startLinkBattle();
 extern uint8_t playerPage;
-extern bool gymHard, pickOpen;
-extern uint8_t partyDetail;
-extern bool boxOpen; extern uint8_t boxSwapFrom;
+extern bool gymHard;
 extern bool btlNewBadge; extern uint32_t btlWinUntil;
-extern uint8_t pickTrainer, pickPage;
-void pickDefault(uint8_t cap);
-extern bool pickHard;
 void startSpeedGame();
 void setup();
 void loop();
 void render();
 extern Arduino_Canvas *gfx;
 extern Pet pet;
-extern bool cardOpen, galleryOpen, clockOpen, kbOpen, menuOpen, partyOpen, partyPick, trainOpen, movePickOpen;
+extern bool cardOpen, galleryOpen, clockOpen, kbOpen, menuOpen, trainOpen, movePickOpen;
 extern uint8_t cardPage;
 
 #define PANEL 466
@@ -201,7 +193,7 @@ static int shotMode(const char *screen, const char *out, int lvl, int iv, int de
   if (!strcmp(screen, "starterj")) onTap(233, 108 + 72 + 30);  // VER.2
   for (int i = 0; i < 2; i++) loop();          // pick up the sprite for the new Digimon
   cardOpen = galleryOpen = clockOpen = kbOpen = false;
-  menuOpen = partyOpen = partyPick = trainOpen = movePickOpen = false;
+  menuOpen = trainOpen = movePickOpen = false;
   if (!strcmp(screen, "battle"))      { cardOpen = true; cardPage = 1; }
   else if (!strcmp(screen, "profile")){ cardOpen = true; cardPage = 0; }
   else if (!strcmp(screen, "medals")) { cardOpen = true; cardPage = 3; }
@@ -227,7 +219,6 @@ static int shotMode(const char *screen, const char *out, int lvl, int iv, int de
   else if (!strcmp(screen, "battle2")) { startBattle(9, 50); }
   else if (!strcmp(screen, "wild")) { startWildBattle(currentExploreRegion(), false); }
   else if (!strcmp(screen, "btlmenu")) { startTrainerBattle(3, false); }
-  else if (!strcmp(screen, "btlswitch")) { startTrainerBattle(3, false); btlMenu = 2; }
   else if (!strcmp(screen, "btlmoves")) { startTrainerBattle(3, false); btlMenu = 1; }
   else if (!strcmp(screen, "battleanim")) {
     startBattle(9, 50);
@@ -245,44 +236,26 @@ static int shotMode(const char *screen, const char *out, int lvl, int iv, int de
   else if (!strcmp(screen, "gymsj")) { gymOpen = true; gymRegion = 1; }
   else if (!strcmp(screen, "gymsh")) { gymOpen = true; gymRegion = 2; }
   else if (!strcmp(screen, "lan")) { lanOpen = true; lan.state = LINK_OFF; }
-  else if (!strcmp(screen, "lanpick")) {
-    static const int f[]={10,20,12,7,21,5};
-    for(int i=0;i<6;i++){ PartyMon m; m.dex=f[i]; m.level=40+i*5;
-      m.ivAtk=m.ivDef=m.ivSpe=m.ivHp=25; party.replaceAt(i,m); }
-    lanWantHost = true;
-    pickTrainer = PICK_LAN; pickHard = false; pickPage = 0;
-    pickDefault(squadCap(PICK_LAN, false));
-    pickOpen = true;
-  }
   else if (!strcmp(screen, "lanlost")) { lanOpen = true; lan.begin(true,"D"); lan.state = LINK_LOST; }
   else if (!strcmp(screen, "lanready") || !strcmp(screen, "lanbattle") ||
            !strcmp(screen, "landone") || !strcmp(screen, "lanwait")) {
     // No radio here, so the pairing is faked at the point the radio would have
-    // finished it: both squads present, state READY. Everything past this --
+    // finished it: both partners present, state READY. Everything past this --
     // layout, the battle screen, the guest's restrictions -- is the real code.
     pet.renameTrainer("DYLAN");
     lan.begin(true, "DYLAN");
     snprintf(lan.peerName, sizeof(lan.peerName), "%s", "RIVAL");
-    static const int mineDex[] = {10, 20, 12}, theirDex[] = {6, 14, 21};
-    for (int i = 0; i < 3; i++) {
-      Pet t; t.dbgHatchAs(mineDex[i], false);
-      t.ivAtk = t.ivDef = t.ivSpe = t.ivHp = 25;
-      t.ageMinutes = 49UL * MINUTES_PER_LEVEL; t.relearnFromLevel();
-      PartyMon m; m.dex = mineDex[i]; m.level = 50;
-      m.ivAtk = m.ivDef = m.ivSpe = m.ivHp = 25;
-      for (int k = 0; k < MOVE_SLOTS; k++) m.moves[k] = t.moves[k];
-      party.replaceAt(i, m);
-      Combatant mc; combatantFromParty(mc, m);
-      LinkMon mine; linkMonFrom(mine, mc); lan.addMon(mine);
-
-      Pet u; u.dbgHatchAs(theirDex[i], false);
-      u.ivAtk = u.ivDef = u.ivSpe = u.ivHp = 25;
-      u.ageMinutes = 49UL * MINUTES_PER_LEVEL; u.relearnFromLevel();
-      Combatant c; combatantFromPet(c, u);
-      LinkMon lm; linkMonFrom(lm, c);
-      lan.theirs[i] = lm;
-    }
-    lan.theirsN = 3;
+    pet.dbgHatchAs(10, false);
+    pet.ivAtk = pet.ivDef = pet.ivSpe = pet.ivHp = 25;
+    pet.ageMinutes = 49UL * MINUTES_PER_LEVEL; pet.relearnFromLevel();
+    Combatant mc; combatantFromPet(mc, pet);
+    LinkMon mine; linkMonFrom(mine, mc); lan.addMon(mine);
+    Pet u; u.dbgHatchAs(6, false);
+    u.ivAtk = u.ivDef = u.ivSpe = u.ivHp = 25;
+    u.ageMinutes = 49UL * MINUTES_PER_LEVEL; u.relearnFromLevel();
+    Combatant c; combatantFromPet(c, u);
+    linkMonFrom(lan.theirs[0], c);
+    lan.theirsN = 1;
     lan.state = LINK_READY;
     if (!strcmp(screen, "lanbattle")) { startLinkBattle(); }
     else if (!strcmp(screen, "landone")) { lan.state = LINK_DONE; lan.youWon = true; lanOpen = true; }
@@ -292,39 +265,10 @@ static int shotMode(const char *screen, const char *out, int lvl, int iv, int de
     }
     else lanOpen = true;
   }
-  else if (!strcmp(screen, "box")) {
-    static const int f[]={10,20,12,7,21,5};
-    for(int i=0;i<6;i++){ PartyMon m; m.dex=f[i]; m.level=40+i*5;
-      m.ivAtk=m.ivDef=m.ivSpe=m.ivHp=25; party.replaceAt(i,m); }
-    static const int b[]={6,14,13,12,26,21,7,20};
-    for(int i=0;i<8;i++){ PartyMon m; m.dex=b[i]; m.level=30+i*4;
-      m.ivAtk=m.ivDef=m.ivSpe=m.ivHp=20; m.variant=(i==3);
-      party.box[i]=m; }
-    party.boxSave();
-    partyOpen=true; boxOpen=true; boxSwapFrom=1;
-  }
   else if (!strcmp(screen, "win")) {
     startTrainerBattle(2, true);
     btlNewBadge = true; btlWinUntil = 60000; pet.badgesHard = 0x07;
     btlTrainGain = 8; btlTrainWhich = 2;
-  }
-  else if (!strcmp(screen, "pmon")) {
-    Pet t; t.dbgHatchAs(21,false); t.ivAtk=t.ivDef=t.ivSpe=t.ivHp=27;
-    t.ageMinutes=53UL*MINUTES_PER_LEVEL; t.relearnFromLevel();
-    PartyMon m; m.dex=21; m.level=54; m.variant=1;
-    m.ivAtk=m.ivDef=m.ivSpe=m.ivHp=27; m.trAtk=m.trDef=m.trSpe=40;
-    for(int k=0;k<MOVE_SLOTS;k++) m.moves[k]=t.moves[k];
-    snprintf(m.nick,sizeof(m.nick),"NESSIE");
-    party.replaceAt(0,m);
-    partyOpen = true; partyDetail = 1;
-  }
-  else if (!strcmp(screen, "pick")) {
-    static const int fill[]={10,20,12,7,21,5};
-    static const int fill6[]={10,20,12,7,21,5};
-    for(int i=0;i<6;i++){ PartyMon m; m.dex=fill6[i]; m.level=40+i*6;
-      m.ivAtk=m.ivDef=m.ivSpe=m.ivHp=25; party.replaceAt(i,m); }
-    pickTrainer = 7; pickHard = false; pickPage = 0;
-    pickDefault(6); pickOpen = true;
   }
   else if (!strcmp(screen, "gymshard")) { gymOpen = true; gymHard = true; pet.badgesHard = 0x03; }
   else if (!strcmp(screen, "speed")) { startSpeedGame(); }
@@ -346,20 +290,6 @@ static int shotMode(const char *screen, const char *out, int lvl, int iv, int de
     pet.relearnFromLevel();
     pet.lastLearnLevel = 0;
     pet.checkLearnGates();
-  }
-  else if (!strcmp(screen, "party") || !strcmp(screen, "partyfull")) {
-    partyOpen = true;
-    static const int fill[] = { 6, 20, 26, 7, 12, 21 };
-    static const char *nk[] = { "EMBER", "SPARK", "", "SPOOK", "", "" };
-    int n = !strcmp(screen, "partyfull") ? 6 : 3;
-    for (int i = 0; i < n; i++) {
-      PartyMon m;
-      m.dex = fill[i]; m.level = 40 + i * 7; m.variant = (i == 2);
-      m.ivAtk = m.ivDef = m.ivSpe = m.ivHp = 25;
-      snprintf(m.nick, sizeof(m.nick), "%s", nk[i]);
-      party.replaceAt(i, m);
-    }
-    if (!strcmp(screen, "partyfull")) partyPick = true;
   }
   render();
   writePPM(out);

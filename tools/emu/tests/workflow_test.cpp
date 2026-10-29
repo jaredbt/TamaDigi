@@ -19,12 +19,14 @@ static std::deque<std::string> serialInput;
 static unsigned serialReads = 0, loops = 0, frames = 0, activeStops = 0, voiceStops = 0;
 void emuAdvanceMs(uint32_t ms);
 
-enum class Ending { Victory, Loss, Flee, Capture };
+// There were two capture cases (into the party, into the box); scanning a wild
+// Digimon into storage went with the party and box, removed by design.
+enum class Ending { Victory, Loss, Flee };
 struct Case {
   const char *name;
   bool gym;
   Ending ending;
-  bool early = false, hard = false, boxCapture = false;
+  bool early = false, hard = false;
 };
 static const Case cases[] = {
   {"gym-win", true, Ending::Victory},
@@ -34,8 +36,6 @@ static const Case cases[] = {
   {"wild-loss", false, Ending::Loss},
   {"gym-flee", true, Ending::Flee},
   {"wild-flee", false, Ending::Flee},
-  {"capture-party", false, Ending::Capture},
-  {"capture-box", false, Ending::Capture, false, false, true},
   {"gym-early", true, Ending::Victory, true},
   {"wild-early", false, Ending::Victory, true},
 };
@@ -85,10 +85,34 @@ static void cell(int index) {
   click(BTL_CELL_X(index) + BTL_CELL_W / 2, BTL_CELL_Y(index) + BTL_CELL_H / 2);
 }
 
+// The partner, as a flat record the reboot expectations can be written in.
+struct LiveMon {
+  int16_t dex;
+  uint16_t level, medals;
+  uint8_t ivAtk, ivDef, ivSpe, ivHp, trAtk, trDef, trSpe, variant;
+  uint8_t fullness, joy, energy, hygiene, poops, weight, bond, berryKnown;
+  uint8_t careMistakes, lastLearnLevel;
+  uint32_t ageMinutes;
+  char nick[12];
+  uint8_t moves[MOVE_SLOTS];
+};
+
+static LiveMon liveMon() {
+  LiveMon m{};
+  m.dex = pet.speciesId; m.level = pet.level(); m.medals = pet.medals;
+  m.ivAtk = pet.ivAtk; m.ivDef = pet.ivDef; m.ivSpe = pet.ivSpe; m.ivHp = pet.ivHp;
+  m.trAtk = pet.trAtk; m.trDef = pet.trDef; m.trSpe = pet.trSpe; m.variant = pet.variant;
+  m.fullness = pet.fullness; m.joy = pet.joy; m.energy = pet.energy; m.hygiene = pet.hygiene;
+  m.poops = pet.poops; m.weight = pet.weight; m.bond = pet.bond; m.berryKnown = pet.berryKnown;
+  m.careMistakes = pet.careMistakes; m.lastLearnLevel = pet.lastLearnLevel;
+  m.ageMinutes = pet.ageMinutes;
+  memcpy(m.nick, pet.nick, sizeof(m.nick));
+  memcpy(m.moves, pet.moves, sizeof(m.moves));
+  return m;
+}
+
 struct Collection {
-  PartyMon live;
-  std::array<PartyMon, PARTY_SLOTS> members;
-  std::array<PartyMon, BOX_SLOTS> box;
+  LiveMon live;
   std::array<uint16_t, GYM_REGIONS> easy, hard;
   std::array<uint8_t, sizeof(pet.dexReg)> dex, variant;
   std::array<uint8_t, ITEM_COUNT> items;
@@ -101,9 +125,7 @@ struct Collection {
 
 static Collection collection() {
   Collection result{};
-  result.live = pet.toPartyMon();
-  std::copy(std::begin(party.slots), std::end(party.slots), result.members.begin());
-  std::copy(std::begin(party.box), std::end(party.box), result.box.begin());
+  result.live = liveMon();
   for (uint8_t region = 0; region < GYM_REGIONS; region++) {
     result.easy[region] = pet.badgeMask(region, false);
     result.hard[region] = pet.badgeMask(region, true);
@@ -118,16 +140,16 @@ static Collection collection() {
   return result;
 }
 
-static bool sameMon(const PartyMon &left, const PartyMon &right) {
+static bool sameMon(const LiveMon &left, const LiveMon &right) {
   return std::tie(left.dex, left.level, left.medals, left.ivAtk, left.ivDef, left.ivSpe,
-                  left.ivHp, left.trAtk, left.trDef, left.trSpe, left.variant, left.stateVersion,
+                  left.ivHp, left.trAtk, left.trDef, left.trSpe, left.variant,
                   left.fullness, left.joy, left.energy, left.hygiene, left.poops, left.weight,
-                  left.bond, left.berryKnown, left.careMistakes, left.evoDeclinedLv,
+                  left.bond, left.berryKnown, left.careMistakes,
                   left.lastLearnLevel, left.ageMinutes) ==
          std::tie(right.dex, right.level, right.medals, right.ivAtk, right.ivDef, right.ivSpe,
-                  right.ivHp, right.trAtk, right.trDef, right.trSpe, right.variant, right.stateVersion,
+                  right.ivHp, right.trAtk, right.trDef, right.trSpe, right.variant,
                   right.fullness, right.joy, right.energy, right.hygiene, right.poops, right.weight,
-                  right.bond, right.berryKnown, right.careMistakes, right.evoDeclinedLv,
+                  right.bond, right.berryKnown, right.careMistakes,
                   right.lastLearnLevel, right.ageMinutes) &&
          !memcmp(left.nick, right.nick, sizeof(left.nick)) &&
          !memcmp(left.moves, right.moves, sizeof(left.moves));
@@ -136,13 +158,9 @@ static bool sameMon(const PartyMon &left, const PartyMon &right) {
 static void compareCollection(const Collection &expected, bool live) {
   Collection actual = collection();
   if (live) require(sameMon(actual.live, expected.live), "persisted Digimon or training differs after reboot");
-  for (unsigned slot = 0; slot < PARTY_SLOTS; slot++)
-    require(sameMon(actual.members[slot], expected.members[slot]), "existing party differs after battle/reboot");
-  for (unsigned slot = 0; slot < BOX_SLOTS; slot++)
-    require(sameMon(actual.box[slot], expected.box[slot]), "existing box differs after battle/reboot");
   require(actual.easy == expected.easy && actual.hard == expected.hard, "persisted badges differ");
   require(actual.dex == expected.dex && actual.variant == expected.variant, "existing Digidex differs");
-  require(actual.items == expected.items, "inventory rewards or spent ball differ after battle/reboot");
+  require(actual.items == expected.items, "inventory rewards differ after battle/reboot");
   require(actual.sound == expected.sound && actual.volume == expected.volume, "audio settings differ after reboot");
   require(!memcmp(actual.trainer, expected.trainer, sizeof(actual.trainer)) &&
           actual.avatar == expected.avatar && actual.region == expected.region &&
@@ -180,24 +198,6 @@ static void fixture(const Case &test) {
     pet.badgesX[region - 1] = (uint16_t)(1u << region);
     pet.badgesHardX[region - 1] = (uint16_t)(3u << region);
   }
-  const int16_t species[] = {3, 19, 34, 45, 61, 52};
-  unsigned members = test.boxCapture ? PARTY_SLOTS : PARTY_SLOTS - 1;
-  for (unsigned slot = 0; slot < members; slot++) {
-    PartyMon member{};
-    member.dex = species[slot]; member.level = 10 + slot;
-    member.stateVersion = 1; member.ageMinutes = (member.level - 1) * MINUTES_PER_LEVEL;
-    member.ivAtk = 13 + slot; member.ivDef = 20; member.ivSpe = 9; member.ivHp = 28;
-    member.trAtk = 6; member.trDef = 7; member.trSpe = 8;
-    member.variant = slot % 2;
-    snprintf(member.nick, sizeof(member.nick), "PARTY %u", slot);
-    require(party.add(member), "could not seed disposable party");
-  }
-  for (unsigned slot : {0u, (unsigned)BOX_SLOTS / 2, (unsigned)BOX_SLOTS - 1}) {
-    party.box[slot] = party.slots[slot % 5];
-    snprintf(party.box[slot].nick, sizeof(party.box[slot].nick), "BOX %u", slot);
-  }
-  require(party.savePair(), "could not seed disposable box");
-  if (test.ending == Ending::Capture) require(bag.add(IT_MASTERSCAN, 2) == 2, "cannot seed capture balls");
   pet.saveNow();
   advance();
   require(pet.saveHealthy() && !pet.savePending(), "fixture saving is not healthy");
@@ -222,28 +222,21 @@ static void battleWorkflow(const Case &test, Collection &preserved, const char *
   if (test.hard) click(233, GYMDIF_Y + GYMDIF_H / 2);
   int x, y, width, height;
   gymRowRect(0, &x, &y, &width, &height);
-  click(x + width / 2, y + height / 2);
-  require(pickOpen && pickTrainer == 0, "leader tap did not open team selection");
-  for (unsigned drawn = 1; drawn < 6; drawn++)
-    if (squadMask & (1u << drawn))
-      click(PICK_X(drawn) + PICK_CELL_W / 2, PICK_Y(drawn) + PICK_CELL_H / 2);
-  require(squadMask == 1, "team selection did not isolate the live pet");
+  // One partner, so a leader's row starts the fight directly (it used to open a
+  // team picker); a wild fight is reached by swiping from the ladder to Explore.
   if (test.gym) {
-    click(PICK_GO_X + PICK_BTN_W / 2, PICK_GO_Y + PICK_BTN_H / 2);
+    click(x + width / 2, y + height / 2);
   } else {
-    click(PICK_BACK_X + PICK_BTN_W / 2, PICK_GO_Y + PICK_BTN_H / 2);
     onSwipe(1);
     require(exploreOpen, "Explore was not reached through the swipe handler");
     if (test.ending == Ending::Loss) click(233, EXPLORE_DIF_Y + EXPLORE_DIF_H / 2);
     click(EXPLORE_BTN_X + EXPLORE_BTN_W / 2, EXPLORE_BTN_Y + EXPLORE_BTN_H / 2);
   }
-  require(battleOpen && btlPetIn && btlSquadN == 1 && btlWild == !test.gym,
+  require(battleOpen && btlYou.dex == pet.speciesId && btlWild == !test.gym,
           "missing milestone: real battle did not start");
   waitMusic(MUS_BATTLE);
   printf("MILESTONE battle-started %s sound=%s music-writes=%zu\n", test.name, sound, audioRuntime.battleWrites);
   unsigned attacks = 0;
-  PartyMon caught = test.gym ? PartyMon{} : wildToPartyMon();
-  int partySlot = party.firstFree(), boxSlot = party.boxFirstFree();
   if (test.ending == Ending::Flee) {
     for (unsigned tap = 0; battleOpen && !btlOver && tap < 40; tap++) {
       if (btlMsgCount) click(233, 320);
@@ -251,27 +244,6 @@ static void battleWorkflow(const Case &test, Collection &preserved, const char *
     }
     if (!test.gym)
       require(btlOver && !btlWon && !strcmp(btlMsg[0], T(S_GOT_AWAY)), "player flee did not reach the real escape result");
-  } else if (test.ending == Ending::Capture) {
-    while (btlMsgCount) click(233, 320);
-    cell(1);
-    require(btlMenu == 3, "capture did not open the real battle bag");
-    int ballCell = -1, shown = 0;
-    for (uint8_t index = 0; index < bag.distinctCount(); index++) {
-      ItemKey key = bag.keyAt(index);
-      if (!itemUsableInBattle(key)) continue;
-      if (key == IT_MASTERSCAN) ballCell = shown;
-      shown++;
-    }
-    require(ballCell >= 0 && ballCell < 4, "capture ball is not on the first real bag page");
-    cell(ballCell);
-    require(wildCaught && btlOver && btlWon, "missing milestone: real capture handler");
-    require(bag.count(IT_MASTERSCAN) == preserved.items[IT_MASTERSCAN] - 1, "capture did not spend its ball");
-    preserved.items[IT_MASTERSCAN]--;
-    if (partySlot >= 0) preserved.members[partySlot] = caught;
-    else {
-      require(boxSlot >= 0, "capture fixture has no box slot");
-      preserved.box[boxSlot] = caught;
-    }
   } else {
     for (unsigned tap = 0; tap < 300 && !btlOver; tap++) {
       if (btlMsgCount) { click(233, 320); continue; }
@@ -285,7 +257,7 @@ static void battleWorkflow(const Case &test, Collection &preserved, const char *
     }
     require(attacks > 0 && btlOver, "vacuous battle coverage: no real turn reached its result");
     if (test.ending == Ending::Victory)
-      require(btlWon && btlFoe.fainted() && (!test.gym || btlFoeAt > 0), "missing milestone: real battle victory");
+      require(btlWon && btlFoe.fainted(), "missing milestone: real battle victory");
     else
       require(!btlWon && btlYou.fainted(), "missing milestone: real battle loss rather than foe fleeing");
   }
@@ -294,7 +266,7 @@ static void battleWorkflow(const Case &test, Collection &preserved, const char *
     (test.hard ? preserved.hard : preserved.easy)[0] |= 1;
   }
   if (!test.gym && btlWon) {
-    require(wildDropN > 0, "wild victory/capture did not award its real drops");
+    require(wildDropN > 0, "wild victory did not award its real drops");
     for (uint8_t index = 0; index < wildDropN; index++) preserved.items[wildDrops[index]]++;
   }
   require(pet.saveHealthy() && !pet.savePending(), "battle result left saving broken or pending");

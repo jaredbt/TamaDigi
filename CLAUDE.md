@@ -16,8 +16,7 @@ non-commercial fan project: the code is MIT, the sprites are Bandai's.
 | `trainers.h` / `badges.h` | GENERATED: the boss ladders and their (procedurally drawn) badges |
 | `avatars.h` / `music.h` / `backs.h` | GENERATED, all original art/music (see `tools/gen_avatars.py`, `gen_music.py`, `draw_backs.py`) |
 | `types.h` | Element chart + attribute triangle helpers (`battleEffPct`) |
-| `party.cpp/.h` | The 6-slot party and the 36-slot box |
-| `battle.cpp/.h`, `wild.cpp/.h`, `link*.cpp` | Turn-based battles, wild encounters + scanning, ESP-NOW LAN battles |
+| `battle.cpp/.h`, `wild.cpp/.h`, `link*.cpp` | Turn-based 1-on-1 battles, wild encounters, ESP-NOW LAN battles (one partner a side) |
 | `i18n.cpp/.h` | 6-language string table (ES/EN/FR/DE/IT/PT), positional |
 | `sdmon.cpp/.h` | SD sprite streaming (TPK2) + USB `PUT` transfer |
 | `tools/digimon_data.py` | **THE single source of game data.** Edit here, then regenerate |
@@ -136,10 +135,12 @@ Two rules that test earns its keep by:
   emulator, which reads stdin as its serial console:
 
   ```bash
-  printf 'EGG 6\nLVL 30\nIV 31 20 25 28\nTR 40 30 20\nPARTY 25\nEXPORT\nWIPE\n' \
+  printf 'EGG 6\nLVL 30\nIV 31 20 25 28\nTR 40 30 20\nEXPORT\nWIPE\n' \
     | SDL_VIDEODRIVER=dummy tools/emu/tamadigi-emu --save /tmp/f.nvs --wipe
   ```
-  (`WIPE` is how it exits — `ESP.restart()` is `exit(0)` there.)
+  (`WIPE` is how it exits — `ESP.restart()` is `exit(0)` there.) The committed
+  fixture predates the party's removal and still carries a `pbA` record; that
+  is fine, the firmware skips it on import. A regenerated one will not have it.
 
 Things that have already bitten, or nearly:
 
@@ -295,9 +296,9 @@ second caller has its own copy of it, and nobody notices until a player does.
 **A guard written as a list of EXCLUSIONS is this trap pre-loaded.** The hold
 was gated by `!galleryOpen && !cardOpen && !kbOpen && !clockOpen`, so every
 screen added afterwards was live by default -- party, box, boss, battle, player,
-menu. On the party screen the grid overlaps `inPetZone` AND the dialog's YES box
-lands on party slot 4, so a hold plus a tap released the creature you were
-raising. It asks `uiCurrentScreen() == SCR_MAIN` now: state what is ALLOWED, not
+menu. On the (since removed) party screen the grid overlapped `inPetZone` AND
+the dialog's YES box landed on party slot 4, so a hold plus a tap released the
+creature you were raising. It asks `uiCurrentScreen() == SCR_MAIN` now: state what is ALLOWED, not
 what is forbidden, or the list rots every time a screen is added.
 
 **The habit:** when you change a rule, `grep` for every caller and make them all
@@ -325,13 +326,12 @@ they surfaced over months rather than at once:
 `DEX_COUNT`.** Never the literal 151, never `uint8_t`.
 
 **And wearing an INDEX:** a move's index is its position in `MOVES`
-(`digimon_data.py`; `gen_moves.py` does `idx = i + 1`), and `Pet::moves[]` /
-`PartyMon::moves[]` store that index RAW in NVS. Inserting a move into its type
-section shifts every later move by one and silently rewrites the moveset of
-every creature already saved -- the live pet and every banked member, on every
-player's device. **New moves go at the END**, after STRUGGLE, under the
-`APPEND-ONLY BELOW HERE` marker. Same family as the box getting its own NVS key
-and badges being stored additively: never reinterpret bytes that already exist.
+(`digimon_data.py`; `gen_moves.py` does `idx = i + 1`), and `Pet::moves[]`
+stores that index RAW in NVS. Inserting a move into its type section shifts
+every later move by one and silently rewrites the moveset of every creature
+already saved, on every player's device. **New moves go at the END**, after
+STRUGGLE, under the `APPEND-ONLY BELOW HERE` marker. Same family as badges
+being stored additively: never reinterpret bytes that already exist.
 
 **The same trap wearing a table instead of a width:** a helper that keeps its
 own copy of the REGION list. Four were found at once when Ver.4 landed --
@@ -422,36 +422,35 @@ added next to it closed the stats card, and the move-picker check three lines
 below had always continued from that card being open -- so the suite failed
 somewhere other than where it broke. Restore what you borrow, or start fresh.
 
-### 5. sizeof(PartyMon) is load-bearing in four places
+### 5. A record's size is load-bearing
 
-Growing the stored record is supported, but only THREE of the four paths that
-depend on its size knew that. Appending the care block to `PartyMon` (so a
-creature can be swapped in and out without being reset) broke the other one:
+This section was "sizeof(PartyMon) is load-bearing in four places": the party
+and box record grew a care block, and only three of the four paths that
+depended on its size knew it. The worst was `save.cpp`'s `MAX_VAL`, a literal
+768 with a comment explaining the arithmetic -- a number and a promise that
+drift independently -- so the box was quietly dropped from every EXPORT while
+everything else still restored. A backup that is quietly PARTIAL is worse than
+no backup.
 
-| what | how it depends on the size | state before |
-|---|---|---|
-| `Party::begin()`, the party | migrates a shorter blob by length | correct |
-| `Party::begin()`, the box | **no length migration at all** | would have silently emptied every box |
-| `save.cpp` `MAX_VAL` | **hardcoded 768**, "the box is the largest, at 18 records" | box dropped from every EXPORT while every other field still restored |
-| `SAVE_FIELDS` | must list every NVS key | fine, but the new `bag` key had to be added |
+The party and box were removed by design (one partner), and the lesson stays:
+`MAX_VAL` is now derived from `PET_CKPT_CAP`, `PLAYER_CKPT_CAP` and the bag's
+`ITEM_COUNT`, the same caps the records are read with. **Derive it; never
+restate it** -- the same rule as § "The same trap wearing a table instead of a
+width".
 
-The box one is the dangerous shape: `getBytes` refuses an oversized blob and
-leaves the destination alone, so the box reads back EMPTY and the next
-`boxSave()` writes that emptiness over the real one. It has the party's
-migration now.
+Two consequences of the removal that are easy to undo by accident:
 
-`MAX_VAL` is the more instructive one. It was a literal with a comment
-explaining the arithmetic, which is a number and a promise that drift
-independently -- a backup that is quietly PARTIAL is worse than no backup, and
-nothing about the failure was visible except `save_test`. It is
-`sizeof(PartyMon) * BOX_SLOTS` now. **Derive it; never restate it** -- the same
-rule as § "The same trap wearing a table instead of a width".
-
-`stateVersion` on the record defaults to **0, not 1**, and that is deliberate.
-The migration `memcpy`s `oldStride` bytes over a default-constructed record and
-leaves the tail alone, so any field defaulting to "I have real data" is a lie
-the moment the struct grows again. 0 means "this predates care state", and
-`switchTo()` reads the banked level instead.
+- **`saveImport()` holds only keys it would WRITE to `MAX_VAL`.** An unknown key
+  is skipped whatever its size. A backup made while the party existed carries a
+  `pbA` record of about 2 KB, far over the new `MAX_VAL`; bounding every key
+  again would refuse every such backup, including the frozen v1.0.0 one in
+  `upgrade_test`. `save_test` fails if that comes back.
+- **The pet checkpoint keeps the retired v2 tail's span** (52 bytes after
+  `PET_FIXED`, written as zeros, skipped on read). It used to hold the creature
+  a farewell handed over while it waited for a party slot. A field appended at
+  `PET_FIXED` would be read out of every v2 record's tail, so the next field
+  goes at `PET_BODY`; `powerloss_test` loads a v2 record with a creature still
+  waiting in it and pins both.
 
 ### 4. What the emulator structurally cannot see
 
@@ -460,7 +459,8 @@ that have each cost a real bug:
 
 - **Touch accuracy.** Synthetic taps are exact coordinates, so a target that is
   hard to hit with a finger tests perfectly. The battle grid's bottom row, the
-  party BOX button and the egg's region pill were all reported from a board.
+  (since removed) party BOX button and the egg's region pill were all reported
+  from a board.
 
   **A small target next to an irreversible action is the dangerous shape.**
   Missing the region pill fell through to `pet.eggTap()`, and three taps hatch
@@ -480,7 +480,7 @@ that have each cost a real bug:
 ## Testing
 
 **The game logic and the UI can both be tested without a board.** `pet.cpp`,
-`party.cpp` and `i18n.cpp` are plain C++ with no hardware dependency beyond
+`battle.cpp` and `i18n.cpp` are plain C++ with no hardware dependency beyond
 `Arduino.h`/`Preferences.h`, so `tools/emu/` stubs those and compiles the *real*
 sources — including `TamaDigi.ino` — into a clickable SDL app:
 
@@ -519,7 +519,6 @@ On hardware, verify over the serial console (115200):
   digivolution by a level, so `MISS 0` forgives a neglected start
 - `TR <atk> <def> <spe>` set the training (this game's EVs); clamped to
   `trMaxFor(iv)`, so it cannot build a creature the player could not raise
-- `PARTY` / `PARTY <dex>` / `PARTY CLEAR` inspect, fill and empty the party
 - `BATTLE <dex> [lvl]` start a fight (debug entry until boss ladders exist)
 - `EGG <dex> [variant]` hatch a chosen Digimon: the legendary (3 perfect IVs) and
   variant (IV floor 20) guarantees fire only inside `hatch()`, so this is the only
@@ -593,7 +592,7 @@ the previous one is whole.
 
 | Record | Keys | Holds |
 |---|---|---|
-| the creature | `petA` / `petB` | Digimon, age, IVs, training, moves, care, nickname, **and the pending party handover** |
+| the creature | `petA` / `petB` | Digimon, age, IVs, training, moves, care, nickname (and a retired, zeroed span where the party handover was; see § 5) |
 | the player | `plyA` / `plyB` | trainer name, avatar, region, both badge ladders, the Digidex bitmaps, streak, medals, records |
 
 Four things about it that are easy to get wrong:
@@ -626,15 +625,24 @@ Four things about it that are easy to get wrong:
   `powerloss_test` pins the invariant directly.
 
 The ~50 legacy keys stopped being written in v4.0 to reduce duplicate writes.
-That was **not a verified fix for issue #5**: `buildSquad()` copied the live
+That was **not a verified fix for issue #5**: `buildSquad()` (since replaced by
+`buildPartner()`) copied the live
 `Pet`, including its owning `Preferences` handle. Destroying the temporary
 closed the real pet's NVS handle, so badge saves failed. The emulator missed
 it because `Preferences::end()` was a no-op. `Pet` is now non-copyable, and
 combatant level caps do not require a copy. The stub models shared-handle
 closure and `touch_test` checks the badge and training after reload.
 
-`load()`/`Party::begin()` retain the legacy upgrade path and persist its
-checkpoint immediately so `EXPORT` does not omit a freshly migrated save.
+`load()` retains the legacy upgrade path and persists its checkpoint
+immediately so `EXPORT` does not omit a freshly migrated save.
+
+**The party and box were removed by design: one partner, no teams, every
+battle 1-on-1** (`docs/HANDOFF.md`, "One partner"). Their records -- the legacy
+`party`/`box` blobs, the `pbA`/`pbB` checkpoint and the focus-swap journal --
+are no longer read, written or exported. A save that still holds them loads
+with them ignored, and they stay in NVS untouched, so rolling back to v1.0.0
+still finds its party. Detecting a v1.0.0 save and replacing it comes with the
+Time Stranger data cutover.
 Downgrades are unsupported; in particular, pre-checkpoint firmware cannot read
 a checkpoint-only backup. Forward migration must continue preserving saves.
 
@@ -688,13 +696,12 @@ per save is the real fix.
   creature straight back -- has to be impossible for the next caller to forget.
   An earlier attempt put that guard on `Pet` instead and broke `console_test`,
   which wipes the shared global pet and keeps using it.
-- **The party handover used to live only in RAM.** `update()` hands the creature
-  over and `newEgg()` saves the egg immediately, but the party write waits for
-  the player to accept a slot -- a banner or a whole chooser screen later. A
-  power cut in that window lost the creature with the save that erased it already
-  committed. It is in the pet checkpoint now, so the egg and the creature it
-  replaced commit together. Go through `clearEnded()` / `setEnded()`, never
-  `pet.endedKind = ...`.
+- **A handover between two records needs one commit.** The party handover once
+  lived only in RAM: `update()` handed the creature over and `newEgg()` saved
+  the egg at once, but the party write waited for the player to pick a slot, so
+  a power cut in between lost the creature. It moved into the pet checkpoint so
+  both committed together. The party is gone, but the rule stands for anything
+  that crosses records again (partner history, Jogress).
 - **`Pet::saveHealthy()` is false when NVS would not open or has refused three
   writes in a row**, and `drawSaveWarning()` puts a red triangle beside the
   battery. A player who knows saving is broken can `EXPORT`; one who does not
@@ -708,7 +715,7 @@ is recorded here as fact so nobody redesigns it from the old notes.
 
 | Gesture | Means | Where |
 |---|---|---|
-| Horizontal | move along the TILE AXIS | `PLAYER . PARTY . [PET] . EXPLORE . GYM . DEX` |
+| Horizontal | move along the TILE AXIS | `PLAYER . [PET] . EXPLORE . GYM . DEX` |
 | Up | deeper (the pet's card, a sheet) | everywhere |
 | Down | BACK, one level | everywhere |
 | Rim drag | PAGE the current screen | every paged screen |
@@ -725,8 +732,10 @@ the page and how many there are. The arc scrollbar, the rim drag and
 and its coverage from one edit. Adding a screen to `onSwipe` instead is the old
 mistake wearing new clothes.
 
-**The tile order is not arbitrary.** `PLAYER . PARTY . [PET] . EXPLORE . GYM .
-DEX` keeps yours on the left and the world on the right. Explore is beside the
+**The tile order is not arbitrary.** `PLAYER . [PET] . EXPLORE . GYM . DEX`
+keeps yours on the left and the world on the right. PARTY sat between PLAYER and
+the pet until the party was removed (one partner); the pet screen's left label
+now names the TAMER card. Explore is beside the
 pet because it is a primary loop, not an action owned by the boss ladder. The pet
 screen names both neighboring destinations so the horizontal axis is visible
 before somebody already knows to swipe.
@@ -761,11 +770,10 @@ bottom of the panel back. Four `UI_TAP_FINGER` targets in one row would reach
 radius 222 of 233 -- so a finger-safe home row on this panel is three icons, not
 four, and 80 px is the honest compromise that keeps all four.
 
-**The party and box are a RING of six, not a 2x3 grid** (`partySlotPos`,
-`partySlotAt`, `partyHubAt`). A grid on a circle spends its corners on glass
-that is not there; the old 150x70 cells were 70 px tall, under the floor, with
-their outer corners at the bezel. The BOX button is the hub in the middle,
-because the centre of a round panel is the easiest place on it to hit.
-`hit_test` MEASURES the slot radius off `partySlotAt()` rather than reading
-`PSLOT_R`, so it checks the hit areas the firmware actually answers with.
+**A ring beats a grid on a round panel.** The (since removed) party and box
+were a ring of six 100 px discs with the BOX button as the hub, because a grid
+on a circle spends its corners on glass that is not there and the centre of a
+round panel is the easiest place on it to hit. The memory game's pads use the
+same idea (`memoPadPos`, `memoPadAt`), and `hit_test` measures hit areas off the
+firmware's own predicates rather than re-reading constants.
 

@@ -3,12 +3,12 @@
 
 Inventory bag;
 
-// Same NVS namespace as the pet and the party on purpose: WIPE
+// Same NVS namespace as the pet on purpose: WIPE
 // (Pet::factoryReset) calls clear() on it, and a factory reset that left the
 // bag behind would be a lie.
 void Inventory::begin() {
   memset(counts, 0, sizeof(counts));
-  // Checked so a failure is at least visible; see the note in Party::begin().
+  // Checked so a failure is at least visible, as Pet::begin() does.
   if (!prefs.begin("tamadigi", false))
     Serial.println("save: NVS would not open for the bag");
   size_t stored = prefs.getBytesLength("bag");

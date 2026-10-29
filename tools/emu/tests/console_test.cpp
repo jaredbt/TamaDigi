@@ -9,7 +9,6 @@
 #include "Arduino_GFX_Library.h"
 #include "Preferences.h"
 #include "pet.h"
-#include "party.h"
 #include "save.h"
 #include <cstdio>
 #include <string>
@@ -71,8 +70,7 @@ int main(){
   pet.ivAtk=29; pet.ivHp=13;
   pet.badges = 0x0055;
   pet.streak = 8;
-  for (int i=0;i<3;i++){ PartyMon m; m.dex=39+i; m.level=44+i;
-    m.ivAtk=m.ivDef=m.ivSpe=m.ivHp=17; party.replaceAt(i,m); }
+  pet.trAtk=33;
   pet.renameTrainer("ASH");        // persists everything above
 
   std::string out = runConsole({"EXPORT"});
@@ -104,15 +102,14 @@ int main(){
   ck(res.find("IMPORT OK") != std::string::npos, "pasting the block back is accepted");
   ck(gRestarted, "and it reboots, as a restore has to");
 
-  Pet p2; Party q2;
-  p2.begin(); q2.begin();
+  Pet p2;
+  p2.begin();
   ck(!strcmp(p2.trainerName,"ASH"), "the trainer name came back");
   ck(p2.speciesId==59 && p2.ageMinutes==61UL*MINUTES_PER_LEVEL,
      "so did the creature and its age");
   ck(p2.ivAtk==29 && p2.ivHp==13 && p2.badges==0x0055 && p2.streak==8,
      "and the IVs, badges and streak");
-  ck(q2.count()==3 && q2.slots[1].dex==40 && q2.slots[1].level==45,
-     "and the party");
+  ck(p2.trAtk==33, "and the training");
 
   // --- a mistyped paste must not be applied
   {

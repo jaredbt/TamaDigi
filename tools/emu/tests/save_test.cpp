@@ -9,7 +9,6 @@
 #include "Arduino.h"
 #include "Preferences.h"
 #include "pet.h"
-#include "party.h"
 #include "save.h"
 #include "test_nvs.h"
 #include <cstdio>
@@ -26,11 +25,10 @@ static int bad=0;
 static void ck(bool ok,const char*w){printf("%s  %s\n",ok?"PASS":"FAIL",w); if(!ok)bad++;}
 
 int main(){
-  // --- a save worth losing: a raised creature, a full party, a filled box,
-  // both ladders, a Digidex with holes in it, a named tamer
+  // --- a save worth losing: a raised creature, both ladders, a Digidex with
+  // holes in it, a named tamer
   Pet pet;
   pet.begin();
-  party.begin();
   pet.dbgHatchAs(6,true);
   pet.ageMinutes = 72UL*MINUTES_PER_LEVEL;
   pet.ivAtk=31; pet.ivDef=7; pet.ivSpe=22; pet.ivHp=19;
@@ -44,13 +42,6 @@ int main(){
   pet.gameHi = 33; pet.strHi = 21; pet.spdHi = 9;
   pet.bond = 77; pet.careMistakes = 2; pet.weight = 55;
   pet.dexReg[0] = 0x5A; pet.dexReg[9] = 0xC3; pet.dexVariantReg[3] = 0x11;
-  for (int i=0;i<PARTY_SLOTS;i++){ PartyMon m; m.dex=20+i*7; m.level=40+i;
-    m.ivAtk=m.ivDef=m.ivSpe=m.ivHp=20+i; m.variant=(i==2);
-    snprintf(m.nick,sizeof(m.nick),"P%d",i);
-    m.moves[0]=1+i; m.moves[1]=9; party.replaceAt(i,m); }
-  for (int i=0;i<BOX_SLOTS;i++){ PartyMon m; m.dex=1+i; m.level=10+i;
-    m.ivAtk=m.ivDef=m.ivSpe=m.ivHp=11; party.box[i]=m; }
-  party.boxSave();
   // renameTrainer() persists, and save() writes every field -- so this is also
   // what commits everything set above. save() itself is private on purpose.
   pet.renameTrainer("DYLAN");
@@ -114,11 +105,11 @@ int main(){
 
   // --- the real thing: wipe everything, restore, and compare
   pet.factoryReset();
-  ck(readTestNvs().empty() || readTestNvs().count("party")==0, "the wipe really emptied NVS");
+  ck(readTestNvs().empty() || readTestNvs().count("petA")==0, "the wipe really emptied NVS");
   ck(saveImport(buf, n), "the backup imports");
 
-  Pet p2; Party q2;
-  p2.begin(); q2.begin();
+  Pet p2;
+  p2.begin();
   ck(p2.speciesId==6 && p2.variant, "the creature is back, variant and all");
   ck(p2.ageMinutes==72UL*MINUTES_PER_LEVEL, "at the age it was");
   ck(p2.ivAtk==31 && p2.ivDef==7 && p2.ivSpe==22 && p2.ivHp==19, "with its IVs");
@@ -142,19 +133,44 @@ int main(){
   for (int i=0;i<MOVE_SLOTS;i++) if (p2.moves[i]!=pet.moves[i]) moves=false;
   ck(moves, "and the moveset");
 
-  ck(q2.count()==PARTY_SLOTS, "the whole party is back");
-  bool party_ok = true;
-  for (int i=0;i<PARTY_SLOTS;i++){
-    const PartyMon &m = q2.slots[i];
-    if (m.dex != 20+i*7 || m.level != 40+i) party_ok = false;
-    if (m.moves[0] != 1+i || m.moves[1] != 9) party_ok = false;
-    char want[8]; snprintf(want,sizeof(want),"P%d",i);
-    if (strcmp(m.nick, want)) party_ok = false;
+  // --- the party and box records, pbA/pbB. The party and box were removed by
+  // design (one partner), so they are no longer backed up -- but a backup made
+  // while they existed carries one, about 2 KB, far over the per-value ceiling
+  // of anything this build stores. It must still import (the unknown key is
+  // skipped, not used to refuse the whole backup) and must not be written back.
+  {
+    const size_t PAIR = 18 + 48 * (6 + 36) + 2;   // the last party+box record
+    std::vector<uint8_t> old(buf, buf + n - 2);
+    const char *key = "pbA";
+    old.push_back((uint8_t)strlen(key));
+    old.insert(old.end(), key, key + strlen(key));
+    old.push_back(SK_BYTES);
+    old.push_back((uint8_t)(PAIR & 0xFF)); old.push_back((uint8_t)(PAIR >> 8));
+    old.insert(old.end(), PAIR, 0x5A);
+    uint16_t count = (uint16_t)(buf[5] | (buf[6] << 8)) + 1;
+    old[5] = (uint8_t)(count & 0xFF); old[6] = (uint8_t)(count >> 8);
+    uint16_t c = 0xFFFF;                         // CRC-16/CCITT-FALSE, as save.cpp
+    for (uint8_t b : old) { c ^= (uint16_t)b << 8;
+      for (int k = 0; k < 8; k++) c = (c & 0x8000) ? (uint16_t)((c << 1) ^ 0x1021) : (uint16_t)(c << 1); }
+    old.push_back((uint8_t)(c & 0xFF)); old.push_back((uint8_t)(c >> 8));
+    ck(old.size() <= SAVE_TRANSFER_MAX, "an old backup with the party and box fits the transfer buffer");
+    ck(saveImport(old.data(), old.size()), "a backup that still carries pbA imports");
+    ck(readTestNvs().count("pbA")==0, "and the party and box are not written back");
+    Pet p5; p5.begin();
+    ck(p5.speciesId==6 && !strcmp(p5.trainerName,"DYLAN"), "with the partner intact");
+
+    // A device that still HOLDS pbA from an older build exports without it.
+    Preferences pr; pr.begin("tamadigi", false);
+    std::vector<uint8_t> blob(PAIR, 0x5A);
+    pr.putBytes("pbA", blob.data(), blob.size());
+    pr.end();
+    static uint8_t again[SAVE_TRANSFER_MAX];
+    size_t m = saveExport(again, sizeof(again));
+    bool hasPb = false;
+    for (size_t i = 0; i + 3 < m; i++)
+      if (again[i] == 3 && !memcmp(again + i + 1, "pbA", 3)) hasPb = true;
+    ck(m > 0 && !hasPb, "an old pbA on the device is left out of a new export");
   }
-  ck(party_ok, "with every level, moveset and nickname");
-  ck(q2.slots[2].variant, "and a banked variant is still variant");
-  ck(q2.boxCount()==BOX_SLOTS, "the box comes back full");
-  ck(q2.box[7].dex==1+7 && q2.box[7].level==17, "with the right creatures in it");
 
   // --- a restore must not leave anything of whatever was there before
   {

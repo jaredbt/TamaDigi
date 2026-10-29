@@ -7,7 +7,6 @@
 #include "Arduino.h"
 #include "Preferences.h"
 #include "pet.h"
-#include "party.h"
 #include "save.h"
 #include <cstdio>
 #include <cstring>

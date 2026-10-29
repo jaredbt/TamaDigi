@@ -113,7 +113,7 @@ public:
     return n;
   }
   // Size of a stored blob, 0 if absent. The firmware uses it to tell an
-  // old, shorter record layout from the current one (see Party::begin).
+  // old, shorter record layout from the current one (see loadBlob in pet.cpp).
   size_t getBytesLength(const char *k) {
     if (!readable()) return 0;
     auto it = kv().find(k);

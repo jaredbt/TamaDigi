@@ -7,7 +7,6 @@
 #include "Arduino_GFX_Library.h"
 #include "Preferences.h"
 #include "pet.h"
-#include "party.h"
 #include "moves.h"
 #include "battle.h"
 #include "trainers.h"
@@ -49,20 +48,11 @@ extern Combatant btlYou, btlFoe;
 extern uint8_t btlMsgCount;
 void startBattle(int16_t dex, uint8_t lvl);
 void startTrainerBattle(uint8_t idx, bool hard);
-extern uint8_t btlFoeAt, btlSquadN, btlSquadAt, btlMenu;
-extern Combatant btlSquad[7];
-extern int8_t btlSwapWho;
+extern uint8_t btlMenu;
 extern bool btlHard;
 extern bool gymOpen, gymHard; extern uint8_t gymPage, gymRegion, btlRegion;
 extern bool gymPick;
-extern uint8_t pickRegion;
 void gymRowRect(int i, int *x, int *y, int *w, int *h);
-extern bool pickOpen, pickHard; extern uint8_t pickTrainer; extern uint16_t squadMask;
-uint8_t squadCap(uint8_t idx, bool hard);
-uint8_t pickChosen(); uint8_t pickCandidates(); void pickDefault(uint8_t);
-extern uint8_t pickPage;
-#define PICK_X(i) (78 + ((i) % 2) * 160)
-#define PICK_Y(i) (86 + ((i) / 2) * 80)
 #define BTL_CELL_X(i) (69 + ((i) % 2) * 168)
 #define BTL_CELL_Y(i) (286 + ((i) / 2) * 52)
 uint8_t learnableList(uint8_t *out, uint8_t max);
@@ -358,29 +348,41 @@ int main(int argc, char **argv) {
   if (!btlOver) { printf("FAIL: fight never concluded\n"); return 1; }
   printf("PASS: the fight concludes and closes\n");
 
-  // ---- a tamer fight: the foe's squad must chain, and winning awards a badge
-  pet.ageMinutes = 100 * MINUTES_PER_LEVEL;   // strong enough to sweep the first boss
+  // ---- a tamer fight: 1-on-1 against the boss's strongest, and winning awards a badge
+  //
+  // The boss ladders still list a team, from the TamaPoke engine; with no teams
+  // anywhere (the party and the boss teams were removed by design) a boss fights
+  // with its LAST member, the strongest. The Time Stranger ladder replaces it.
+  pet.ageMinutes = 100 * MINUTES_PER_LEVEL;   // strong enough to beat the first boss
   pet.relearnFromLevel();
   while (pet.hasLearnOffer()) pet.declineLearn();
   bool hadBadge = pet.hasBadge(0, 0, false);
+  const Trainer &first = TRAINER_SETS[0].list[0];
+  const TrainerMon &firstBoss = first.team[first.count - 1];
   startTrainerBattle(0, false);
   if (!battleOpen) { printf("FAIL: trainer battle did not start\n"); return 1; }
-  printf("PASS: gym battle starts (squad of %u vs the first boss)\n", btlSquadN);
+  printf("PASS: gym battle starts\n");
+  if (btlFoe.dex != firstBoss.dex) {
+    printf("FAIL: the first boss fought with dex %d, not its last member %d\n",
+           btlFoe.dex, firstBoss.dex);
+    return 1;
+  }
+  printf("PASS: the boss fights with the last member of its old team\n");
 
   int taps = 0;
-  uint8_t sawFoeAt = 0;
+  bool foeChanged = false;
   while (battleOpen && taps < 200) {
     taps++;
+    if (btlFoe.dex != firstBoss.dex) foeChanged = true;
     if (btlMsgCount) { click(233, 320); continue; }
     int slot = -1;
     for (int i = 0; i < MOVE_SLOTS; i++) if (btlYou.moves[i]) { slot = i; break; }
     if (slot < 0) break;
     click(BTL_CELL_X(slot) + 40, BTL_CELL_Y(slot) + 20);
-    if (btlFoeAt > sawFoeAt) sawFoeAt = btlFoeAt;
   }
-  printf("     %d taps, foe reached team index %u, won=%d\n", taps, sawFoeAt, (int)btlWon);
-  if (sawFoeAt == 0) { printf("FAIL: the second gym creature never came out\n"); return 1; }
-  printf("PASS: the trainer sends out its next creature on a faint\n");
+  printf("     %d taps, won=%d\n", taps, (int)btlWon);
+  if (foeChanged) { printf("FAIL: a second boss creature came out\n"); return 1; }
+  printf("PASS: nobody is sent out after it: the fight is 1-on-1\n");
   if (!btlWon) { printf("FAIL: a L100 creature lost to the first boss\n"); return 1; }
   if (!pet.hasBadge(0, 0, false) || hadBadge) { printf("FAIL: no badge awarded\n"); return 1; }
   printf("PASS: beating a leader awards its badge (%u/8)\n", pet.badgeCount(false));
@@ -397,8 +399,8 @@ int main(int argc, char **argv) {
   }
   printf("PASS: a gym win keeps saving healthy and its badge and training survive reload\n");
 
-  // The selected version becomes battle-owned state. Replacements and badge
-  // awards use btlRegion, not the boss chooser's mutable version.
+  // The selected version becomes battle-owned state: badge awards use btlRegion,
+  // not the boss chooser's mutable version, and each version's boss is its own.
   for (uint8_t region = 1; region < GYM_REGIONS; region++) {
     battleOpen = false;
     gymRegion = region;
@@ -408,206 +410,75 @@ int main(int argc, char **argv) {
       return 1;
     }
     const Trainer &leader = TRAINER_SETS[gymRegion].list[0];
-    if (btlFoe.dex != leader.team[0].dex) {
+    if (btlFoe.dex != leader.team[leader.count - 1].dex) {
       printf("FAIL: region %u battle did not start with its own leader\n", gymRegion);
       return 1;
     }
-    btlFoe.hp = 0;
-    btlSwapWho = 1;
-    btlMsgCount = 1;
-    click(233, 320);  // dismiss the faint message; the real replacement arrives
-    if (btlFoeAt != 1 || btlFoe.dex != leader.team[1].dex) {
-      printf("FAIL: region %u leader replaced its lead with dex %u\n",
-             gymRegion, btlFoe.dex);
-      return 1;
-    }
   }
-  printf("PASS: every non-Ver.1 leader sends its own second creature\n");
+  printf("PASS: every non-Ver.1 leader fights with its own strongest Digimon\n");
   battleOpen = false;
   gymRegion = 0;
 
-  // The TEAM PICKER owns its version too. squadCap() and the picker header used to
-  // read the chooser's mutable gymRegion, so the hard-mode team cap and the boss
-  // named on the screen came from wherever the chooser happened to be pointing --
-  // the same missing snapshot as btlRegion, one screen earlier. Not reachable
-  // through the gesture map today (onTap/onSwipe/onSwipeV all check pickOpen and
-  // return before the gymRegion writes), which is exactly why it needs pinning:
-  // it is one dispatch-order change away from being reachable, and this project
-  // has shipped the same paging bug four times for that reason.
-  {
-    const uint8_t saveRegion = gymRegion, savePick = pickRegion;
-    const bool savePickOpen = pickOpen, saveHard = gymHard, saveGymOpen = gymOpen;
-    const uint8_t openOn = 1;                            // VER.2
-    const uint8_t want = TRAINER_SETS[openOn].list[0].count;
-    // The version to move the chooser to is FOUND, not guessed. Ver.2 and Pendulum
-    // both field two creatures in their first boss, so the obvious hardcoded pair
-    // made this assertion true whether the fix was there or not -- it passed with
-    // the bug deliberately put back. If no version differs, the test cannot detect
-    // anything and says so rather than reporting a pass.
-    int other = -1;
-    for (uint8_t r = 0; r < GYM_REGIONS && other < 0; r++)
-      if (TRAINER_SETS[r].list[0].count != want) other = (int)r;
-    if (other < 0) {
-      printf("FAIL: every first gym fields %u, so this test cannot see the bug\n", want);
-      return 1;
-    }
-    gymRegion = openOn;
-    gymHard = true;
-    gymOpen = true;
-    gymPick = false;                                     // past the chooser, on the ladder
-    gymPage = 0;
-    int rx, ry, rw, rh;
-    gymRowRect(0, &rx, &ry, &rw, &rh);
-    click(rx + rw / 2, ry + rh / 2);                     // open the picker on boss 1
-    if (!pickOpen || pickRegion != openOn) {
-      printf("FAIL: the picker did not capture its region (open=%d region=%u)\n",
-             pickOpen ? 1 : 0, pickRegion);
-      return 1;
-    }
-    if (squadCap(0, true) != want) {
-      printf("FAIL: cap %u on opening, want %u\n", squadCap(0, true), want);
-      return 1;
-    }
-    gymRegion = (uint8_t)other;     // move the chooser under the open picker
-    if (squadCap(0, true) != want) {
-      printf("FAIL: the cap followed the chooser to %s (%u, want %u)\n",
-             TRAINER_SETS[other].region, squadCap(0, true), want);
-      return 1;
-    }
-    printf("PASS: the team picker keeps the region it was opened for "
-           "(%s x%u, chooser moved to %s x%u)\n",
-           TRAINER_SETS[openOn].region, want, TRAINER_SETS[other].region,
-           TRAINER_SETS[other].list[0].count);
-    pickOpen = savePickOpen;
-    pickRegion = savePick;
-    gymRegion = saveRegion;
-    gymHard = saveHard;
-    gymOpen = saveGymOpen;
-  }
-
-  // ---- hard mode caps the team to the opponent's size AND level
+  // ---- both difficulties cap your level to the boss's
   battleOpen = false;
   pet.ageMinutes = 100 * MINUTES_PER_LEVEL;   // a level 100 creature
   startTrainerBattle(0, true);                // the first Ver.1 boss
-  uint8_t top = 0;
-  const Trainer &first = TRAINER_SETS[0].list[0];
-  for (uint8_t i = 0; i < first.count; i++) if (first.team[i].level > top) top = first.team[i].level;
-  printf("     hard vs %s: squad %u, your lead is L%u (pet is L%u)\n",
-         first.name, btlSquadN, btlYou.level, pet.level());
+  const uint8_t top = firstBoss.level;
+  printf("     hard vs %s: your partner is L%u (pet is L%u), boss L%u\n",
+         first.name, btlYou.level, pet.level(), top);
   if (btlYou.level != top) {
-    printf("FAIL: level not capped to the boss's top (got %u, want %u)\n", btlYou.level, top);
+    printf("FAIL: level not capped to the boss's (got %u, want %u)\n", btlYou.level, top);
     return 1;
   }
-  printf("PASS: hard mode caps your level to the leader's best\n");
-  if (btlSquadN > first.count) { printf("FAIL: squad not capped to the boss's\n"); return 1; }
-  printf("PASS: hard mode caps your team size to the leader's\n");
+  printf("PASS: hard mode caps your level to the boss's\n");
   if (pet.level() != 100) { printf("FAIL: the stored pet was modified\n"); return 1; }
   printf("PASS: the stored creature is untouched (still L%u)\n", pet.level());
   battleOpen = false;
 
-  // ---- switching mid-fight
-  battleOpen = false; pickOpen = false; pet.badges = 0;
-  for (int i = 0; i < 3; i++) { PartyMon m; m.dex = 9 + i * 10; m.level = 40;
-    m.ivAtk = m.ivDef = m.ivSpe = m.ivHp = 25; party.replaceAt(i, m); }
-  squadMask = 0xFFFF;
+  // ---- there is nothing to switch to: the cell where DIGIMON was is inert
+  pet.badges = 0;
   startTrainerBattle(0, false);
-  if (btlSquadN < 2) { printf("FAIL: squad too small to test switching\n"); return 1; }
-  printf("PASS: battle starts with a squad of %u\n", btlSquadN);
-
   btlMenu = 0;
-  click(150, 274 + 52 + 22);            // DIGIMON: lower-LEFT cell now (RUN is right)
-  if (btlMenu != 2) { printf("FAIL: DIGIMON did not open the switch list\n"); return 1; }
-  printf("PASS: DIGIMON opens the switch list\n");
-
-  uint8_t was = btlSquadAt;
-  uint16_t swFoeHp0 = btlFoe.hp;
-  click(69 + 40, 286 + 22);             // slot 0 = the one already out: inert
-  if (btlSquadAt != was) { printf("FAIL: switching to the active creature was allowed\n"); return 1; }
-  printf("PASS: you cannot switch to the one already out\n");
-
-  btlMenu = 2;
-  click(69 + 168 + 40, 286 + 22);       // slot 1
-  if (btlSquadAt == was) { printf("FAIL: the switch did not happen\n"); return 1; }
-  printf("PASS: switching brings on another creature (slot %u -> %u)\n", was, btlSquadAt);
-  bool costTurn = (btlYou.hp < btlYou.maxHp) || (btlFoe.hp == swFoeHp0);
-  printf("     foe hp %u -> %u, your new one %u/%u\n", swFoeHp0, btlFoe.hp, btlYou.hp, btlYou.maxHp);
-  if (!costTurn) { printf("FAIL: switching was free -- the foe never acted\n"); return 1; }
-  printf("PASS: switching spends the turn\n");
+  {
+    const int16_t youDex = btlYou.dex;
+    const uint16_t foeHp0 = btlFoe.hp, youHp0 = btlYou.hp;
+    click(150, 274 + 52 + 22);            // the lower-LEFT cell (RUN is right)
+    if (btlMenu != 0 || btlMsgCount || btlYou.dex != youDex ||
+        btlFoe.hp != foeHp0 || btlYou.hp != youHp0) {
+      printf("FAIL: the empty cell where SWITCH was still did something\n");
+      return 1;
+    }
+    printf("PASS: the empty cell where SWITCH was does nothing and spends no turn\n");
+  }
   battleOpen = false; btlMenu = 0;
-  for (int i = 0; i < 3; i++) party.releaseAt(i);
 
-  // ---- the boss ladder is sequential: only the next one may be entered
-  battleOpen = false; pickOpen = false;
+  // ---- the boss ladder is sequential: only the next one may be entered. A row
+  // starts the fight directly now; there is no team to pick.
+  battleOpen = false;
   pet.badges = 0;                       // nothing beaten yet
-  gymOpen = true; gymHard = false; gymPage = 0;
+  gymOpen = true; gymPick = false; gymHard = false; gymPage = 0;
   click(233, 110 + 1 * 50 + 20);        // RIVAL, the second row
-  if (pickOpen || battleOpen) { printf("FAIL: a locked leader was enterable\n"); return 1; }
+  if (battleOpen) { printf("FAIL: a locked leader was enterable\n"); return 1; }
   printf("PASS: a locked leader cannot be entered\n");
+  gymOpen = true; gymPick = false; gymPage = 0;
   click(233, 110 + 0 * 50 + 20);        // the first boss, the first
-  if (!pickOpen) { printf("FAIL: the first leader was not enterable\n"); return 1; }
-  printf("PASS: the first leader is always open\n");
-  pickOpen = false;
+  if (!battleOpen) { printf("FAIL: the first leader was not enterable\n"); return 1; }
+  printf("PASS: the first leader is always open, and its row starts the fight\n");
+  battleOpen = false;
   pet.badges = 1;                       // the first boss beaten
-  gymOpen = true; gymPage = 0;
+  gymOpen = true; gymPick = false; gymPage = 0;
   click(233, 110 + 1 * 50 + 20);        // RIVAL again
-  if (!pickOpen) { printf("FAIL: beating one did not unlock the next\n"); return 1; }
+  if (!battleOpen) { printf("FAIL: beating one did not unlock the next\n"); return 1; }
   printf("PASS: beating a leader unlocks the next\n");
-  pickOpen = false;
+  battleOpen = false;
   // and the hard ladder is its own run
-  gymOpen = true; gymHard = true; gymPage = 0;
+  gymOpen = true; gymPick = false; gymHard = true; gymPage = 0;
   click(233, 110 + 1 * 50 + 20);
-  if (pickOpen) { printf("FAIL: easy progress unlocked the hard ladder\n"); return 1; }
+  if (battleOpen) { printf("FAIL: easy progress unlocked the hard ladder\n"); return 1; }
   printf("PASS: hard mode keeps its own unlock order\n");
   gymHard = false; gymOpen = false; pet.badges = 0;
 
-  // ---- a live pet plus a FULL party is 7 candidates against a cap of 6. The
-  // 7th used to be counted but never drawn and never tappable, so FIGHT sat
-  // inert with no way to fix it.
-  battleOpen = false; pickOpen = false;
-  for (int i = 0; i < PARTY_SLOTS; i++) { PartyMon m; m.dex = 9 + i * 10; m.level = 40;
-    m.ivAtk = m.ivDef = m.ivSpe = m.ivHp = 25; party.replaceAt(i, m); }
-  pickTrainer = 0; pickHard = false; pickPage = 0;
-  pickDefault(squadCap(0, false));
-  printf("     candidates=%u chosen=%u cap=%u\n",
-         pickCandidates(), pickChosen(), squadCap(0, false));
-  if (pickCandidates() != PARTY_SLOTS + 1) { printf("FAIL: expected 7 candidates\n"); return 1; }
-  printf("PASS: a live pet plus a full party is 7 candidates\n");
-  if (pickChosen() > squadCap(0, false)) {
-    printf("FAIL: the picker opens over its own cap\n"); return 1; }
-  printf("PASS: it opens with a valid selection, not everything\n");
-  { uint8_t pages = (pickCandidates() + 6 - 1) / 6;
-    if (pages < 2) { printf("FAIL: 7 candidates must span 2 pages\n"); return 1; }
-    printf("PASS: the 7th is reachable on page %u of %u\n", pages, pages); }
-  for (int i = 0; i < PARTY_SLOTS; i++) party.releaseAt(i);
-  squadMask = 0xFFFF;
-
-  // ---- team select: cap enforcement and toggling
-  battleOpen = false;
-  for (int i = 0; i < 5; i++) { PartyMon m; m.dex = 9 + i; m.level = 40;
-    m.ivAtk = m.ivDef = m.ivSpe = m.ivHp = 25; party.replaceAt(i, m); }
-  squadMask = 0xFFFF;
-  pickTrainer = 0; pickHard = true; pickOpen = true;   // the first boss: cap of 2
-  uint8_t cap = squadCap(0, true);
-  // x=300: FIGHT sits right of centre now, with BACK to its left. Tapping 233
-  // lands in the gap between them and hits nothing, which made the next check
-  // pass for the wrong reason.
-  click(300, 366);                                     // FIGHT with 6 chosen
-  if (battleOpen || !pickOpen) { printf("FAIL: FIGHT fired while over the cap\n"); return 1; }
-  printf("PASS: FIGHT is inert while over the cap (%u chosen, cap %u)\n", 6, cap);
-
-  // deselect down to the cap, then it should start
-  for (int slot = 5; slot >= (int)cap; slot--)
-    click(PICK_X(slot) + 40, PICK_Y(slot) + 30);
-  click(300, 366);
-  if (!battleOpen) { printf("FAIL: FIGHT did not start at the cap\n"); return 1; }
-  printf("PASS: trimming to the cap lets the fight start (squad %u)\n", btlSquadN);
-  if (btlSquadN > cap) { printf("FAIL: squad exceeded the cap\n"); return 1; }
-  printf("PASS: the squad respects the chosen team\n");
-  battleOpen = false;
-  squadMask = 0xFFFF;
-  for (int i = 0; i < 5; i++) party.releaseAt(i);
-
-  // easy caps the level too -- it just does not cap the team size
+  // easy caps the level too
   startTrainerBattle(0, false);
   if (btlYou.level != top) { printf("FAIL: easy mode did not cap the level\n"); return 1; }
   printf("PASS: easy mode caps the level as well\n");

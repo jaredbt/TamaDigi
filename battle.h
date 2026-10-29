@@ -1,7 +1,6 @@
 #pragma once
 #include <Arduino.h>
 #include "pet.h"
-#include "party.h"
 #include "moves.h"
 
 // Turn resolution. Deliberately free of any UI or hardware so the whole thing
@@ -11,9 +10,9 @@
 
 enum : uint8_t { SI_ATK = 0, SI_DEF, SI_SPA, SI_SPD, SI_SPE, SI_COUNT };
 
-// A creature as it exists inside a battle. Built from the live pet or from a
-// banked party member; nothing here is ever written back, which is what keeps
-// ailments battle-only.
+// A creature as it exists inside a battle. Built from the live pet or an
+// opponent; nothing here is ever written back, which is what keeps ailments
+// battle-only.
 struct Combatant {
   int16_t dex = 0;
   uint8_t level = 1;
@@ -33,7 +32,6 @@ struct Combatant {
 };
 
 void combatantFromPet(Combatant &c, const Pet &p, uint8_t levelCap = 0);
-void combatantFromParty(Combatant &c, const PartyMon &m);
 
 // What one action did, so the UI can narrate it without recomputing anything.
 struct TurnLog {
