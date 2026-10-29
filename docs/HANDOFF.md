@@ -49,10 +49,11 @@ credits all four authors.
 
 ### Next, in order
 
-1. Build the data pipeline and the firmware cutover **on a branch with a PR**
-   (CI is the only test run, and `main` deploys Pages): replace the 87-Digimon
-   roster in `tools/digimon_data.py` with the Time Stranger data under the design
-   table's rules, regenerate, and make the firmware changes listed below. The PR
+1. The firmware cutover **on a branch with a PR** (CI is the only test run, and
+   `main` deploys Pages): switch the firmware from `dex.h`/`moves.h` to the
+   generated `ts_dex.h`/`ts_skills.h` (`tools/gen_ts_data.py`, PR #3, done) and
+   make the firmware changes listed below. The party and box are already gone
+   (PR #4). The PR
    must include v1.0.0 save detection and the rewritten `upgrade_test` section.
    Jogress is a stretch goal.
 2. Before the board arrives: pull the hardware bring-up notes back from upstream's
@@ -157,7 +158,7 @@ is a candidate).
 - No cream panel behind the buttons; they float on the backdrop.
 - Open: light tile labels (EXPLORE and the rest) at night; dark ones are hard to read. The PARTY tile goes with the party.
 
-## Firmware change list (none made yet)
+## Firmware change list
 
 From the design table (each row has the detail):
 
@@ -187,7 +188,10 @@ From the design table (each row has the detail):
   recognise a v1.0.0 save and start fresh rather than misread it. Rewrite
   `upgrade_test`'s v1.0.0 section to check exactly that, with the decision in its
   comment; never regenerate its frozen save to make it pass.
-- Remove the party and box (one partner, no teams): battles become 1-on-1.
+- **Done (PR #4, 2026-10-29):** the party and box are removed; battles are 1-on-1, each
+  boss fights with its old team's strongest member until the 13-boss ladder lands, LAN
+  sends only the partner, and old `pbA`/`pbB` records are ignored but left in NVS.
+  Scan chips no longer catch but stay in the bag until the cutover removes them.
 
 - Raise the 24-frames-per-action cap (`PmdAct.ms[24]`) and the 3 MB sprite file
   cap (Greymon is already 2.8 MB).
