@@ -8,7 +8,7 @@
 #include "Arduino.h"
 #include "Preferences.h"
 #include "pet.h"
-#include "dex.h"
+#include "roster.h"
 #include <cstdio>
 static uint32_t g_ms=0;
 #ifndef TAMA_NATIVE_TEST
@@ -24,11 +24,11 @@ static void ck(bool ok,const char*w){printf("%s  %s\n",ok?"PASS":"FAIL",w); if(!
 
 int main(){
   Pet p; p.begin();
-  if (p.awaitingStarter()) p.chooseStarter(4);
+  if (p.awaitingStarter()) p.chooseStarter(6);
   // What BRING BACK used to leave behind: a Digimon at its banked level, frozen.
   p.dbgHatchAs(6, true);
   p.ageMinutes = 60UL * MINUTES_PER_LEVEL;
-  p.lastLearnLevel = p.level();
+  p.learnCursor = TS_DEX_TBL[p.speciesId].learnCount;
   p.moves[0]=1; p.moves[1]=2;
   p.rename("BLAZE");
   p.frozen = true;

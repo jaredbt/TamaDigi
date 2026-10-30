@@ -73,19 +73,19 @@ int main(){
 
     // THE POINT: the debt is on the new creature
     ck(p.evoPenalty() == EVO_PENALTY_LEVELS, "the next creature owes the day");
-    p.dbgHatchAs(1, false);                 // a BOTAMON, digivolves at 16
+    p.dbgHatchAs(6, false);                 // a BOTAMON
     p.fullness=p.joy=p.energy=p.hygiene=100;
-    const DexEntry &d = DEX_TBL[1];
-    p.ageMinutes = (uint32_t)(d.evolveLevel - 1) * MINUTES_PER_LEVEL;
+    const uint8_t need = p.evoNextLevel() - EVO_PENALTY_LEVELS;
+    p.ageMinutes = (uint32_t)(need - 1) * MINUTES_PER_LEVEL;
     ck(!p.canEvolveNow(), "which really does hold its evolution back");
-    p.ageMinutes = (uint32_t)(d.evolveLevel + EVO_PENALTY_LEVELS - 1) * MINUTES_PER_LEVEL;
+    p.ageMinutes = (uint32_t)(need + EVO_PENALTY_LEVELS - 1) * MINUTES_PER_LEVEL;
     ck(p.canEvolveNow(), "and it evolves exactly a day late, not never");
   }
 
   // --- retiring one that HAS earned its farewell is free
   {
     Pet p; p.begin();
-    p.dbgHatchAs(6, false);                 // GREYMON: final form
+    p.dbgHatchAs(89, false);                // GREYMON: past Rookie
     p.ageMinutes = FAREWELL_AGE_MIN + 60;
     p.fullness=p.joy=p.energy=p.hygiene=100;
     ck(p.canFarewellNow() && p.retireIsFree(),

@@ -1,11 +1,10 @@
-// A whole boss run: squad chaining on both sides, badge award, and the ladder's
-// difficulty curve measured rather than assumed.
+// The ladder's difficulty curve, measured rather than assumed.
 #include "Arduino.h"
 #include "Preferences.h"
 #include "pet.h"
 #include "battle.h"
 #include "trainers.h"
-#include "dex.h"
+#include "roster.h"
 #include <cstdio>
 #ifndef TAMA_NATIVE_TEST
 uint32_t g_seed = 999;
@@ -19,9 +18,8 @@ String FakeSerial::readStringUntil(char){return String("");}
 void sfxPlay(uint8_t){}
 #endif
 
-static void foeOf(Combatant &c, uint8_t dex, uint8_t lvl, uint8_t iv) {
+static void foeOf(Combatant &c, int16_t dex, uint8_t lvl) {
   Pet f; f.dbgHatchAs(dex,false);
-  f.ivAtk=f.ivDef=f.ivSpe=f.ivHp=iv;
   f.ageMinutes=(uint32_t)(lvl?lvl-1:0)*MINUTES_PER_LEVEL;
   f.relearnFromLevel(); combatantFromPet(c,f);
 }
@@ -30,8 +28,8 @@ static bool duel(Combatant &you, Combatant &foe) {
   TurnLog lg; int t=0;
   while(!you.fainted() && !foe.fainted() && t<300){
     t++;
-    uint8_t my=you.moves[random(MOVE_SLOTS)], mf=foe.moves[random(MOVE_SLOTS)];
-    Combatant *a=&you,*b=&foe; uint8_t ma=my,mb=mf;
+    uint16_t my=aiChooseMove(you,foe,true), mf=aiChooseMove(foe,you,false);
+    Combatant *a=&you,*b=&foe; uint16_t ma=my,mb=mf;
     if(!battleMovesFirst(you,my,foe,mf)){a=&foe;b=&you;ma=mf;mb=my;}
     battleAct(*a,*b,ma,lg);
     if(!b->fainted()) battleAct(*b,*a,mb,lg);
@@ -40,29 +38,21 @@ static bool duel(Combatant &you, Combatant &foe) {
   return !you.fainted();
 }
 int main(){
-  printf("%-10s %-9s %s\n","TRAINER","TEAM","solo win-rate for one L%d creature");
-  for (int lvl : {40, 60, 73, 100}) {
-    printf("\n--- your creature: GREYMON L%d, perfect IVs ---\n", lvl);
-    for (int ti=0; ti<TRAINER_COUNT; ti++){
-      const Trainer &t=TRAINER_SETS[0].list[ti];
-      int wins=0, runs=40;
+  printf("%-16s %s\n","BOSS","solo win-rate for a GREYMON at the boss's level, untrained / trained");
+  for (int ti=0; ti<TRAINER_COUNT; ti++){
+    const Trainer &t=TRAINERS[ti];
+    int wins[2]={0,0}, runs=40;
+    for (int trained=0; trained<2; trained++)
       for(int r=0;r<runs;r++){
-        Pet p; p.dbgHatchAs(6,false);
-        p.ivAtk=p.ivDef=p.ivSpe=p.ivHp=31;
-        p.ageMinutes=(uint32_t)(lvl-1)*MINUTES_PER_LEVEL;
+        Pet p; p.dbgHatchAs(89,false);
+        p.ageMinutes=(uint32_t)(t.level-1)*MINUTES_PER_LEVEL;
+        if (trained) p.trAtk=p.trDef=p.trSpe=(uint8_t)(t.level<100?t.level:100);
         p.relearnFromLevel();
-        Combatant you; combatantFromPet(you,p);
-        bool alive=true;
-        for(int k=0;k<t.count && alive;k++){
-          Combatant foe; foeOf(foe,t.team[k].dex,t.team[k].level,EASY_IV);
-          alive=duel(you,foe);
-        }
-        if(alive) wins++;
+        Combatant you; combatantFromPet(you,p,t.level);
+        Combatant foe; foeOf(foe,(int16_t)t.dex,t.level);
+        if(duel(you,foe)) wins[trained]++;
       }
-      printf("  %-10s x%d  top L%-3d  %3d%%\n", t.name, t.count,
-             [&]{uint8_t m=0;for(int k=0;k<t.count;k++)if(t.team[k].level>m)m=t.team[k].level;return m;}(),
-             wins*100/runs);
-    }
+    printf("  %-16s L%-3u %3d%% / %3d%%\n", t.name, t.level, wins[0]*100/runs, wins[1]*100/runs);
   }
   return 0;
 }

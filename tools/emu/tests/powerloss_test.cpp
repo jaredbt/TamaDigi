@@ -1,6 +1,5 @@
-// A logical pet save spans many legacy NVS keys. A power cut between them must
-// load either the complete previous checkpoint or the complete new one, never
-// a creature assembled from both.
+// A power cut while saving must load either the complete previous checkpoint or the
+// complete new one, never a creature assembled from both.
 //
 // Every block here starts from a cleared NVS deliberately. A test at the end of
 // a long suite runs in whatever state the suite left behind, and this file is
@@ -78,30 +77,6 @@ static const char *newerSlot(const char *a, const char *b) {
   if (x.size() < 12) return b;
   if (y.size() < 12) return a;
   return genOf(x) > genOf(y) ? a : b;
-}
-
-// Poisons the legacy keys so that anything the CHECKPOINT fails to supply reads
-// back obviously wrong.
-//
-// This is load-bearing, not tidying. Almost every field in the pet record is
-// also mirrored to a legacy key, so an assertion like "speciesId == 21" is
-// satisfied either way -- and every one of the fixture tests below passed with
-// the checkpoint reader disabled entirely until this existed. That is CLAUDE.md
-// § "A test that proves the transcription rather than the firmware", exactly.
-static void poisonLegacy() {
-  auto put8 = [](const char *k, uint8_t v) { nvs()[k] = std::vector<uint8_t>{ v }; };
-  uint16_t notASpecies = 999;
-  nvs()["dexn"] = std::vector<uint8_t>(2);
-  memcpy(nvs()["dexn"].data(), &notASpecies, 2);
-  nvs()["age"] = std::vector<uint8_t>(4, 0);
-  put8("tatk", 0);
-  put8("tdef", 0);
-  put8("tspe", 0);
-  nvs()["nick"] = std::vector<uint8_t>{ 'X', 0 };
-  // The player-wide keys have no sensible poison value, so they simply go: an
-  // absent key leaves the array at its zero initialiser.
-  for (const char *k : { "dexreg", "dexsh", "badgX", "badhX", "strk", "ghi", "tnam" })
-    nvs().erase(k);
 }
 
 static void seedDratini(Pet &pet) {
@@ -203,7 +178,7 @@ int main() {
     pet.saveNow();                       // baseline: no badges, empty dex
 
     const int16_t FAR_DEX = 55;          // nowhere near the live creature
-    pet.badgesX[0] = 0x0F;               // four Ver.2 badges
+    pet.badges = 0x0F;                   // four badges
     pet.dexReg[(FAR_DEX - 1) >> 3] |= 1 << ((FAR_DEX - 1) & 7);
 
     // The pet checkpoint commits (nothing about the creature changed here, but
@@ -214,14 +189,14 @@ int main() {
 
     Pet cut;
     cut.begin();
-    ck(cut.badgesX[0] != 0x0F && !cut.isRegistered(FAR_DEX),
+    ck(cut.badges != 0x0F && !cut.isRegistered(FAR_DEX),
        "a refused player write commits neither the badge nor the Digidex bit");
 
     // And a save that is allowed to finish carries both together, as one blob.
     pet.saveNow();
     Pet loaded;
     loaded.begin();
-    ck(loaded.badgesX[0] == 0x0F && loaded.isRegistered(FAR_DEX),
+    ck(loaded.badges == 0x0F && loaded.isRegistered(FAR_DEX),
        "the player checkpoint keeps badges and the Digidex in step across a cut");
   }
 
@@ -234,7 +209,7 @@ int main() {
     pet.begin();
     pet.dbgHatchAs(7, false);
     pet.dexReg[0] = 0x05;                // dex 1 and 3
-    pet.badgesHardX[0] = 0x20;
+    pet.badgesHard = 0x20;
     pet.streak = 9;
     pet.gameHi = 1234;
     strncpy(pet.trainerName, "RIVAL", sizeof(pet.trainerName) - 1);
@@ -246,7 +221,7 @@ int main() {
     std::vector<uint8_t> small = slotBytes(slot);
     ck(small.size() > 60, "the player checkpoint was written");
     if (small.size() > 60) {
-      const size_t FIXED = 42;
+      const size_t FIXED = 44;
       uint16_t storedDex;
       memcpy(&storedDex, small.data() + 12, 2);
       const size_t shrinkTo = 19;                    // dex 1..152, the Ver.1-era size
@@ -265,115 +240,55 @@ int main() {
       reseal(out);
       nvs()[slot] = out;
       nvs().erase(std::string(slot) == "plyA" ? "plyB" : "plyA");
-      poisonLegacy();          // only the player record can answer any of this
 
       Pet loaded;
       loaded.begin();
       ck(loaded.isRegistered(1) && loaded.isRegistered(3) && !loaded.isRegistered(2),
          "a player record from a smaller dex keeps every bit's meaning");
-      ck(loaded.badgesHardX[0] == 0x20 && loaded.streak == 9 && loaded.gameHi == 1234,
+      ck(loaded.badgesHard == 0x20 && loaded.streak == 9 && loaded.gameHi == 1234,
          "and every field after the shortened arrays still reads correctly");
       ck(!strcmp(loaded.trainerName, "RIVAL"), "including the trainer name at the very end");
     }
   }
 
-  // --- a v2 record still carrying a party handover --------------------------
+  // --- a record written by an EARLIER build of this format -------------------
   //
-  // v2 appended the creature a farewell handed over while it waited for a party
-  // slot. The party and box were removed by design (one partner), so v3 writes
-  // that span as zeros and the reader skips it. A v2 record with a creature
-  // still waiting in it must load as the egg it holds -- the waiting creature is
-  // let go, as declining the slot always did -- and must NOT fall back to the
-  // legacy keys. The fixture is the current writer's own record with a v2 tail
-  // written into the retired span, not a layout the test restates.
+  // The reader takes the prefix it understands, so a field appended later reads as
+  // its initialiser from a shorter record. The fixture is what the current writer
+  // produced, cut short, rather than a layout the test would then own.
   {
     nvs().clear();
     Pet pet;
     pet.begin();
-    pet.dbgHatchAs(6, false);                  // GREYMON
-    pet.ageMinutes = 80UL * MINUTES_PER_LEVEL;
-    strncpy(pet.nick, "BLAZE", sizeof(pet.nick) - 1);
-    pet.saveNow();
-    pet.startFarewell();
-    gNow += CEREMONY_MS + 1000;
-    pet.update(gNow);                          // newEgg(), saved
-    ck(pet.isEgg() && pet.lastEnd == CER_FAREWELL, "a farewell leaves a new egg in its place");
-
-    const char *slot = newerSlot("petA", "petB");
-    std::vector<uint8_t> rec = slotBytes(slot);
-    // fixed body 70 + retired tail 52 + crc 2: the span stays, so the next
-    // appended field cannot be read out of a v2 tail
-    ck(rec.size() == 124, "the record keeps the retired v2 tail's span");
-    bool zero = true;
-    for (size_t i = 70; i + 2 < rec.size(); i++) if (rec[i]) zero = false;
-    ck(zero, "and writes it as zeros");
-    if (rec.size() == 124) {
-      rec[4] = 2; rec[5] = 0;                  // version 2
-      rec[70] = CER_FAREWELL;                  // kind
-      rec[72] = 48; rec[73] = 0;               // the stored record's length
-      int16_t dex = 6; memcpy(&rec[74], &dex, 2);
-      memcpy(&rec[74 + 14], "BLAZE", 5);       // its nickname
-      reseal(rec);
-      nvs()[slot] = rec;
-      nvs().erase(std::string(slot) == "petA" ? "petB" : "petA");
-      poisonLegacy();          // so a rejected record cannot pass on the legacy keys
-
-      Pet loaded;
-      loaded.begin();
-      ck(loaded.isEgg() && loaded.lastEnd == CER_FAREWELL,
-         "a v2 record with a creature waiting for a party slot loads its egg");
-      loaded.saveNow();
-      std::vector<uint8_t> after = slotBytes(newerSlot("petA", "petB"));
-      bool cleared = after.size() == 124;
-      for (size_t i = 70; cleared && i + 2 < after.size(); i++) if (after[i]) cleared = false;
-      ck(cleared, "and the next save drops the handover rather than carrying it");
-    }
-  }
-
-  // --- a record written by an EARLIER build ---------------------------------
-  //
-  // Rejecting a checkpoint means falling back to the legacy keys, which is the
-  // torn-write path all of this replaces. So the reader has to accept the v1
-  // layout, and this asserts the compatibility CLAIM -- that v1's body is a
-  // prefix of the current one -- by deriving the fixture from what the current
-  // writer produced rather than restating a layout the test would then own.
-  {
-    nvs().clear();
-    Pet pet;
-    pet.begin();
-    pet.dbgHatchAs(21, false);                // WHAMON
+    pet.dbgHatchAs(21, false);                // AGUMON
     pet.trAtk = 55;
     pet.ageMinutes = 40UL * MINUTES_PER_LEVEL;
     strncpy(pet.nick, "TUBBY", sizeof(pet.nick) - 1);
     pet.saveNow();
 
     const char *slot = newerSlot("petA", "petB");
-    std::vector<uint8_t> v2 = slotBytes(slot);
-    ck(v2.size() > 72, "the current record is longer than v1's 72 bytes");
-    if (v2.size() > 72) {
-      const size_t V1_BODY = 70;
-      std::vector<uint8_t> v1(v2.begin(), v2.begin() + V1_BODY);
-      v1[4] = 1; v1[5] = 0;                    // version 1
-      v1[6] = 72; v1[7] = 0;                   // size 72
-      v1.push_back(0);
-      v1.push_back(0);
-      reseal(v1);
-      nvs()[slot] = v1;
-      nvs().erase(std::string(slot) == "petA" ? "petB" : "petA");
-      poisonLegacy();          // so a rejected v1 record cannot pass on the legacy keys
+    std::vector<uint8_t> whole = slotBytes(slot);
+    ck(whole.size() == 98, "the record is its 96-byte body and a crc");
+    const size_t SHORT_BODY = 84;             // everything before the nickname
+    std::vector<uint8_t> shorter(whole.begin(), whole.begin() + SHORT_BODY);
+    uint16_t size = SHORT_BODY + 2;
+    memcpy(shorter.data() + 6, &size, 2);
+    shorter.push_back(0);
+    shorter.push_back(0);
+    reseal(shorter);
+    nvs()[slot] = shorter;
+    nvs().erase(std::string(slot) == "petA" ? "petB" : "petA");
 
-      Pet loaded;
-      loaded.begin();
-      ck(loaded.speciesId == 21 && loaded.trAtk == 55 &&
-             loaded.ageMinutes == 40UL * MINUTES_PER_LEVEL,
-         "a v1 checkpoint from an earlier build still loads");
-      ck(!strcmp(loaded.nick, "TUBBY"), "including the last field of the v1 body");
-    }
+    Pet loaded;
+    loaded.begin();
+    ck(loaded.speciesId == 21 && loaded.trAtk == 55 &&
+           loaded.ageMinutes == 40UL * MINUTES_PER_LEVEL,
+       "a shorter checkpoint loads the fields it has");
+    ck(!loaded.nick[0], "and what it never held keeps its initialiser");
   }
 
   // A record from a LATER build: longer than this one understands, but the same
-  // magic and a valid CRC, so the prefix must still be read rather than thrown
-  // away in favour of the legacy keys.
+  // magic and a valid CRC, so the prefix must still be read rather than thrown away.
   {
     nvs().clear();
     Pet pet;
@@ -392,7 +307,6 @@ int main() {
       reseal(future);
       nvs()[slot] = future;
       nvs().erase(std::string(slot) == "petA" ? "petB" : "petA");
-      poisonLegacy();
 
       Pet loaded;
       loaded.begin();

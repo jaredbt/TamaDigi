@@ -441,6 +441,7 @@ public:
     saveFailures = 0;
     pendingSave = false;
   }
+  void dbgRegister(int16_t dex) { registerSpecies(dex); }    // test: as if raised
   void dbgRunawayReady() { fullness = joy = energy = hygiene = 0; neglectTicks = RUNAWAY_TICKS; }  // test
   // test: force what the egg holds and hatch it now (serial command EGG).
   // The variant IV guarantee only fires inside hatch(), so without

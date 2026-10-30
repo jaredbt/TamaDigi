@@ -7,7 +7,6 @@
 #include "Arduino_GFX_Library.h"
 #include "Preferences.h"
 #include "pet.h"
-#include "moves.h"
 #include "battle.h"
 #include "trainers.h"
 #include "inventory.h"
@@ -50,12 +49,11 @@ void startBattle(int16_t dex, uint8_t lvl);
 void startTrainerBattle(uint8_t idx, bool hard);
 extern uint8_t btlMenu;
 extern bool btlHard;
-extern bool gymOpen, gymHard; extern uint8_t gymPage, gymRegion, btlRegion;
-extern bool gymPick;
+extern bool gymOpen, gymHard; extern uint8_t gymPage;
 void gymRowRect(int i, int *x, int *y, int *w, int *h);
 #define BTL_CELL_X(i) (69 + ((i) % 2) * 168)
 #define BTL_CELL_Y(i) (286 + ((i) / 2) * 52)
-uint8_t learnableList(uint8_t *out, uint8_t max);
+uint8_t learnableList(uint16_t *out, uint8_t max);
 #define MOVE_PICK_PER_PAGE 5
 #define MOVE_PICK_Y(i) (76 + (i) * 58)
 extern uint8_t cardPage;
@@ -96,19 +94,18 @@ int main(int argc, char **argv) {
   if (!pet.awaitingStarter()) { printf("FAIL: not on the starter screen\n"); return 1; }
   printf("on starter screen, awaitingStarter=1\n");
 
-  // First boot: tap a V-Pet version and its Digi-Egg appears. Negative
-  // control first: a click below every row must choose nothing, or this test
-  // proves nothing about coordinate routing.
+  // First boot: tap a starter and its Digi-Egg appears. Negative control first: a
+  // click below every row must choose nothing, or this test proves nothing about
+  // coordinate routing.
   click(233, 420);
   pump(2);
-  if (!pet.awaitingStarter()) { printf("FAIL: off-row click chose a version\n"); return 1; }
+  if (!pet.awaitingStarter()) { printf("FAIL: off-row click chose a starter\n"); return 1; }
   printf("click at (233,420) off the rows: correctly ignored\n");
 
-  click(233, 108 + 30);          // row 0: VER.1
+  click(233, 110 + 78 + 35);     // row 1: BOTAMON
   pump(2);
-  if (pet.region != 0) { printf("FAIL: region tap did not land\n"); return 1; }
   if (pet.awaitingStarter()) { printf("FAIL: click did not register\n"); return 1; }
-  if (pet.eggPeek() != 1) { printf("FAIL: VER.1's egg is not BOTAMON\n"); return 1; }
+  if (pet.eggPeek() != 6) { printf("FAIL: row 1's egg is not BOTAMON\n"); return 1; }
   printf("PASS: tap reached onTap and picked a starter\n");
 
   // --fast must still do its job: with no finger down, game time has to run at
@@ -237,7 +234,7 @@ int main(int argc, char **argv) {
 
   // ---- moves card page -> picker -> slot actually changes, with no duplicates
   cardPage = 2;
-  uint8_t before = pet.moves[1];
+  uint16_t before = pet.moves[1];
   click(233, 154);                       // slot 1 == MOVE_ROW_Y(1)
   if (!movePickOpen) { printf("FAIL: tapping a move slot did not open the picker\n"); return 1; }
   printf("PASS: tapping a move slot opens the picker\n");
@@ -246,8 +243,8 @@ int main(int argc, char **argv) {
   if (movePickOpen) { printf("FAIL: picking a move left the picker open\n"); return 1; }
   if (pet.moves[1] == before) { printf("FAIL: slot 1 did not change\n"); return 1; }
   printf("PASS: picking a move replaces the slot (%s -> %s)\n",
-         before ? MOVE_TBL[before].name : "-",
-         pet.moves[1] ? MOVE_TBL[pet.moves[1]].name : "-");
+         before ? moveName(before) : "-",
+         pet.moves[1] ? moveName(pet.moves[1]) : "-");
   Pet afterMove;
   afterMove.begin();
   if (afterMove.moves[1] != pet.moves[1]) {
@@ -264,17 +261,17 @@ int main(int argc, char **argv) {
   if (dupe) {
     printf("FAIL: a move ended up in two slots\n");
     for (int i = 0; i < MOVE_SLOTS; i++)
-      printf("      slot %d: %s\n", i, pet.moves[i] ? MOVE_TBL[pet.moves[i]].name : "-");
+      printf("      slot %d: %s\n", i, pet.moves[i] ? moveName(pet.moves[i]) : "-");
     return 1;
   }
   printf("PASS: no duplicate move after the swap\n");
 
   // picking a move the pet already knows should TRADE slots, not clone it
-  uint8_t s0 = pet.moves[0], s2 = pet.moves[2];
+  uint16_t s0 = pet.moves[0], s2 = pet.moves[2];
   cardPage = 2;
   click(233, 212);                       // slot 2
-  uint8_t all[64];
-  uint8_t n = learnableList(all, sizeof(all));
+  uint16_t all[64];
+  uint8_t n = learnableList(all, 64);
   int page = -1, row = -1;
   for (uint8_t i = 0; i < n; i++)
     if (all[i] == s0) { page = i / MOVE_PICK_PER_PAGE; row = i % MOVE_PICK_PER_PAGE; }
@@ -284,42 +281,42 @@ int main(int argc, char **argv) {
     bool ok = (pet.moves[2] == s0 && pet.moves[0] == s2);
     printf("%s: picking a known move trades the two slots (0=%s 2=%s)\n",
            ok ? "PASS" : "FAIL",
-           pet.moves[0] ? MOVE_TBL[pet.moves[0]].name : "-",
-           pet.moves[2] ? MOVE_TBL[pet.moves[2]].name : "-");
+           pet.moves[0] ? moveName(pet.moves[0]) : "-",
+           pet.moves[2] ? moveName(pet.moves[2]) : "-");
     if (!ok) return 1;
   }
-  // ---- level-up learn prompt: accept into a slot, and decline.
-  // Past level 36, so LEER@15 / FLAMETHROWER@34 / WING ATTACK@36 are all in
-  // range and more of them exist than there are slots.
+  // ---- the learn prompt: accept into a slot, and decline. DARKDRAMON has more skills
+  // in its learnset than there are slots, so walking it again has to make offers.
+  pet.dbgHatchAs(377, false);
   pet.ageMinutes = 40 * MINUTES_PER_LEVEL;
   pet.relearnFromLevel();
-  pet.lastLearnLevel = 0;
+  pet.learnCursor = 0;
   pet.learnQCount = 0;
   pet.checkLearnGates();
   if (!pet.hasLearnOffer()) { printf("FAIL: no learn offer was queued\n"); return 1; }
   printf("PASS: crossing gates with a full moveset queues an offer\n");
 
-  uint8_t offered = pet.learnOffer(), was2 = pet.moves[2];
+  uint16_t offered = pet.learnOffer(), was2 = pet.moves[2];
   click(233, 104 + 2 * 56 + 10);          // LEARN_ROW_Y(2)
   if (pet.moves[2] != offered) {
     printf("FAIL: accepting did not put %s in slot 2 (got %s)\n",
-           MOVE_TBL[offered].name, pet.moves[2] ? MOVE_TBL[pet.moves[2]].name : "-");
+           moveName(offered), pet.moves[2] ? moveName(pet.moves[2]) : "-");
     return 1;
   }
   printf("PASS: accepting replaces the chosen slot (%s -> %s)\n",
-         was2 ? MOVE_TBL[was2].name : "-", MOVE_TBL[offered].name);
+         was2 ? moveName(was2) : "-", moveName(offered));
 
   if (pet.hasLearnOffer()) {
-    uint8_t before[MOVE_SLOTS];
+    uint16_t before[MOVE_SLOTS];
     for (int i = 0; i < MOVE_SLOTS; i++) before[i] = pet.moves[i];
-    uint8_t skipped = pet.learnOffer();
+    uint16_t skipped = pet.learnOffer();
     click(233, 334 + 20);                 // LEARN_SKIP_Y
     bool same = true;
     for (int i = 0; i < MOVE_SLOTS; i++) if (pet.moves[i] != before[i]) same = false;
     if (!same || pet.knowsMove(skipped)) {
       printf("FAIL: declining changed the moveset\n"); return 1;
     }
-    printf("PASS: declining %s leaves the moveset untouched\n", MOVE_TBL[skipped].name);
+    printf("PASS: declining %s leaves the moveset untouched\n", moveName(skipped));
   }
   // ---- battle: drive a whole fight through the real tap handler
   while (pet.hasLearnOffer()) pet.declineLearn();
@@ -350,24 +347,19 @@ int main(int argc, char **argv) {
 
   // ---- a tamer fight: 1-on-1 against the boss's strongest, and winning awards a badge
   //
-  // The boss ladders still list a team, from the TamaPoke engine; with no teams
-  // anywhere (the party and the boss teams were removed by design) a boss fights
-  // with its LAST member, the strongest. The Time Stranger ladder replaces it.
   pet.ageMinutes = 100 * MINUTES_PER_LEVEL;   // strong enough to beat the first boss
   pet.relearnFromLevel();
   while (pet.hasLearnOffer()) pet.declineLearn();
-  bool hadBadge = pet.hasBadge(0, 0, false);
-  const Trainer &first = TRAINER_SETS[0].list[0];
-  const TrainerMon &firstBoss = first.team[first.count - 1];
+  bool hadBadge = pet.hasBadge(0, false);
+  const Trainer &firstBoss = TRAINERS[0];
   startTrainerBattle(0, false);
   if (!battleOpen) { printf("FAIL: trainer battle did not start\n"); return 1; }
   printf("PASS: gym battle starts\n");
   if (btlFoe.dex != firstBoss.dex) {
-    printf("FAIL: the first boss fought with dex %d, not its last member %d\n",
-           btlFoe.dex, firstBoss.dex);
+    printf("FAIL: the first boss fought with dex %d, not %d\n", btlFoe.dex, firstBoss.dex);
     return 1;
   }
-  printf("PASS: the boss fights with the last member of its old team\n");
+  printf("PASS: the boss fights with its one Digimon\n");
 
   int taps = 0;
   bool foeChanged = false;
@@ -384,7 +376,7 @@ int main(int argc, char **argv) {
   if (foeChanged) { printf("FAIL: a second boss creature came out\n"); return 1; }
   printf("PASS: nobody is sent out after it: the fight is 1-on-1\n");
   if (!btlWon) { printf("FAIL: a L100 creature lost to the first boss\n"); return 1; }
-  if (!pet.hasBadge(0, 0, false) || hadBadge) { printf("FAIL: no badge awarded\n"); return 1; }
+  if (!pet.hasBadge(0, false) || hadBadge) { printf("FAIL: no badge awarded\n"); return 1; }
   printf("PASS: beating a leader awards its badge (%u/8)\n", pet.badgeCount(false));
   if (!pet.saveHealthy() || pet.savePending()) {
     printf("FAIL: the gym win left saving broken or pending\n");
@@ -392,40 +384,20 @@ int main(int argc, char **argv) {
   }
   Pet afterGym;
   afterGym.begin();
-  if (!afterGym.hasBadge(0, 0, false) || afterGym.trAtk != pet.trAtk ||
+  if (!afterGym.hasBadge(0, false) || afterGym.trAtk != pet.trAtk ||
       afterGym.trDef != pet.trDef || afterGym.trSpe != pet.trSpe) {
     printf("FAIL: the gym badge or its training reward did not survive reload\n");
     return 1;
   }
   printf("PASS: a gym win keeps saving healthy and its badge and training survive reload\n");
 
-  // The selected version becomes battle-owned state: badge awards use btlRegion,
-  // not the boss chooser's mutable version, and each version's boss is its own.
-  for (uint8_t region = 1; region < GYM_REGIONS; region++) {
-    battleOpen = false;
-    gymRegion = region;
-    startTrainerBattle(0, false);
-    if (btlRegion != gymRegion) {
-      printf("FAIL: region %u battle kept region %u\n", gymRegion, btlRegion);
-      return 1;
-    }
-    const Trainer &leader = TRAINER_SETS[gymRegion].list[0];
-    if (btlFoe.dex != leader.team[leader.count - 1].dex) {
-      printf("FAIL: region %u battle did not start with its own leader\n", gymRegion);
-      return 1;
-    }
-  }
-  printf("PASS: every non-Ver.1 leader fights with its own strongest Digimon\n");
-  battleOpen = false;
-  gymRegion = 0;
-
   // ---- both difficulties cap your level to the boss's
   battleOpen = false;
   pet.ageMinutes = 100 * MINUTES_PER_LEVEL;   // a level 100 creature
-  startTrainerBattle(0, true);                // the first Ver.1 boss
+  startTrainerBattle(0, true);                // the first boss
   const uint8_t top = firstBoss.level;
   printf("     hard vs %s: your partner is L%u (pet is L%u), boss L%u\n",
-         first.name, btlYou.level, pet.level(), top);
+         firstBoss.name, btlYou.level, pet.level(), top);
   if (btlYou.level != top) {
     printf("FAIL: level not capped to the boss's (got %u, want %u)\n", btlYou.level, top);
     return 1;
@@ -456,23 +428,23 @@ int main(int argc, char **argv) {
   // starts the fight directly now; there is no team to pick.
   battleOpen = false;
   pet.badges = 0;                       // nothing beaten yet
-  gymOpen = true; gymPick = false; gymHard = false; gymPage = 0;
+  gymOpen = true; gymHard = false; gymPage = 0;
   click(233, 110 + 1 * 50 + 20);        // RIVAL, the second row
   if (battleOpen) { printf("FAIL: a locked leader was enterable\n"); return 1; }
   printf("PASS: a locked leader cannot be entered\n");
-  gymOpen = true; gymPick = false; gymPage = 0;
+  gymOpen = true; gymPage = 0;
   click(233, 110 + 0 * 50 + 20);        // the first boss, the first
   if (!battleOpen) { printf("FAIL: the first leader was not enterable\n"); return 1; }
   printf("PASS: the first leader is always open, and its row starts the fight\n");
   battleOpen = false;
   pet.badges = 1;                       // the first boss beaten
-  gymOpen = true; gymPick = false; gymPage = 0;
+  gymOpen = true; gymPage = 0;
   click(233, 110 + 1 * 50 + 20);        // RIVAL again
   if (!battleOpen) { printf("FAIL: beating one did not unlock the next\n"); return 1; }
   printf("PASS: beating a leader unlocks the next\n");
   battleOpen = false;
   // and the hard ladder is its own run
-  gymOpen = true; gymPick = false; gymHard = true; gymPage = 0;
+  gymOpen = true; gymHard = true; gymPage = 0;
   click(233, 110 + 1 * 50 + 20);
   if (battleOpen) { printf("FAIL: easy progress unlocked the hard ladder\n"); return 1; }
   printf("PASS: hard mode keeps its own unlock order\n");
