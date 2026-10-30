@@ -419,10 +419,12 @@ int main(int argc, char **argv) {
     while (pet.hasLearnOffer()) pet.declineLearn();
     if (pet.speciesId != 89) { printf("FAIL: AGUMON did not become GREYMON\n"); return 1; }
     pet.fullness = pet.joy = pet.energy = pet.hygiene = 100;
-    cardOpen = true; cardPage = 3;
     for (int i = 0; i < 4000 && pet.evolving(); i++) pump(1);   // a tap waits out the animation
-    pump(1);
-    click(233, 386 + 22);                 // the DE-DIGIVOLVE button
+    click(233, 233);                      // and the panel dimmed meanwhile: wake it
+    pet.fullness = pet.joy = pet.energy = pet.hygiene = 100;
+    cardOpen = true; cardPage = 3;
+    pump(2);
+    click(233, 386 + 22);
     if (cardOpen) { printf("FAIL: the DE-DIGIVOLVE button did not answer\n"); return 1; }
     pump(1);
     int b1t, b1b, b2t, b2b;
