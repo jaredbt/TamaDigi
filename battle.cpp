@@ -1,87 +1,70 @@
 #include "battle.h"
-#include "dex.h"
 #include "types.h"
 
 // ---------- building a combatant ----------
 
-static void fill(Combatant &c, int16_t dex, uint8_t lvl, uint16_t hp,
-                 uint16_t a, uint16_t d, uint16_t sa, uint16_t sd, uint16_t sp) {
-  c = Combatant();
-  c.dex = dex;
-  c.level = lvl;
-  c.maxHp = hp ? hp : 1;
-  c.hp = c.maxHp;
-  c.base[SI_ATK] = a; c.base[SI_DEF] = d;
-  c.base[SI_SPA] = sa; c.base[SI_SPD] = sd; c.base[SI_SPE] = sp;
-}
-
 void combatantFromPet(Combatant &c, const Pet &p, uint8_t levelCap) {
+  c = Combatant();
   const int16_t dex = p.speciesId;
   const uint8_t lvl = levelCap && p.level() > levelCap ? levelCap : p.level();
-  if (dex < 1 || dex > DEX_COUNT) {   // an egg: no stats, as it always had
-    fill(c, dex, lvl, 0, 0, 0, 0, 0, 0);
-    return;
-  }
-  const DexEntry &d = DEX_TBL[dex];
-  // Special reuses the physical IV and training, the same rule as Pet::spaStat().
-  fill(c, dex, lvl, petCalcStat(d.bHp, p.ivHp, lvl, 10),
-       petCalcStat(d.bAtk, p.ivAtk, lvl, p.trAtk), petCalcStat(d.bDef, p.ivDef, lvl, p.trDef),
-       petCalcStat(d.bSpA, p.ivAtk, lvl, p.trAtk), petCalcStat(d.bSpD, p.ivDef, lvl, p.trDef),
-       petCalcStat(d.bSpe, p.ivSpe, lvl, p.trSpe));
+  c.dex = dex;
+  c.level = lvl;
+  if (!dexValid(dex)) return;     // an egg: no stats, as it always had
+  // ATK training also raises magic attack, DEF training also magic defence, the
+  // same rule as Pet::spaStat() and Pet::spdStat().
+  c.maxHp = petCalcHp(dex, lvl, p.deDigiCount);
+  c.hp = c.maxHp;
+  c.base[SI_ATK] = petCalcStat(dex, TS_STAT_ATK, lvl, p.trAtk);
+  c.base[SI_DEF] = petCalcStat(dex, TS_STAT_DEF, lvl, p.trDef);
+  c.base[SI_SPA] = petCalcStat(dex, TS_STAT_MATK, lvl, p.trAtk);
+  c.base[SI_SPD] = petCalcStat(dex, TS_STAT_MDEF, lvl, p.trDef);
+  c.base[SI_SPE] = petCalcStat(dex, TS_STAT_SPD, lvl, p.trSpe);
   for (int i = 0; i < MOVE_SLOTS; i++) c.moves[i] = p.moves[i];
   c.variant = p.variant;
-  const char *nm = p.nick[0] ? p.nick : DEX_TBL[p.speciesId].name;
+  const char *nm = p.nick[0] ? p.nick : TS_DEX_TBL[dex].name;
   snprintf(c.name, sizeof(c.name), "%s", nm);
 }
 
-// ---------- stat stages ----------
+// ---------- stat changes ----------
 
-// The series' own table, as a fraction so it stays integer: +1 is 3/2, -1 is
-// 2/3, and so on out to +6 = 4x and -6 = 1/4.
-uint16_t stagedStat(uint16_t base, int8_t stage) {
-  if (stage > 6) stage = 6;
-  if (stage < -6) stage = -6;
-  uint16_t num = 2 + (stage > 0 ? stage : 0);
-  uint16_t den = 2 + (stage < 0 ? -stage : 0);
-  uint32_t v = (uint32_t)base * num / den;
+uint16_t moddedStat(uint16_t base, int8_t pct) {
+  uint32_t v = (uint32_t)base * (100 + pct) / 100;
   return v < 1 ? 1 : (v > 65535 ? 65535 : (uint16_t)v);
 }
 
 static uint16_t effStat(const Combatant &c, uint8_t idx) {
-  uint16_t v = stagedStat(c.base[idx], c.stage[idx]);
-  // burn halves physical attack, paralysis halves speed -- the two ailments
-  // that do something beyond chip damage
-  if (idx == SI_ATK && c.ailment == AIL_BURN) v = v / 2 ? v / 2 : 1;
-  if (idx == SI_SPE && c.ailment == AIL_PARA) v = v / 2 ? v / 2 : 1;
+  uint16_t v = moddedStat(c.base[idx], c.mod[idx]);
+  // Injury halves physical attack, paralysis halves speed -- the two ailments
+  // that do something beyond chip damage or a lost turn.
+  if (idx == SI_ATK && c.ailment == TS_AIL_INJURY) v = v / 2 ? v / 2 : 1;
+  if (idx == SI_SPE && c.ailment == TS_AIL_PARALYSIS) v = v / 2 ? v / 2 : 1;
   return v;
 }
 
 // ---------- damage ----------
 
-// roll is 217..255, the series' damage spread, passed in so tests can pin it.
-uint16_t battleDamage(const Combatant &atk, const Combatant &def, uint8_t mv,
+// roll is 217..255, the damage spread, passed in so tests can pin it.
+uint16_t battleDamage(const Combatant &atk, const Combatant &def, uint16_t mv,
                       bool crit, uint8_t roll) {
-  if (!mv || mv >= MOVE_COUNT) return 0;
-  const MoveEntry &m = MOVE_TBL[mv];
-  if (m.cat == MC_STATUS) return 0;
+  const TsSkill &m = skillEntry(mv);
+  if (!mv || m.cat == TS_SC_SUPPORT) return 0;
+  const bool phys = m.cat == TS_SC_PHYS;
 
-  if (m.effect == EF_FIXED_LVL) return atk.level ? atk.level : 1;
-  if (m.effect == EF_FIXED) return m.param > 0 ? (uint16_t)m.param : 1;
-
-  uint16_t A = (m.cat == MC_PHYS) ? effStat(atk, SI_ATK) : effStat(atk, SI_SPA);
-  uint16_t D = (m.cat == MC_PHYS) ? effStat(def, SI_DEF) : effStat(def, SI_SPD);
-  // A critical hit ignores the defender's positive stages and the attacker's
-  // negative ones, so a Barrier cannot make you immune to a lucky roll.
+  uint16_t A = phys ? effStat(atk, SI_ATK) : effStat(atk, SI_SPA);
+  uint16_t D = phys ? effStat(def, SI_DEF) : effStat(def, SI_SPD);
+  // A critical hit ignores the defender's boosts and the attacker's drops, so a
+  // Guard Charge cannot make you immune to a lucky roll.
   if (crit) {
-    A = (m.cat == MC_PHYS) ? atk.base[SI_ATK] : atk.base[SI_SPA];
-    D = (m.cat == MC_PHYS) ? def.base[SI_DEF] : def.base[SI_SPD];
+    A = phys ? atk.base[SI_ATK] : atk.base[SI_SPA];
+    D = phys ? def.base[SI_DEF] : def.base[SI_SPD];
   }
   if (!D) D = 1;
 
-  uint32_t dmg = (2UL * atk.level / 5 + 2) * m.power * A / D / 50 + 2;
+  uint32_t dmg = (2UL * atk.level / 5 + 2) * skillPower(mv, atk.level) * A / D / 50 + 2;
   if (crit) dmg *= 2;
-  if (hasStab(atk.dex, m.type)) dmg = dmg * 3 / 2;
-  uint16_t eff = battleEffPct(atk.dex, m.type, def.dex);
+  if (phys ? atk.chargePhys : atk.chargeMagic) dmg *= BTL_CHARGE_MULT;
+  if (hasStab(atk.dex, m.element)) dmg = dmg * SAME_ELEMENT_NUM / SAME_ELEMENT_DEN;
+  uint16_t eff = battleEffPct(atk.dex, m.element, def.dex);
   dmg = dmg * eff / 100;
   if (eff == 0) return 0;               // immune: no chip, no minimum
   dmg = dmg * roll / 255;
@@ -90,13 +73,11 @@ uint16_t battleDamage(const Combatant &atk, const Combatant &def, uint8_t mv,
 
 // ---------- turn order ----------
 
-bool battleMovesFirst(const Combatant &a, uint8_t ma,
-                      const Combatant &b, uint8_t mb) {
-  int pa = (ma && ma < MOVE_COUNT && MOVE_TBL[ma].effect == EF_PRIORITY)
-               ? MOVE_TBL[ma].param : 0;
-  int pb = (mb && mb < MOVE_COUNT && MOVE_TBL[mb].effect == EF_PRIORITY)
-               ? MOVE_TBL[mb].param : 0;
-  if (pa != pb) return pa > pb;
+bool battleMovesFirst(const Combatant &a, uint16_t ma,
+                      const Combatant &b, uint16_t mb) {
+  const bool fa = ma && skillEntry(ma).effect == TS_EF_FIRST;
+  const bool fb = mb && skillEntry(mb).effect == TS_EF_FIRST;
+  if (fa != fb) return fa;
   uint16_t sa = effStat(a, SI_SPE), sb = effStat(b, SI_SPE);
   if (sa != sb) return sa > sb;
   return random(2) == 0;               // a genuine speed tie is a coin flip
@@ -104,12 +85,14 @@ bool battleMovesFirst(const Combatant &a, uint8_t ma,
 
 // ---------- one action ----------
 
-static void applyStages(Combatant &c, uint8_t mask, int8_t delta) {
-  static const uint8_t BIT[SI_COUNT] = { ST_ATK, ST_DEF, ST_SPA, ST_SPD, ST_SPE };
+// TS_SM_* in SI_* order: the two tables number the stats differently.
+static const uint8_t SM_OF_SI[SI_COUNT] = { TS_SM_ATK, TS_SM_DEF, TS_SM_MATK, TS_SM_MDEF, TS_SM_SPD };
+
+static void applyMods(Combatant &c, uint8_t mask, int8_t delta) {
   for (int i = 0; i < SI_COUNT; i++) {
-    if (!(mask & BIT[i])) continue;
-    int v = c.stage[i] + delta;
-    c.stage[i] = v > 6 ? 6 : (v < -6 ? -6 : (int8_t)v);
+    if (!(mask & SM_OF_SI[i])) continue;
+    int v = c.mod[i] + delta;
+    c.mod[i] = v > BTL_MOD_MAX ? BTL_MOD_MAX : (v < BTL_MOD_MIN ? BTL_MOD_MIN : (int8_t)v);
   }
 }
 
@@ -122,23 +105,100 @@ static void heal(Combatant &c, uint16_t amount) {
   c.hp = v > c.maxHp ? c.maxHp : (uint16_t)v;
 }
 
-void battleAct(Combatant &atk, Combatant &def, uint8_t mv, TurnLog &log) {
+// A status lands unless one is already there. Confusion is tracked separately so
+// it can stack with a real status. No Digimon is immune by element.
+static void inflict(Combatant &t, uint8_t ail, TurnLog &log) {
+  if (ail == TS_AIL_CONFUSION) {
+    if (!t.confuseTurns) {
+      t.confuseTurns = 2 + random(3);
+      log.inflicted = TS_AIL_CONFUSION;
+    }
+  } else if (t.ailment == TS_AIL_NONE) {
+    t.ailment = ail;
+    if (ail == TS_AIL_SLEEP) t.ailTurns = 2 + random(3);
+    log.inflicted = ail;
+  }
+}
+
+// Heal by percent of max HP, or by the skill's power and the user's magic defence:
+// power x magic defence / 20 restores about half of max HP at power 30 across the
+// roster (Time Stranger gives no formula), and training DEF feeds it.
+static uint16_t healAmount(const Combatant &c, uint16_t mv) {
+  const TsSkill &m = skillEntry(mv);
+  if (m.param > 0) return (uint16_t)((uint32_t)c.maxHp * m.param / 100);
+  return (uint16_t)((uint32_t)skillPower(mv, c.level) * effStat(c, SI_SPD) / 20);
+}
+
+// The one effect a skill carries, once it has connected. A damaging skill's effect
+// only lands if the target is still standing, and an effect on the user always can.
+static void applyEffect(Combatant &atk, Combatant &def, uint16_t mv, uint16_t dealt, TurnLog &log) {
+  const TsSkill &m = skillEntry(mv);
+  Combatant &t = (m.flags & TS_SKF_SELF) ? atk : def;
+  const bool landed = !m.chance || (uint8_t)random(100) < m.chance;
+  switch (m.effect) {
+    case TS_EF_STATUS:
+      if (landed && !t.fainted()) inflict(t, (uint8_t)m.param, log);
+      break;
+    case TS_EF_STAT:
+      if (landed && !t.fainted()) {
+        applyMods(t, m.statMask, m.param);
+        log.modMask = m.statMask;
+        log.modDelta = m.param;
+      }
+      break;
+    case TS_EF_DRAIN:
+      heal(atk, (uint16_t)((uint32_t)dealt * m.param / 100));
+      log.healed = dealt != 0;
+      break;
+    case TS_EF_RECOIL:
+      hurt(atk, (uint16_t)((uint32_t)atk.maxHp * m.param / 100));
+      break;
+    case TS_EF_HEAL:
+      heal(atk, healAmount(atk, mv));
+      log.healed = true;
+      break;
+    case TS_EF_RECHARGE:
+      atk.recharge = true;
+      break;
+    case TS_EF_CHARGE_PHYS:
+      atk.chargePhys = true;
+      break;
+    case TS_EF_CHARGE_MAGIC:
+      atk.chargeMagic = true;
+      break;
+    case TS_EF_CURE:
+      atk.ailment = TS_AIL_NONE;
+      atk.ailTurns = 0;
+      atk.confuseTurns = 0;
+      break;
+    case TS_EF_REMOVE_BUFFS:
+      for (int i = 0; i < SI_COUNT; i++) if (def.mod[i] > 0) def.mod[i] = 0;
+      break;
+    case TS_EF_REMOVE_DEBUFFS:
+      for (int i = 0; i < SI_COUNT; i++) if (atk.mod[i] < 0) atk.mod[i] = 0;
+      break;
+    default:
+      break;
+  }
+}
+
+void battleAct(Combatant &atk, Combatant &def, uint16_t mv, TurnLog &log) {
   log = TurnLog();
   log.move = mv;
   if (atk.fainted() || def.fainted()) { log.skipped = true; return; }
 
-  // --- things that can cost the turn before a move is even chosen
+  // --- things that can cost the turn before a skill is even chosen
   if (atk.recharge) { atk.recharge = false; log.skipped = true; return; }
-  if (atk.ailment == AIL_FREEZE) {
-    if (random(100) < 20) atk.ailment = AIL_NONE;   // thaws
+  if (atk.ailment == TS_AIL_CRYSTAL) {
+    if (random(100) < 20) atk.ailment = TS_AIL_NONE;   // thaws
     else { log.skipped = true; return; }
   }
-  if (atk.ailment == AIL_SLEEP) {
+  if (atk.ailment == TS_AIL_SLEEP) {
     if (atk.ailTurns) atk.ailTurns--;
-    if (atk.ailTurns == 0) atk.ailment = AIL_NONE;
+    if (atk.ailTurns == 0) atk.ailment = TS_AIL_NONE;
     else { log.skipped = true; return; }
   }
-  if (atk.ailment == AIL_PARA && random(100) < 25) { log.skipped = true; return; }
+  if (atk.ailment == TS_AIL_PARALYSIS && random(100) < 25) { log.skipped = true; return; }
   if (atk.confuseTurns) {
     atk.confuseTurns--;
     if (random(100) < 33) {               // hits itself instead
@@ -151,79 +211,39 @@ void battleAct(Combatant &atk, Combatant &def, uint8_t mv, TurnLog &log) {
     }
   }
 
-  // a wound-up EF_CHARGE move fires this turn instead of whatever was picked
-  if (atk.charging) { mv = atk.charging; atk.charging = 0; }
-  else if (mv && mv < MOVE_COUNT && MOVE_TBL[mv].effect == EF_CHARGE) {
-    atk.charging = mv;
-    log.charged = true;
-    return;
-  }
+  if (!skillValid(mv) && mv != SKILL_BASIC) { log.skipped = true; return; }
+  const TsSkill &m = skillEntry(mv);
 
-  if (!mv || mv >= MOVE_COUNT) { log.skipped = true; return; }
-  const MoveEntry &m = MOVE_TBL[mv];
-  log.move = mv;
-
-  // --- accuracy. acc 0 means it cannot miss (SWIFT, and every status move)
-  if (m.acc && m.effect != EF_NEVER_MISS && random(100) >= m.acc) {
+  // --- accuracy
+  if (m.effect != TS_EF_NEVER_MISS && (uint8_t)random(100) >= m.acc) {
     log.missed = true;
     return;
   }
 
-  if (m.cat == MC_STATUS) {
-    if (m.effect == EF_HEAL) {
-      heal(atk, (uint32_t)atk.maxHp * (m.param > 0 ? m.param : 50) / 100);
-      log.healed = true;
-    } else if (m.effect == EF_STAGE) {
-      Combatant &t = (m.target == TG_SELF) ? atk : def;
-      applyStages(t, m.statMask, m.stages);
-      log.stageMask = m.statMask;
-      log.stageDelta = m.stages;
-    }
+  if (m.cat == TS_SC_SUPPORT) {
+    applyEffect(atk, def, mv, 0, log);
     return;
   }
 
-  // --- damage, including multi-hit
-  uint8_t hits = (m.effect == EF_MULTI) ? (uint8_t)(2 + random(4)) : 1;
+  // --- damage: a fixed number of hits, power per hit
+  uint8_t hits = m.hits ? m.hits : 1;
   uint16_t total = 0;
-  log.effPct = battleEffPct(atk.dex, m.type, def.dex);
+  log.effPct = battleEffPct(atk.dex, m.element, def.dex);
   if (log.effPct == 0) { log.immune = true; return; }
   for (uint8_t h = 0; h < hits; h++) {
-    bool crit = random(16) == 0;                 // ~6%, the series' base rate
+    bool crit = random(16) == 0;                 // ~6%, the base rate
     uint16_t d = battleDamage(atk, def, mv, crit, (uint8_t)(217 + random(39)));
-    total += d;
+    total = (uint32_t)total + d > 65535 ? 65535 : total + d;
     if (crit) log.crit = true;
     hurt(def, d);
     if (def.fainted()) { hits = h + 1; break; }
   }
   log.hits = hits;
   log.damage = total;
+  // A boost is spent by the attack it powered, whichever kind that was.
+  if (m.cat == TS_SC_PHYS) atk.chargePhys = false; else atk.chargeMagic = false;
 
-  if (m.effect == EF_RECOIL && m.param > 0) hurt(atk, total / m.param ? total / m.param : 1);
-  if (m.effect == EF_DRAIN && m.param > 0) heal(atk, total * m.param / 100);
-  if (m.effect == EF_RECHARGE) atk.recharge = true;
-
-  // --- secondary ailment. Never overwrites an existing one, and confusion is
-  // tracked separately so it can stack with a real status, as in the games.
-  if (m.ailment != AIL_NONE && m.ailChance && !def.fainted() &&
-      random(100) < m.ailChance) {
-    if (m.ailment == AIL_CONFUSE) {
-      if (!def.confuseTurns) {
-        def.confuseTurns = 2 + random(3);
-        log.inflicted = AIL_CONFUSE;
-      }
-    } else if (def.ailment == AIL_NONE) {
-      // a type cannot be given the status it is made of
-      bool immune = (m.ailment == AIL_BURN && hasStab(def.dex, T_FIRE)) ||
-                    (m.ailment == AIL_FREEZE && hasStab(def.dex, T_WATER)) ||
-                    (m.ailment == AIL_POISON && hasStab(def.dex, T_DARK)) ||
-                    (m.ailment == AIL_PARA && hasStab(def.dex, T_ELECTRIC));
-      if (!immune) {
-        def.ailment = m.ailment;
-        if (m.ailment == AIL_SLEEP) def.ailTurns = 2 + random(3);
-        log.inflicted = m.ailment;
-      }
-    }
-  }
+  applyEffect(atk, def, mv, total, log);
   log.targetFainted = def.fainted();
 }
 
@@ -232,7 +252,7 @@ void battleAct(Combatant &atk, Combatant &def, uint8_t mv, TurnLog &log) {
 void battleEndTurn(Combatant &c, TurnLog &log) {
   log = TurnLog();
   if (c.fainted()) return;
-  if (c.ailment == AIL_BURN || c.ailment == AIL_POISON) {
+  if (c.ailment == TS_AIL_INJURY || c.ailment == TS_AIL_POISON) {
     uint16_t chip = c.maxHp / 16;
     if (!chip) chip = 1;
     hurt(c, chip);
@@ -242,55 +262,61 @@ void battleEndTurn(Combatant &c, TurnLog &log) {
   }
 }
 
-// ---------- move choice ----------
+// ---------- skill choice ----------
 
-uint8_t aiChooseMove(const Combatant &self, const Combatant &foe, bool smart) {
-  uint8_t legal[MOVE_SLOTS], n = 0;
-  for (int i = 0; i < MOVE_SLOTS; i++)
-    if (self.moves[i] && self.moves[i] < MOVE_COUNT) legal[n++] = self.moves[i];
-  if (!n) return 0;
+uint16_t aiChooseMove(const Combatant &self, const Combatant &foe, bool smart) {
+  uint16_t legal[MOVE_SLOTS + 1];
+  uint8_t n = 0;
+  bool canHit = false;
+  for (int i = 0; i < MOVE_SLOTS; i++) {
+    if (!skillValid(self.moves[i])) continue;
+    legal[n++] = self.moves[i];
+    if (TS_SKILL_TBL[self.moves[i]].cat != TS_SC_SUPPORT) canHit = true;
+  }
+  if (!canHit) legal[n++] = SKILL_BASIC;
   if (!smart) return legal[random(n)];
 
-  int16_t bestScore = -32768;
-  uint8_t best = legal[0];
+  int32_t bestScore = -2147483647;
+  uint16_t best = legal[0];
   for (uint8_t i = 0; i < n; i++) {
-    uint8_t mv = legal[i];
-    const MoveEntry &m = MOVE_TBL[mv];
+    uint16_t mv = legal[i];
+    const TsSkill &m = skillEntry(mv);
     int32_t sc;
-    if (m.cat == MC_STATUS) {
-      // A status move costs a whole turn, so it has to buy more than chip
+    if (m.cat == TS_SC_SUPPORT) {
+      // A support skill costs a whole turn, so it has to buy more than chip
       // damage would. Healing is worth it only when actually hurt; a boost is
-      // worth it early and worthless once the stage is already stacked.
-      if (m.effect == EF_HEAL) {
+      // worth it early and worthless once the stat is already stacked.
+      if (m.effect == TS_EF_HEAL) {
         int missing = (int)self.maxHp - self.hp;
         sc = (missing * 100 / (self.maxHp ? self.maxHp : 1)) - 30;
-      } else if (m.effect == EF_STAGE) {
-        static const uint8_t BIT[SI_COUNT] = { ST_ATK, ST_DEF, ST_SPA, ST_SPD, ST_SPE };
+      } else if (m.effect == TS_EF_STAT) {
         int stacked = 0, hit = 0;
-        const Combatant &t = (m.target == TG_SELF) ? self : foe;
+        const Combatant &t = (m.flags & TS_SKF_SELF) ? self : foe;
         for (int k = 0; k < SI_COUNT; k++)
-          if (m.statMask & BIT[k]) { stacked += t.stage[k] * (m.stages > 0 ? 1 : -1); hit++; }
+          if (m.statMask & SM_OF_SI[k]) { stacked += t.mod[k] * (m.param > 0 ? 1 : -1); hit++; }
         if (!hit) hit = 1;
-        // diminishing: +2 ATK is strong at stage 0, pointless at +6
-        sc = 26 - (stacked * 12 / hit);
+        // diminishing: +30% is strong from nothing, pointless at the cap
+        sc = 26 - (stacked * 30 / (hit * BTL_MOD_MAX));
         // and never set up when one more hit would finish you
         if (self.hp * 3 < self.maxHp) sc -= 40;
+      } else if (m.effect == TS_EF_STATUS) {
+        sc = foe.ailment == TS_AIL_NONE ? m.chance / 3 : 0;
+      } else if (m.effect == TS_EF_CURE) {
+        sc = (self.ailment != TS_AIL_NONE || self.confuseTurns) ? 40 : -10;
       } else {
         sc = 5;
       }
     } else {
-      uint16_t dmg = battleDamage(self, foe, mv, false, 236);  // average roll
-      sc = dmg;
+      uint32_t dmg = (uint32_t)battleDamage(self, foe, mv, false, 236) * (m.hits ? m.hits : 1);
+      if (dmg > 30000) dmg = 30000;
+      sc = (int32_t)dmg;
       if (dmg >= foe.hp) sc += 1000;              // a kill this turn beats all
-      uint8_t acc = m.acc ? m.acc : 100;
-      sc = sc * acc / 100;                        // discount what tends to miss
-      if (m.effect == EF_RECHARGE) sc -= dmg / 4; // a free turn for the foe
-      if (m.effect == EF_RECOIL) sc -= dmg / 6;
-      if (m.effect == EF_CHARGE) sc -= dmg / 3;   // a turn spent winding up
-      if (m.ailment != AIL_NONE && foe.ailment == AIL_NONE)
-        sc += m.ailChance / 4;
+      sc = sc * m.acc / 100;                      // discount what tends to miss
+      if (m.effect == TS_EF_RECHARGE) sc -= (int32_t)dmg / 4;   // a free turn for the foe
+      if (m.effect == TS_EF_RECOIL) sc -= (int32_t)dmg / 6;
+      if (m.effect == TS_EF_STATUS && foe.ailment == TS_AIL_NONE) sc += m.chance / 4;
     }
-    if (sc > bestScore) { bestScore = (int16_t)sc; best = mv; }
+    if (sc > bestScore) { bestScore = sc; best = mv; }
   }
   return best;
 }

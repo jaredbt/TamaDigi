@@ -9,7 +9,7 @@
 #include "Arduino_GFX_Library.h"
 #include "Preferences.h"
 #include "pet.h"
-#include "moves.h"
+#include "noart.h"
 #include "items.h"
 #include "inventory.h"
 #include <cstdio>
@@ -30,25 +30,10 @@ extern bool exploreOpen;
 extern bool btlWild;
 extern uint8_t cardPage, gymPage, playerPage, movePickPage;
 extern uint8_t galleryPage; extern bool galleryDirty; extern uint8_t galleryDetail;
-extern uint8_t galleryRegion;
-extern uint8_t gymRegion;
-extern bool gymPick, galleryPick;
 extern uint8_t movePickSlot;
 extern bool bagOpen; extern uint8_t bagPage;
-// Asked of the firmware, not recomputed here: a test that keeps its own copy of
-// RPICK_PER_PAGE proves the transcription, which is how hit_test spent years
-// passing on 12 % REGION_COUNT == 0.
-extern uint8_t rpickPage;
-uint8_t rpickRegions(uint8_t mode);
-uint8_t rpickPageCount(uint8_t mode);
-uint8_t rpickModeNow();
-// rows per page, derived: nreg and pages both come from the firmware, so this
-// never becomes a second copy of RPICK_PER_PAGE.
-static uint8_t RPICK_PER_PAGE_T(){ uint8_t n=rpickRegions(rpickModeNow()), p=rpickPageCount(rpickModeNow()); return (uint8_t)((n + p - 1) / p); }
-
 static int bad=0;
 static void clearAll(){
-  gymPick=galleryPick=false;
   cardOpen=galleryOpen=clockOpen=kbOpen=menuOpen=false;
   trainOpen=movePickOpen=battleOpen=gymOpen=playerOpen=false;
   exploreOpen=false;
@@ -70,18 +55,19 @@ static void check(const char *name, bool *open, uint8_t *page){
   if (*page != n - 1) { printf("FAIL  %-10s did not clamp at the last page (%u of %u)\n", name, *page, n); bad++; return; }
   printf("PASS  %-10s pages on the rim and clamps at both ends\n", name);
 }
-uint8_t learnableFor(int16_t dex, uint8_t lvl, uint8_t *out, uint8_t max);
+uint8_t learnableFor(int16_t dex, uint8_t hours, uint16_t *out, uint8_t max);
+uint8_t learnableList(uint16_t *out, uint8_t max);
 
 int main(){
   setup();
   for (int i=0;i<4;i++) render();
-  if (pet.awaitingStarter()) pet.chooseStarter(4);
-  if (pet.isEgg()) pet.dbgHatchAs(6,false);
+  if (pet.awaitingStarter()) pet.chooseStarter(6);
+  pet.dbgHatchAs(377,false);           // DARKDRAMON: enough skills for a second page
   pet.ageMinutes = 60UL*60; pet.relearnFromLevel();
   while (pet.hasLearnOffer()) pet.declineLearn();
 
   clearAll(); cardOpen=true;                      check("card",     &cardOpen,     &cardPage);
-  clearAll(); gymOpen=true; gymPick=false;        check("gyms",     &gymOpen,      &gymPage);
+  clearAll(); gymOpen=true;                       check("gyms",     &gymOpen,      &gymPage);
   clearAll(); playerOpen=true;                    check("player",   &playerOpen,   &playerPage);
   clearAll(); movePickOpen=true; movePickSlot=0;
                                                   check("movepick", &movePickOpen, &movePickPage);
@@ -91,67 +77,21 @@ int main(){
   clearAll();
   for (ItemKey k=1;k<ITEM_COUNT;k++) bag.add(k, 1);
   bagOpen=true;                                   check("bag",      &bagOpen,      &bagPage);
-  // The Digidex pages within ONE version and changes version on a vertical swipe.
-  // Every Digimon must be reachable: it was capped at 10 flat pages when the dex
-  // was 151 long, which silently hid everything past 160 once it grew to 386.
-  clearAll(); galleryOpen=true; galleryPick=false; galleryDetail=0; galleryPage=0; galleryRegion=3;
+  // The Digidex pages to the end of the forms with art. It was capped at 10 flat
+  // pages when the dex was 151 long, which silently hid everything past 160 once it
+  // grew to 386.
+  clearAll(); galleryOpen=true; galleryDetail=0; galleryPage=0;
   onRim(1);
   if (!galleryOpen) { printf("FAIL  gallery    closed while paging\n"); bad++; }
   else if (galleryPage != 1) { printf("FAIL  gallery    did not advance (page=%u)\n", galleryPage); bad++; }
   else printf("PASS  %-10s pages on the rim\n", "gallery");
   {
-    // walk every version to its last page and tick off what it can show
-    static bool seen[DEX_COUNT + 1] = { false };
-    int regions = REGION_COUNT - 1;
-    for (int r = 0; r < regions; r++) {
-      galleryRegion = (uint8_t)r;
-      galleryPage = 0;
-      int lo = REGIONS[r].lo, hi = REGIONS[r].hi;
-      int pages = (hi - lo + 1 + 15) / 16;
-      for (int p = 0; p < pages; p++) {
-        for (int i = 0; i < 16; i++) {
-          int d = lo + p * 16 + i;
-          if (d <= hi && d <= DEX_COUNT) seen[d] = true;
-        }
-        onRim(1);
-      }
-      if (galleryPage != pages - 1) {
-        printf("FAIL  gallery    %s stops at page %d of %d\n",
-               REGIONS[r].name, galleryPage + 1, pages);
-        bad++;
-      }
-    }
-    int missing = 0;
-    for (int d = 1; d <= DEX_COUNT; d++) if (!seen[d]) missing++;
-    if (missing) { printf("FAIL  gallery    %d species are unreachable\n", missing); bad++; }
-    else printf("PASS  %-10s every one of the %d species is reachable\n", "gallery", DEX_COUNT);
-    // and a vertical swipe UP really does move between versions
-    galleryRegion = 0; galleryDetail = 0;
-    onSwipeV(-1);
-    if (galleryRegion != 1 || !galleryOpen) {
-      printf("FAIL  gallery    a vertical swipe does not change region\n"); bad++;
-    } else printf("PASS  %-10s changes region on a vertical swipe\n", "gallery");
-  }
-  // The boss ladder changes REGION on a vertical swipe, the same gesture the
-  // Digidex uses. Without this the Ver.2 and Ver.3 ladders exist but cannot be
-  // reached, which is a worse failure than a paging bug: nothing looks broken.
-  clearAll(); gymOpen=true; gymPick=false; gymRegion=0; gymPage=0;
-  {
-    bool ok = true;
-    for (int r = 1; r <= GYM_REGIONS; r++) {
-      onSwipeV(-1);
-      if (gymRegion != r % GYM_REGIONS || !gymOpen) ok = false;
-    }
-    if (!ok) { printf("FAIL  gyms       vertical swipe does not cycle the ladders\n"); bad++; }
-    else printf("PASS  %-10s cycles all %d ladders on a vertical swipe\n", "gyms", GYM_REGIONS);
-    for (int r = 0; r < GYM_REGIONS; r++) {
-      gymRegion = (uint8_t)r; gymPage = 0; gymOpen = true; gymPick = false;
-      onRim(1);
-      if (gymPage != 1 || !gymOpen) {
-        printf("FAIL  gyms       %s does not page\n", TRAINER_SETS[r].region); bad++;
-      }
-    }
-    if (!bad) printf("PASS  %-10s every ladder still pages on the rim\n", "gyms");
+    const int pages = (NO_ART_DRAWABLE + 15) / 16;
+    galleryPage = 0;
+    for (int p = 0; p < pages + 2; p++) onRim(1);
+    if (galleryPage != pages - 1) {
+      printf("FAIL  gallery    stops at page %d of %d\n", galleryPage + 1, pages); bad++;
+    } else printf("PASS  %-10s every one of the %d forms with art is reachable\n", "gallery", NO_ART_DRAWABLE);
   }
 
   // THE TILE AXIS. Horizontal is now one gesture with one meaning: move to the
@@ -199,9 +139,7 @@ int main(){
     } else printf("PASS  %-10s swipe down returns to the pet\n", "tiles");
   }
 
-  // Opening either screen must land on the REGION CHOOSER, not on whichever
-  // version happened to be set last. Without it the Ver.2 and Ver.3 content is
-  // built, reachable only by an invisible gesture, and so looks absent.
+  // Each tile opens on its own screen, and a swipe down from it goes home.
   {
     clearAll();
     onSwipe(-1);                       // the first world-facing stop is Explore
@@ -214,153 +152,43 @@ int main(){
     clearAll();
     onSwipe(-1);
     onSwipe(-1);                       // Bosses follows Explore
-    if (!gymOpen || !gymPick) { printf("FAIL  gyms       does not open on the region chooser\n"); bad++; }
-    else printf("PASS  %-10s opens on the region chooser\n", "gyms");
-    // and a swipe DOWN out of a ladder returns to it -- one step of depth, not
-    // a page off the front, which is what used to do this job
-    gymPick = false; gymRegion = 2; gymPage = 0;
+    if (!gymOpen) { printf("FAIL  gyms       is not the stop after Explore\n"); bad++; }
+    else printf("PASS  %-10s is the stop after Explore\n", "gyms");
     onSwipeV(1);
-    if (!gymPick || !gymOpen) { printf("FAIL  gyms       swiping down does not return to the chooser\n"); bad++; }
-    else printf("PASS  %-10s swiping down returns to the chooser\n", "gyms");
-
-    clearAll(); galleryOpen = true; galleryPick = false; galleryRegion = 1; galleryPage = 0;
+    if (gymOpen) { printf("FAIL  gyms       swiping down does not go home\n"); bad++; }
+    else printf("PASS  %-10s swiping down goes home\n", "gyms");
+    clearAll(); galleryOpen = true; galleryPage = 0;
     onSwipeV(1);
-    if (!galleryPick || !galleryOpen) { printf("FAIL  gallery    swiping down does not return to the chooser\n"); bad++; }
-    else printf("PASS  %-10s swiping down returns to the chooser\n", "gallery");
+    if (galleryOpen) { printf("FAIL  gallery    swiping down does not go home\n"); bad++; }
+    else printf("PASS  %-10s swiping down goes home\n", "gallery");
   }
 
-  // THE REGION CHOOSER IS PAGED NOW, and every paged screen in this sketch has
-  // to be driven here -- the same paging bug shipped four times before this
-  // test existed, and each time it was a screen that closed instead of paging.
-  //
-  // The chooser is the one that WRAPS rather than closing: it is the root of
-  // its own screen, and at first boot there is nowhere to go back to.
+  // The hour offsets live in the learnset and moves_test pins them -- but the
+  // PICKER has to actually ask. It once kept its own copy of the check, which IS the
+  // bug, so this drives the screen's own list, not the rule.
   {
-    clearAll();
-    gRegionArt = 0xFFFF;                       // every pack present
-    galleryOpen = true; galleryPick = true; rpickPage = 0;
-    uint8_t nreg  = rpickRegions(rpickModeNow());
-    uint8_t pages = rpickPageCount(rpickModeNow());
-    if (pages < 2) { printf("FAIL  dexpick    expected >1 page for %u regions\n", nreg); bad++; }
-    onRim(1);
-    if (!galleryOpen || !galleryPick) { printf("FAIL  dexpick    closed while paging\n"); bad++; }
-    else if (rpickPage != 1) { printf("FAIL  dexpick    did not advance a page (page=%u)\n", rpickPage); bad++; }
-    else printf("PASS  %-10s pages on the rim\n", "dexpick");
-
-    // wrapping, in both directions, so no page can strand the player
-    rpickPage = (uint8_t)(pages - 1);
-    onRim(1);
-    if (rpickPage != 0 || !galleryPick) { printf("FAIL  dexpick    does not wrap forward to page 0\n"); bad++; }
-    else printf("PASS  %-10s wraps forward rather than closing\n", "dexpick");
-    onRim(-1);
-    if (rpickPage != pages - 1 || !galleryPick) { printf("FAIL  dexpick    does not wrap backward\n"); bad++; }
-    else printf("PASS  %-10s wraps backward rather than closing\n", "dexpick");
-
-    // EVERY version must be reachable across the pages -- the old chooser
-    // listed GYM_REGIONS in all three modes, so Ver.4 had no row at all.
-    uint8_t perPage = (uint8_t)((nreg + pages - 1) / pages);
-    int seen = 0;
-    for (uint8_t pg = 0; pg < pages; pg++)
-      for (uint8_t row = 0; row < perPage; row++)
-        if (pg * perPage + row < nreg) seen++;
-    if (seen != nreg) { printf("FAIL  dexpick    only %d of %u regions have a row\n", seen, nreg); bad++; }
-    else printf("PASS  %-10s every region has a row across the pages\n", "dexpick");
-  }
-
-  // THE GYM CHOOSER PAGES TOO, and that is not a copy of the case above: it
-  // runs in a different mode with its own version count. GYM_REGIONS became 4
-  // when Ver.4 got a ladder, so Ver.4 sits on PAGE 2 -- built, reachable only
-  // by paging, and invisible if paging does not engage here. That is the exact
-  // shape that hid Ver.4 in the Digidex chooser.
-  {
-    clearAll();
-    gRegionArt = 0xFFFF;
-    gymOpen = true; gymPick = true; rpickPage = 0;
-    uint8_t nreg  = rpickRegions(rpickModeNow());
-    uint8_t pages = rpickPageCount(rpickModeNow());
-    if (nreg != GYM_REGIONS) { printf("FAIL  gympick    lists %u regions, not GYM_REGIONS=%d\n", nreg, (int)GYM_REGIONS); bad++; }
-    else printf("PASS  %-10s lists every ladder (%u)\n", "gympick", nreg);
-    if (pages < 2) { printf("FAIL  gympick    %u regions but only %u page -- the last ladder is unreachable\n", nreg, pages); bad++; }
-    else printf("PASS  %-10s needs %u pages and says so\n", "gympick", pages);
-    onRim(1);
-    if (!gymOpen || !gymPick) { printf("FAIL  gympick    closed while paging\n"); bad++; }
-    else if (rpickPage != 1) { printf("FAIL  gympick    did not advance a page (page=%u)\n", rpickPage); bad++; }
-    else printf("PASS  %-10s pages on the rim\n", "gympick");
-    // the LAST ladder must actually be selectable from the page it lands on
-    uint8_t last = (uint8_t)(nreg - 1);
-    rpickPage = (uint8_t)(last / RPICK_PER_PAGE_T());
-    if (rpickPage >= pages) { printf("FAIL  gympick    the last ladder is on no page\n"); bad++; }
-    else printf("PASS  %-10s the last ladder lands on page %u of %u\n", "gympick", rpickPage + 1, pages);
-  }
-
-  // The sprite pack is a real gate: without it the version is not selectable,
-  // the egg pool will not draw from it, and the pill skips over it.
-  {
-    clearAll();
-    gRegionArt = 0x1;                          // VER.1 only
-    if (!regionAvailable(0)) { printf("FAIL  gating     VER.1 should be available\n"); bad++; }
-    else if (regionAvailable(1)) { printf("FAIL  gating     VER.2 has no pack and must be locked\n"); bad++; }
-    else printf("PASS  %-10s a region with no pack is locked\n", "gating");
-
-    // Cycle the pill all the way round twice. The invariant is that it never
-    // RESTS on a locked version -- not that it returns any particular index.
-    // REGION_ALL stays selectable while any one pack is present, since the
-    // mixed pool is then simply that version's creatures, so asserting a fixed
-    // answer here just encoded my own wrong guess about ALL.
-    {
-      uint8_t r = 0; int landedLocked = 0; uint16_t visited = 0;
-      for (int i = 0; i < REGION_COUNT * 2; i++) {
-        r = nextAvailableRegion(r);
-        if (!regionAvailable(r)) landedLocked++;
-        visited |= (uint16_t)(1u << r);
-      }
-      int nvisited = 0;
-      for (uint8_t b2 = 0; b2 < REGION_COUNT; b2++) if (visited & (1u << b2)) nvisited++;
-      // BOTH halves matter. "never rests on a locked version" is vacuously true
-      // when nothing is locked, so on its own it survives the gate being
-      // deleted -- it did exactly that when this was negative-checked. The
-      // second half is the one with teeth: with only VER.1 present the pill
-      // must reach FEWER versions than exist.
-      if (landedLocked) { printf("FAIL  gating     the pill landed on a locked region %d times\n", landedLocked); bad++; }
-      else if (nvisited >= REGION_COUNT) { printf("FAIL  gating     the pill reached all %d regions with 3 packs missing\n", (int)REGION_COUNT); bad++; }
-      else printf("PASS  %-10s the pill skips locked regions and reaches only %d\n", "gating", nvisited);
-    }
-
-    uint8_t was = pet.region;
-    pet.setRegion(1);                          // VER.2: locked, must not take
-    if (pet.region != was) { printf("FAIL  gating     setRegion accepted a locked region\n"); bad++; }
-    else printf("PASS  %-10s a locked region cannot be chosen\n", "gating");
-
-    // and no egg may hatch from a version whose art is not on the card
-    int wrong = 0;
-    for (int i = 0; i < 200; i++) {
-      int16_t d = pet.rollInRegion(1, 0);       // ask for VER.2 explicitly
-      if (regionOfDex(d) != 0) wrong++;
-    }
-    if (wrong) { printf("FAIL  gating     %d/200 eggs came from a locked region\n", wrong); bad++; }
-    else printf("PASS  %-10s eggs never come from a region with no pack\n", "gating");
-
-    gRegionArt = 0xFFFF;                       // leave it as we found it
-  }
-
-  // The rule lives in moveUnlockLevel() and moves_test pins it -- but the
-  // PICKER has to actually ask it. It once kept its own copy of the check,
-  // which IS the bug, so this drives the screen's own list, not the rule.
-  {
-    uint8_t l[64];
-    uint8_t n = learnableFor(5, 26, l, sizeof(l));    // a GREYMON at 26
-    bool flame = false, horns = false;
+    const int16_t GREYMON = 89;
+    uint16_t l[64];
+    const uint8_t special = learnableFor(GREYMON, 0, l, 64);
+    bool flame = false;
+    for (uint8_t i = 0; i < special; i++) if (!strcmp(moveName(l[i]), "MEGA FLAME")) flame = true;
+    if (!flame) { printf("FAIL  picker     lost the special a form has at once\n"); bad++; }
+    else printf("PASS  picker     a form offers its special at hour 0\n");
+    if (learnableFor(GREYMON, 99, l, 64) <= special) {
+      printf("FAIL  picker     later skills never arrive at all\n"); bad++;
+    } else printf("PASS  picker     and later skills arrive with the hours\n");
+    // the screen's own list: the slots, then what the form offers
+    pet.dbgHatchAs(GREYMON, false);
+    pet.moves[3] = 1;                  // a skill carried over from another form
+    uint16_t all[64];
+    const uint8_t n = learnableList(all, 64);
+    bool carried = false, offered = false;
     for (uint8_t i = 0; i < n; i++) {
-      if (!strcmp(MOVE_TBL[l[i]].name, "MEGA FLAME")) flame = true;
-      if (!strcmp(MOVE_TBL[l[i]].name, "GREAT HORNS")) horns = true;
+      if (all[i] == 1) carried = true;
+      if (!strcmp(moveName(all[i]), "MEGA FLAME")) offered = true;
     }
-    if (flame) { printf("FAIL  picker     offers a level 26 GREYMON MEGA FLAME (level 30)\n"); bad++; }
-    else printf("PASS  picker     no MEGA FLAME before level 30\n");
-    if (!horns) { printf("FAIL  picker     lost the moves it really knows\n"); bad++; }
-    else printf("PASS  picker     still offers what it really knows\n");
-    if (learnableFor(5, 40, l, sizeof(l)) <= n) {
-      printf("FAIL  picker     later attacks never arrive at all\n"); bad++;
-    } else printf("PASS  picker     and later attacks arrive with the levels\n");
+    if (!carried || !offered) { printf("FAIL  picker     does not list both the slots and the form\n"); bad++; }
+    else printf("PASS  picker     lists a carried-over slot beside what the form offers\n");
   }
 
   printf("%s\n", bad?"FAILURES":"every paged screen pages");

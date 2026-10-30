@@ -19,7 +19,7 @@ extern uint8_t gameScore;
 void startGame(); void leaveGame();
 int main(){
   setup(); for(int i=0;i<4;i++) loop();
-  if (pet.awaitingStarter()) pet.chooseStarter(4);
+  if (pet.awaitingStarter()) pet.chooseStarter(6);
   if (pet.isEgg()) pet.dbgHatchAs(25,false);
 
   printf("direct playResult:\n");

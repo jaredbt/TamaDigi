@@ -123,7 +123,7 @@ enum StrId : uint8_t {
   S_RETIRE_Q,       // ...and the confirmation
   S_RETIRE_COST,    // what retiring early costs the next creature
   S_EVO_SLOW,       // shown on the card while a creature carries that debt
-  S_NEED_PACK,      // version chooser: this version's sprite pack is not on the SD
+  S_NEED_PACK,      // the sprite pack is not on the SD
   // Letting a BANKED creature go for good, from the party or box detail sheet.
   // The confirmation reuses S_RELEASE_FMT / S_NO; its destructive action repeats
   // S_RELEASE_BTN instead of the ambiguous generic YES.
@@ -177,12 +177,14 @@ enum StrId : uint8_t {
   // Digimon: the progress card's branch inputs, and the attribute label
   S_TRAIN_TOTAL_FMT,  // "Training: %u" -- trAtk + trDef + trSpe
   S_ATTR,             // card label: Vaccine / Data / Virus / Free
-  S_STAGE_0, S_STAGE_1, S_STAGE_2, S_STAGE_3, S_STAGE_4, S_STAGE_5,
+  S_STAGE_0, S_STAGE_1, S_STAGE_2, S_STAGE_3, S_STAGE_4, S_STAGE_5, S_STAGE_6,
+  S_BASIC_ATK,      // the battle menu's basic attack, always there
+  S_OLD_SAVE, S_OLD_SAVE2,  // two lines: a v1.0.0 save was found and replaced
+  S_DEVOLVE,        // the card's button and the confirm's title
   STR_COUNT
 };
 
 const char *T(StrId id);       // text in the active language
-const char *moveName(uint8_t move);  // localized display name; move ID stays stable
 const char *medalName(int i);  // medal banner (MED_COUNT)
 const char *medalLabel(int i); // short medal label
 const char *medalDesc(int i);  // long medal description

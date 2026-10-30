@@ -1,6 +1,5 @@
 #include "wild.h"
-#include "pet.h"     // regionAvailable(), regionOfDex()
-#include "noart.h"   // speciesHasArt()
+#include "pet.h"     // MAX_LEVEL, speciesShowable()
 
 static uint8_t variantBonus(uint8_t bonus) {
   return bonus > WILD_VARIANT_BONUS_MAX ? WILD_VARIANT_BONUS_MAX : bonus;
@@ -12,37 +11,6 @@ uint32_t wildVariantThreshold(uint8_t bonus) {
 
 bool wildVariantForRoll(uint32_t roll, uint8_t bonus) {
   return (roll % WILD_VARIANT_SCALE) < wildVariantThreshold(bonus);
-}
-
-void wildApplyVariant(bool variant, uint8_t &ivAtk, uint8_t &ivDef,
-                    uint8_t &ivSpe, uint8_t &ivHp) {
-  if (!variant) return;
-  uint8_t *ivs[] = { &ivAtk, &ivDef, &ivSpe, &ivHp };
-  for (uint8_t *iv : ivs)
-    if (*iv < WILD_VARIANT_IV_FLOOR) *iv = WILD_VARIANT_IV_FLOOR;
-}
-
-uint8_t wildCaptureChance(uint8_t rarity, uint16_t hp, uint16_t maxHp,
-                          bool hasStatus, int16_t ballPct) {
-  if (!maxHp || !hp) return 0;
-  if (ballPct == ITEM_CATCH_GUARANTEED) return 100;
-  if (ballPct <= 0) return 0;
-  if (hp > maxHp) hp = maxHp;
-  uint8_t base;
-  switch (rarity) {
-    case R_LEGENDARIO: base = 5; break;
-    case R_RARO:       base = 18; break;
-    case R_EVO:        base = 24; break;
-    default:           base = 30; break;
-  }
-  // A full-health target is 100; an almost-fainted one is 180. Weakening it
-  // matters, but never as much as the ball you chose.
-  uint16_t hpFactor = (uint16_t)(100U + (uint32_t)(maxHp - hp) * 80U / maxHp);
-  uint16_t statusFactor = hasStatus ? 130 : 100;
-  uint32_t chance = (uint32_t)base * hpFactor * statusFactor *
-                    (uint32_t)(uint16_t)ballPct / 1000000U;
-  if (!chance) chance = 1;
-  return chance > 95 ? 95 : (uint8_t)chance;
 }
 
 uint8_t wildLevelMin(uint8_t playerLevel, bool hard) {
@@ -84,63 +52,32 @@ uint8_t wildFoeEscapeChance(uint16_t hp, uint16_t maxHp) {
   return 0;
 }
 
-uint8_t wildTierForRoll(uint8_t roll) {
-  if (roll < 1) return R_LEGENDARIO;   // 1%
-  if (roll < 8) return R_RARO;         // 7%
-  if (roll < 30) return R_EVO;         // 22%
-  return R_COMUN;                      // the rest
-}
-
 uint8_t wildStageForLevel(uint8_t level) {
-  uint8_t st = ST_BABY1;
+  uint8_t st = TS_ST_IN_TRAINING_1;
   for (uint8_t i = 0; i < STAGE_COUNT; i++)
-    if (level >= STAGE_ENTRY[i]) st = i;
+    if (level >= TS_STAGE_ENTRY[i]) st = i;
   return st;
 }
 
 uint8_t wildStageFor(uint8_t level, uint8_t roll) {
   uint8_t top = wildStageForLevel(level);
   // Mostly the stage a Digimon of this level would have reached; a quarter of
-  // the time one stage behind. Never a Baby I once Rookies exist: a wild
+  // the time one stage behind. Never an In-Training I once Rookies exist: a wild
   // Botamon is no fight at all.
-  uint8_t st = (roll < 25 && top > ST_BABY1) ? (uint8_t)(top - 1) : top;
-  if (st == ST_BABY1 && top >= ST_ROOKIE) st = ST_BABY2;
+  uint8_t st = (roll < 25 && top > TS_ST_IN_TRAINING_1) ? (uint8_t)(top - 1) : top;
+  if (st == TS_ST_IN_TRAINING_1 && top >= TS_ST_ROOKIE) st = TS_ST_IN_TRAINING_2;
   return st;
 }
 
-uint8_t wildTierOfDex(int16_t dex) {
-  if (dex < 1 || dex > DEX_COUNT) return R_COMUN;
-  switch (DEX_TBL[dex].stage) {
-    case ST_MEGA:     return R_LEGENDARIO;
-    case ST_ULTIMATE: return R_RARO;
-    case ST_CHAMPION: return R_EVO;
-    default:          return R_COMUN;
-  }
-}
-
-// A Digimon of exactly this STAGE that is in an available version AND has
-// art. 0 if there is none.
-int16_t wildPickSpecies(uint8_t region, uint8_t stage, uint32_t roll) {
-  uint16_t lo = 1, hi = DEX_COUNT;
-  if (region < REGION_COUNT && region != REGION_ALL) {
-    lo = REGIONS[region].lo;
-    hi = REGIONS[region].hi;
-  }
-  if (hi > DEX_COUNT) hi = DEX_COUNT;
+int16_t wildPickSpecies(uint8_t stage, uint32_t roll) {
   uint16_t n = 0;
-  for (uint16_t d = lo; d <= hi; d++) {
-    if (DEX_TBL[d].stage != stage) continue;
-    if (!speciesHasArt((int16_t)d)) continue;
-    if (!regionAvailable(regionOfDex((int16_t)d))) continue;
-    n++;
-  }
+  for (int16_t d = 1; d <= DEX_COUNT; d++)
+    if (TS_DEX_TBL[d].tier == stage && speciesShowable(d)) n++;
   if (!n) return 0;
   uint16_t want = (uint16_t)(roll % n);
-  for (uint16_t d = lo; d <= hi; d++) {
-    if (DEX_TBL[d].stage != stage) continue;
-    if (!speciesHasArt((int16_t)d)) continue;
-    if (!regionAvailable(regionOfDex((int16_t)d))) continue;
-    if (!want) return (int16_t)d;
+  for (int16_t d = 1; d <= DEX_COUNT; d++) {
+    if (TS_DEX_TBL[d].tier != stage || !speciesShowable(d)) continue;
+    if (!want) return d;
     want--;
   }
   return 0;

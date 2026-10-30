@@ -8,12 +8,9 @@
 // Every key the firmware persists. Adding one here is the whole job of adding
 // it to the backup; save_test fails if a key exists in NVS and not in this list.
 //
-// Legacy fields migrate on load; exports keep checkpoints and standalone keys.
-//
 // pbA/pbB, the party+box checkpoint, are NOT here any more: the party and box
-// were removed by design (one partner). A device or a .tpsave that still holds
-// them loads without them -- export leaves them out and import skips them as
-// unknown keys.
+// were removed by design (one partner). A .tpsave that still holds them imports
+// without them -- import skips unknown keys.
 const SaveField SAVE_FIELDS[] = {
   { "init", SK_BOOL },
   // The alternating checkpoints -- everything about the creature and the
@@ -268,4 +265,38 @@ bool resetRecover() {
   resetComplete();
   Serial.println("reset: completed a requested wipe before loading anything");
   return true;
+}
+
+// The magics of the two records a v1.0.0 save is made of.
+static bool isOldRecord(Preferences &p, const char *key, const char *magic) {
+  uint8_t head[4];
+  const size_t n = p.getBytesLength(key);
+  if (n < sizeof(head)) return false;
+  uint8_t *buf = (uint8_t *)malloc(n);
+  if (!buf) return false;
+  const bool old = p.getBytes(key, buf, n) == n && memcmp(buf, magic, sizeof(head)) == 0;
+  free(buf);
+  return old;
+}
+
+bool saveReplaceOld() {
+  Preferences p;
+  if (!p.begin("tamadigi", false)) return false;
+  const bool old = isOldRecord(p, "petA", "TKP1") || isOldRecord(p, "petB", "TKP1") ||
+                   isOldRecord(p, "plyA", "TKY1") || isOldRecord(p, "plyB", "TKY1") ||
+                   p.isKey("dexn") || p.isKey("spec");
+  if (old) {
+    Serial.println("save: this is a v1.0.0 save, which cannot be carried forward; starting a new game");
+    const bool hadLang = p.isKey("lang"), hadSnd = p.isKey("snd");
+    const bool hadVol = p.isKey("vol"), hadBrt = p.isKey("brt");
+    const uint8_t lang = p.getUChar("lang", 0), vol = p.getUChar("vol", 0), brt = p.getUChar("brt", 0);
+    const bool snd = p.getBool("snd", false);
+    p.clear();
+    if (hadLang) p.putUChar("lang", lang);
+    if (hadSnd) p.putBool("snd", snd);
+    if (hadVol) p.putUChar("vol", vol);
+    if (hadBrt) p.putUChar("brt", brt);
+  }
+  p.end();
+  return old;
 }

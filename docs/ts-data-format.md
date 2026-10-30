@@ -1,7 +1,7 @@
 # Time Stranger data format
 
 `tools/gen_ts_data.py` turns `tools/data/time-stranger/` into two generated
-headers at the repository root. This page is for the firmware cutover: what is
+headers at the repository root. This page is for the firmware: what is
 in each table, what every field means, and the rules the generator applied. The
 rules themselves are decided in `docs/HANDOFF.md`'s "Game design decisions"
 table. This page records only how they were applied, plus the cases that table
@@ -13,11 +13,10 @@ python3 tools/gen_ts_data.py --check   # validate, and fail if the committed hea
 ```
 
 The generator asserts every rule before it writes anything (`validate()`), and
-it stops on any source row or skill clause it cannot place. This pipeline is
-separate from `tools/digimon_data.py`, which still feeds today's `dex.h`,
-`moves.h` and the rest of the current build. Nothing includes the new headers
-yet. All identifiers are prefixed `TS_` / `Ts` / `TSF_` so they can sit beside
-the old ones during the cutover.
+it stops on any source row or skill clause it cannot place. All identifiers are
+prefixed `TS_` / `Ts` / `TSF_`. `roster.h` and `types.h` are the hand-written layer
+the firmware reads them through: the short names, the stat growth, the scale
+constant, skill power by level, the home element and the matchups.
 
 ## Indices
 
@@ -104,7 +103,7 @@ Effects (`TS_EF_*`):
 | Effect | `param` |
 |---|---|
 | `STATUS` | `TS_AIL_PARALYSIS, _INJURY, _POISON, _SLEEP, _CRYSTAL, _CONFUSION` (1-6) |
-| `STAT` | Signed percent (-50 ... +30) applied to every stat in `statMask` (`TS_SM_ATK, _DEF, _SPD, _MATK, _MDEF`). Time Stranger's own numbers are kept; mapping them to engine stages is a cutover choice |
+| `STAT` | Signed percent (-50 ... +30) applied to every stat in `statMask` (`TS_SM_ATK, _DEF, _SPD, _MATK, _MDEF`). Time Stranger's own numbers are kept: the engine stacks percentages, -60 to +90, for the length of a fight |
 | `DRAIN` | Percent of the damage dealt that heals the user |
 | `RECOIL` | Percent of the user's max HP lost (100 = the user faints) |
 | `HEAL` | Percent of max HP restored; 0 = by the skill's power and the user's magic defence (Time Stranger's SPI heal) |

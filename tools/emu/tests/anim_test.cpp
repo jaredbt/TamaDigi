@@ -25,7 +25,7 @@ static void ck(bool ok,const char*w){printf("%s  %s\n",ok?"PASS":"FAIL",w); if(!
 
 int main(){
   setup(); for(int i=0;i<4;i++) render();
-  if (pet.awaitingStarter()) pet.chooseStarter(4);
+  if (pet.awaitingStarter()) pet.chooseStarter(6);
   if (pet.isEgg()) pet.dbgHatchAs(6,false);
   pet.ageMinutes = 50UL*MINUTES_PER_LEVEL;
   pet.relearnFromLevel();

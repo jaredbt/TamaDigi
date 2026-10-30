@@ -50,7 +50,7 @@ static LinkMon mon(int16_t dex, uint8_t lvl, const char *nm){
 int main(){
   setup();
   for (int i=0;i<4;i++) render();
-  if (pet.awaitingStarter()) pet.chooseStarter(4);
+  if (pet.awaitingStarter()) pet.chooseStarter(6);
   if (pet.isEgg()) pet.dbgHatchAs(6,false);
   // The live pet is a level-1 BLAZE; what we advertise is deliberately not it.
 
@@ -69,14 +69,17 @@ int main(){
   ck(btlYou.dex==9 && btlYou.level==50, "we fight with what we advertised, not the live pet");
   ck(btlFoe.dex==6 && btlFoe.hp==btlFoe.maxHp, "the rival fights with theirs, at full health");
 
-  // --- one Digimon a side: the old DIGIMON (switch) cell does nothing at all,
-  // and in particular sends nothing the host would spend a turn on
+  // --- the basic attack is an action too: the guest asks, as for any skill. No slot
+  // holds it, so it has its own action number, and the host reads it back as itself.
   btlLinkHost = false;
   lan.state = LINK_READY;
   btlMenu = 0;
   sent = 0;
   battleTap(69 + 10, 332 + 10);         // bottom-left cell of the menu grid
-  ck(sent==0 && btlMenu==0, "the empty cell where SWITCH was is inert");
+  ck(sent==1 && btlMenu==0, "the guest's basic attack goes to the host as an action");
+  ck(linkActMove(btlYou, LINK_ACT_BASIC) == SKILL_BASIC, "and the host reads it as the basic attack");
+  ck(linkActMove(btlYou, LINK_ACT_MOVE(1)) == btlYou.moves[1], "while a slot still reads as its skill");
+  lan.state = LINK_READY;
 
   // --- the host LATCHES its own action instead of throwing it away
   btlLinkHost = true;
@@ -108,11 +111,11 @@ int main(){
   LinkResult r{};
   r.hostHp = btlFoe.maxHp/2; r.guestHp = btlYou.maxHp/4;
   r.hostMove = 1; r.guestMove = 1; r.hostDmg = 5; r.guestDmg = 7;
-  r.guestAil = AIL_BURN;
+  r.guestAil = TS_AIL_INJURY;
   memcpy(lan.result,&r,sizeof(r)); lan.resultN=sizeof(r); lan.resultNew=true;
   render();
   ck(btlYou.hp==r.guestHp && btlFoe.hp==r.hostHp, "the guest takes the host's numbers");
-  ck(btlYou.ailment==AIL_BURN, "and the ailment it was handed");
+  ck(btlYou.ailment==TS_AIL_INJURY, "and the ailment it was handed");
   ck(!lan.resultNew, "a result is consumed once");
   uint16_t hpNow = btlYou.hp;
   render();

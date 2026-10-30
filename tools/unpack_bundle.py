@@ -2,7 +2,7 @@
 """Restores tools/sdcard/mons/ from the committed web/sprites-*.pak bundles.
 
     python3 tools/unpack_bundle.py               # every pack that exists
-    python3 tools/unpack_bundle.py kanto johto   # just these
+    python3 tools/unpack_bundle.py digimon       # just these
 
 The inverse of pack_bundle.py. It exists because the loose per-species sprites
 are gitignored build intermediates -- so a fresh checkout has the .pak bundles

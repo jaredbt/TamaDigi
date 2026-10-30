@@ -15,11 +15,11 @@ style as the main screen. TPTH format (little-endian):
 import os
 import struct
 
-# Kept in step with dex.h rather than hardcoded: a thumbs.bin sized for 151 in a
-# 386-species build leaves the Ver.2 and Ver.3 galleries showing dex numbers.
+# Kept in step with ts_dex.h rather than hardcoded: the index is positional, so a
+# thumbs.bin sized for a smaller roster leaves the gallery showing dex numbers.
 import re as _re
-_dexh = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'dex.h')).read()
-DEX_COUNT = int(_re.search(r'#define DEX_COUNT (\d+)', _dexh).group(1))
+_dexh = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'ts_dex.h')).read()
+DEX_COUNT = int(_re.search(r'#define TS_DEX_COUNT (\d+)', _dexh).group(1))
 
 
 DIR = os.path.join(os.path.dirname(__file__), 'sdcard', 'mons')
@@ -87,9 +87,7 @@ def main():
     missing = []
     for dex in range(1, DEX_COUNT + 1):
         path = os.path.join(DIR, f'p{dex:03d}.bin')
-        # Not every species HAS art. This used to assume they all did, which
-        # held only while every packed region was 100% -- Ver.4 is the first
-        # that is not, and 13 missing files crashed the whole build. An absent
+        # Not every species HAS art: 396 of the 469 forms have none. An absent
         # species gets an EMPTY blob: it keeps its slot and its offset (the
         # index is positional, so skipping one would shift every species after
         # it), and the gallery falls back to the dex number, which is what it

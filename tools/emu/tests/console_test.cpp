@@ -64,7 +64,7 @@ static std::string runConsole(const std::vector<std::string> &lines){
 int main(){
   setup();
   for (int i=0;i<4;i++) render();
-  if (pet.awaitingStarter()) pet.chooseStarter(4);
+  if (pet.awaitingStarter()) pet.chooseStarter(6);
   if (pet.isEgg()) pet.dbgHatchAs(59,false);
   pet.ageMinutes = 61UL*MINUTES_PER_LEVEL;
   pet.ivAtk=29; pet.ivHp=13;
@@ -146,16 +146,15 @@ int main(){
     ck(!strcmp(p4.trainerName,"ASH"), "and the save is still there");
   }
 
-  // TR sets the training, and is bounded by the same IV ceiling the game is --
-  // a debug command that could exceed trMaxFor() would let a test (or a curious
-  // player) build a creature the balance table says cannot exist.
+  // TR sets the training, and is bounded by the same ceiling the game is -- a debug
+  // command that could exceed trMaxFor() would let a test (or a curious player) build
+  // a creature that cannot exist.
   {
     pet.ivAtk = 31; pet.ivDef = 8; pet.ivSpe = 31;
     pet.trAtk = pet.trDef = pet.trSpe = 0;
-    std::string out = runConsole({"TR 100 100 100"});
+    std::string out = runConsole({"TR 300 100 100"});
     ck(pet.trAtk == pet.trMaxAtk(), "TR fills the training to the cap");
-    ck(pet.trDef == pet.trMaxDef() && pet.trDef < 100,
-       "and a low IV still gets its lower ceiling, not 100");
+    ck(pet.trDef == 100, "and a low IV has the same ceiling as a high one");
     ck(out.find("tr=") != std::string::npos, "and it reports what it set");
     runConsole({"TR 0"});
     ck(pet.trAtk == 0 && pet.trDef == 0 && pet.trSpe == 0,

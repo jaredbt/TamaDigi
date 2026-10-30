@@ -1,10 +1,10 @@
 #pragma once
 #include <Arduino.h>
 #include <Preferences.h>
-#include "dex.h"
-#include "trainers.h"   // GYM_REGIONS sizes the badge masks
+#include "roster.h"
+#include "trainers.h"
 
-#define MOVE_SLOTS 4    // the same four every tamer gets in the real games
+#define MOVE_SLOTS 4    // four skill slots, as Time Stranger has
 // The largest the creature and player checkpoint blobs may be, read buffers
 // included. Here rather than in pet.cpp because save.cpp sizes the backup's
 // per-value ceiling from them; see the notes beside their uses in pet.cpp.
@@ -40,6 +40,19 @@
 #define NIGHT_END 6
 enum : uint8_t { SLEEP_NONE = 0, SLEEP_AUTO, SLEEP_PLAYER };
 #define DEF_TRAIN_TICKS 60                 // minutes of well-being per +1 DEF
+#define TRAIN_MAX 255                      // every stat, every Digimon: a bad IV trains longer
+// A de-digivolution multiplies the partner's HP by a further 10%, up to x2.0.
+// Time Stranger's requirements assume its level-reset loops, and this is what stands
+// in for them: it is how the HP minimums above a form's level-99 HP are reached.
+#define DEDIGI_HP_STEP_PCT 10
+#define DEDIGI_HP_MAX_PCT 200
+#define DEDIGI_COUNT_MAX ((DEDIGI_HP_MAX_PCT - 100) / DEDIGI_HP_STEP_PCT)
+// PHASE 2 REPLACES THIS. Agent Rank comes from the boss ladder (1 + area badges, 10
+// for the champion). Until that lands the rank check passes for every route: a
+// real rank of 1 would shut every route into Ultimate and later, which the ladder
+// has no way yet to open. See Pet::agentRank().
+#define AGENT_RANK_STUB 255
+#define EVO_OPTIONS_MAX 32                 // more than any form has open at once
 
 // ---------------------------------------------------------------------------
 // WHAT A CLOCK READING IS WORTH.
@@ -105,57 +118,41 @@ enum : uint16_t {
 };
 #define MED_COUNT 8
 
-uint8_t moveUnlockLevel(int16_t dex, uint8_t idx);
+// THE stat formula: a Digimon's linear growth to this level, the one scale
+// constant, plus training. Pet's own stat getters and combatantFromPet() (which may
+// cap the level) both call it, so there is one copy of the maths. `stat` is
+// TS_STAT_*. HP has no training: petCalcHp() is its form, with the de-digivolve boost.
+uint16_t petCalcStat(int16_t dex, uint8_t stat, uint8_t lvl, uint8_t tr);
+uint16_t petCalcHp(int16_t dex, uint8_t lvl, uint8_t deDigiCount);
 
-// THE stat formula: a Digimon's base, its level, the IV's share and training.
-// Pet's own stat getters and combatantFromPet() (which may cap the level) both
-// call it, so there is one copy of the maths.
-uint16_t petCalcStat(uint8_t base, uint8_t iv, uint8_t lvl, uint8_t tr);
+// What a training session pays once the IV has scaled it: 70% at IV 0, 130% at IV 31,
+// so an average IV (~15) trains as the raw figure says. Mini-games only. IVs no
+// longer add to a stat directly; they decide how fast it is trained.
+uint8_t trainGainFor(uint8_t raw, uint8_t iv);
 
 // ---------------------------------------------------------------------------
-// Which versions have their sprite pack on the microSD.
+// Is the sprite pack on the microSD?
 //
-// One bit per version and THE DEFAULT IS ALL SET, which is doing two jobs: a
-// board with no SD at all keeps today's behaviour rather than presenting an
-// empty game, and pet.cpp stays free of any SD dependency. That second part is
-// not tidiness -- pet.cpp is compiled into all 33 test binaries and none of
-// them link sdmon.cpp, so a direct call would mean stubbing it 33 times. The
-// firmware narrows the mask ONCE, after the card mounts. Same shape as
-// link.cpp taking a transport pointer instead of calling ESP-NOW across a
-// layer, and for the same reason: the tests can drive it.
-//
-// uint16_t, not uint8_t. REGION_COUNT is 5 today and this project has been
-// bitten five separate times by a width chosen for the current size of the dex.
-extern uint16_t gRegionArt;
-static_assert(REGION_COUNT <= 16, "gRegionArt needs a bit per region");
+// THE DEFAULT IS TRUE, which is doing two jobs: a board with no SD at all keeps
+// today's behaviour rather than presenting an empty game, and pet.cpp stays free
+// of any SD dependency. That second part is not tidiness -- pet.cpp is compiled
+// into every test binary and none of them link sdmon.cpp, so a direct call would
+// mean stubbing it in all of them. The firmware narrows this ONCE, after the card
+// mounts. Same shape as link.cpp taking a transport pointer instead of calling
+// ESP-NOW across a layer, and for the same reason: the tests can drive it.
+extern bool gArtPack;
 
-// Is this version playable? REGION_ALL is available while ANY real version is --
-// it is the mixed pool and must not vanish because one pack is missing.
-bool regionAvailable(uint8_t r);
+// Three drawable forms, spread across the roster, for checking the pack is whole.
+// 0 for an invalid slot.
+int16_t artProbe(uint8_t slot);
 
-// Which version a dex number belongs to, or REGION_ALL if somehow none. The
-// versions tile the dex exactly once (dexdata_test pins that), so this is a
-// lookup rather than a judgement.
-uint8_t regionOfDex(int16_t d);
-
-// A drawable start/middle/end Digimon for checking whether a version pack is
-// present. Returns 0 for REGION_ALL or invalid input.
-int16_t regionArtProbe(uint8_t region, uint8_t slot);
-
-// The next version the player can actually choose, skipping any whose sprite
-// pack is missing. The egg pill cycles with this rather than (version + 1) %
-// REGION_COUNT, which would land on a locked version and silently do nothing.
-uint8_t nextAvailableRegion(uint8_t from);
-
-// Can an egg come from this version: pack present AND its Baby I has art.
-bool regionHatchable(uint8_t r);
-// The next version an egg can come from (the egg pill and first boot use it).
-uint8_t nextHatchableRegion(uint8_t from);
-
-// Can this Digimon be put on the panel at all: it has art somewhere, and the
-// pack for its version is on the card. THE single answer, asked by the egg pool
-// and by every digivolution.
+// Can this Digimon be put on the panel at all: it has art, and the pack is on the
+// card. THE single answer, asked by the egg pool, every digivolution and the wild.
 bool speciesShowable(int16_t d);
+
+// The In-Training I forms that can hatch, in dex order. Writes up to `max` and
+// returns how many there are. The first-boot starters and the egg pool are this list.
+uint8_t starterForms(int16_t *out, uint8_t max);
 
 class Pet {
 public:
@@ -170,10 +167,10 @@ public:
   uint8_t hygiene = 100;  // cleanliness
   uint8_t poops = 0;      // poops on screen (max 3)
   uint8_t weight = 0;     // 0-100: treats fatten, the mini-game burns
-  // IVs (individual values 0-31, as in the games from gen 3 onward):
-  // rolled at hatching and never change. They add IV x level / 100 to the
-  // stat AND also set the training cap (trMaxFor): a mediocre
-  // individual not only starts worse, it cannot get as far.
+  // IVs (individual values 0-31): rolled at hatching and never change. They
+  // scale what each training session pays (trainGainFor()) and name the
+  // personality; they do not add to a stat. A mediocre individual gets as far as
+  // any other, it just takes more sessions.
   uint8_t ivAtk = 16, ivDef = 16, ivSpe = 16, ivHp = 16;
   uint8_t trAtk = 0, trDef = 0, trSpe = 0;
   bool berryKnown = false;  // has already discovered its favourite berry
@@ -181,16 +178,19 @@ public:
   uint32_t ageMinutes = 0;
   int16_t speciesId = -1;      // Digidex number (1..DEX_COUNT), -1 = egg
   int16_t prevSpeciesId = -1;  // for the evolution animation
-  uint8_t careMistakes = 0;   // care mistakes this stage: they pick the branch
-  uint8_t wins = 0;           // battles won this stage: Champion -> Ultimate needs them
+  uint8_t careMistakes = 0;   // care mistakes this stage
+  // De-digivolutions this partner has made, up to DEDIGI_COUNT_MAX: the HP boost.
+  // Kept through later evolutions, reset with a new partner.
+  uint8_t deDigiCount = 0;
+  // The level a de-digivolved form must reach before it may evolve again: it waits
+  // out its stage. 0 once it has evolved.
+  uint8_t evoHold = 0;
+  uint32_t formAgeMin = 0;    // ageMinutes when it became this form: the skill clock
   bool sleeping = false;
   uint32_t lastSeenEpoch = 0;   // last RTC time seen (for offline progression)
   uint8_t ceremony = CER_NONE;  // farewell/runaway/release in progress
   uint8_t lastEnd = CER_NONE;   // how the previous one ended (affects the egg)
-  // Digidex bitmaps, one bit per Digimon. Widening these is SAFE on an existing
-  // save: getBytes() copies only what was stored, and the array is zeroed by its
-  // initialiser, so a 19-byte blob from the Ver.1-only build lands in the front
-  // and bits 1-151 keep exactly their old meaning.
+  // Digidex bitmaps, one bit per Digimon, in dex-id order.
   uint8_t dexReg[(DEX_COUNT + 7) / 8] = { 0 };       // raised
   uint8_t dexVariantReg[(DEX_COUNT + 7) / 8] = { 0 };  // raised in the variant version
   // daily care streak (the player's: persists across raisings)
@@ -277,39 +277,33 @@ public:
   // another thing to do. Returns the joy actually gained.
   uint8_t playMemo(uint16_t best);
 
-  // battle stats: real gen-1 base + level + IV + training. Each is
-  // petCalcStat() at level(); combatantFromPet() asks the same function at a
+  // battle stats: Time Stranger growth at this level, scaled, plus training. Each
+  // is petCalcStat() at level(); combatantFromPet() asks the same function at a
   // capped level, so the formula has one home.
   uint16_t atkStat() const;
   uint16_t defStat() const;
   uint16_t speStat() const;
-  uint16_t vitStat() const;  // vitality (bHp): not trained, only IV and level
-  // The physical/special split lives on the Digimon (bSpA/bSpD), not the
-  // individual: special attack reuses ivAtk/trAtk and special defence reuses
-  // ivDef/trDef, so no extra IVs and no save migration. See digimon_data.py.
+  uint16_t vitStat() const;  // HP: age only, with the de-digivolve boost
+  // Magic attack reuses trAtk and magic defence reuses trDef: ATK training also
+  // raises magic attack, DEF training also magic defence.
   uint16_t spaStat() const;
   uint16_t spdStat() const;
 
-  // The four known moves (indices into MOVE_TBL; 0 = empty slot). Player-chosen
-  // once the learn/forget prompt exists -- until then, and for saves made before
-  // moves were stored at all, relearnFromLevel() fills them in.
-  uint8_t moves[MOVE_SLOTS] = { 0, 0, 0, 0 };
+  // The four known skills (ids into TS_SKILL_TBL; 0 = empty slot). Skills carry
+  // over on digivolving and de-digivolving, specials included: any form can use
+  // any skill in its slots.
+  uint16_t moves[MOVE_SLOTS] = { 0, 0, 0, 0 };
   uint8_t moveCount() const;
-  bool knowsMove(uint8_t mv) const;
-  // The newest MOVE_SLOTS moves this Digimon has learned by its current level,
-  // newest last. Used on hatch, on a fresh save, and to backfill empty slots.
+  bool knowsMove(uint16_t mv) const;
+  // Hours since it became this form, the clock attachment skills unlock on.
+  uint8_t formHours() const;
+  // A default set for this form at this age, with no offers: its specials, then
+  // the newest attachment skills it has unlocked. For a Digimon that did not
+  // live through the learning, an opponent or a console-made partner.
   void relearnFromLevel();
-  // The level at which `dex` may legally use learnset entry `i`. A level-up
-  // move carries its own; a level-0 entry is a TM/tutor/egg move, which the
-  // data gives no level at all, and those unlock together at TM_LEVEL.
-  //
-  // It is a free function, not a Pet method, so the move PICKER asks the
-  // identical question. Having its own gate is what let a level 22 AGUMON be
-  // offered FIRE BLAST.
-
-  // Moves reachable at this level that are not already known, for the learn
-  // prompt. Returns how many were written into out (at most max).
-  uint8_t pendingLearnables(uint8_t *out, uint8_t max) const;
+  // Skills this form offers and has unlocked that are not in a slot. Returns how
+  // many were written into out (at most max).
+  uint8_t pendingLearnables(uint16_t *out, uint8_t max) const;
 
   // Player-wide, like the streak and the Digidex: badges outlive the creature
   // that earned them, so newEgg() must never clear this.
@@ -328,79 +322,42 @@ public:
     save();
   }
 
-  // Which generation eggs come from. Player-wide, like the badges: it outlives
-  // every creature, so newEgg() must never reset it.
-  uint8_t region = REGION_ALL;
-  // The Digimon this egg would be in each version. Filled in as the player
-  // looks, cleared by newEgg(). It exists so that switching version and back
-  // shows the SAME creature rather than rolling a fresh one -- without it,
-  // toggling would be a re-roll button.
-  int16_t eggByRegion[REGION_COUNT] = { 0 };
-  void setRegion(uint8_t r);
-  const char *regionName() const { return REGIONS[region % REGION_COUNT].name; }
-  // How much of one version's dex is filled in, for the Digidex header.
-  uint16_t registeredCountIn(uint16_t lo, uint16_t hi) const {
-    uint16_t n = 0;
-    for (uint16_t d = lo; d <= hi && d <= DEX_COUNT; d++) if (isRegistered(d)) n++;
-    return n;
-  }
-
   uint8_t avatar = 0;       // which player sprite, 0..3
-  // Ver.1's ladder, under the keys it has always used. Ver.2 and Ver.3 live in
-  // a SEPARATE array under new keys rather than widening these -- purely
-  // additive, so an existing save cannot be misread, the same reasoning as
-  // the append-only checkpoint records.
-  uint16_t badges = 0;      // bit n = tamer n beaten on easy
+  uint16_t badges = 0;      // bit n = boss n beaten on easy
   uint16_t badgesHard = 0;  // ... and on hard
-  uint16_t badgesX[GYM_REGIONS - 1] = { 0 };
-  uint16_t badgesHardX[GYM_REGIONS - 1] = { 0 };
 
-  uint16_t badgeMask(uint8_t rg, bool hard) const {
-    if (rg == 0) return hard ? badgesHard : badges;
-    if (rg >= GYM_REGIONS) return 0;
-    return hard ? badgesHardX[rg - 1] : badgesX[rg - 1];
-  }
-  bool hasBadge(uint8_t rg, uint8_t i, bool hard) const {
-    return (badgeMask(rg, hard) >> i) & 1;
-  }
-  void winBadge(uint8_t rg, uint8_t i, bool hard) {
-    if (rg >= GYM_REGIONS) return;
-    uint16_t bit = (uint16_t)1 << i;
-    if (rg == 0) { if (hard) badgesHard |= bit; else badges |= bit; }
-    else if (hard) badgesHardX[rg - 1] |= bit;
-    else badgesX[rg - 1] |= bit;
+  uint16_t badgeMask(bool hard) const { return hard ? badgesHard : badges; }
+  bool hasBadge(uint8_t i, bool hard) const { return (badgeMask(hard) >> i) & 1; }
+  void winBadge(uint8_t i, bool hard) {
+    (hard ? badgesHard : badges) |= (uint16_t)(1u << i);
     save();
   }
-  uint8_t badgeCountIn(uint8_t rg, bool hard) const {
-    uint16_t v = badgeMask(rg, hard);
+  uint8_t badgeCount(bool hard) const {
+    uint16_t v = badgeMask(hard);
     uint8_t n = 0;
     while (v) { n += v & 1; v >>= 1; }
     return n;
   }
-  // Every version's badges together, for the player card's running total.
-  uint8_t badgeCount(bool hard) const {
-    uint8_t n = 0;
-    for (uint8_t r = 0; r < GYM_REGIONS; r++) n += badgeCountIn(r, hard);
-    return n;
-  }
 
-  // Level-up learning. lastLearnLevel is the highest level whose gates have
-  // been handled, so a move declined once is not offered forever, and the
-  // offline catch-up -- which can cross a dozen levels in one go -- queues its
-  // offers instead of firing a dozen dialogs at boot.
-  uint8_t lastLearnLevel = 0;
-  uint8_t learnQueue[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+  // Skill learning. becomeForm() rewinds learnCursor, and checkLearnGates() walks
+  // this form's learnset up to its clock: specials at once, attachment skills at
+  // their hour offset. A free slot fills silently; a full set queues an offer, and
+  // the queue is saved, so an offer outlives a reboot. An offline catch-up that
+  // crosses a dozen hours queues its offers instead of firing them at boot. A
+  // skill dropped or skipped is gone: the cursor has passed it.
+  uint8_t learnCursor = 0;
+  uint16_t learnQueue[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
   uint8_t learnQCount = 0;
   void checkLearnGates();
   bool hasLearnOffer() const { return learnQCount > 0; }
-  uint8_t learnOffer() const { return learnQCount ? learnQueue[0] : 0; }
-  void acceptLearn(uint8_t slot);   // put the pending move into slot 0..3
+  uint16_t learnOffer() const { return learnQCount ? learnQueue[0] : 0; }
+  void acceptLearn(uint8_t slot);   // put the pending skill into slot 0..3
   void declineLearn();
-  // training cap an IV allows: 77 (IV 8) .. 100 (IV 31)
-  static uint8_t trMaxFor(uint8_t iv) { return 70 + (30 * (uint16_t)iv) / 31; }
-  uint8_t trMaxAtk() const { return trMaxFor(ivAtk); }
-  uint8_t trMaxDef() const { return trMaxFor(ivDef); }
-  uint8_t trMaxSpe() const { return trMaxFor(ivSpe); }
+  // The same ceiling for every Digimon: no evolution may be unreachable because of IV.
+  static uint8_t trMaxFor(uint8_t iv) { (void)iv; return TRAIN_MAX; }
+  uint8_t trMaxAtk() const { return TRAIN_MAX; }
+  uint8_t trMaxDef() const { return TRAIN_MAX; }
+  uint8_t trMaxSpe() const { return TRAIN_MAX; }
   void play();
   void toggleLight();
   bool isNightHour() const;
@@ -443,8 +400,12 @@ public:
     uint32_t left = evolveUntil > n ? evolveUntil - n : 0;
     return 1.0f - (float)left / (float)EVOLVE_ANIM_MS;
   }
-  bool canEvolveNow() const;  // evolution conditions met (ready)
+  bool canEvolveNow() const;  // a branch's conditions are met (ready)
   void evolve();              // triggers the transformation (called by a user tap)
+  // De-digivolving: into any form that evolves into this one and is in the Digidex.
+  // The earlier form then waits out its stage, and the partner's HP goes up.
+  uint8_t devolveOptions(int16_t *out, uint8_t max) const;
+  bool devolve(int16_t to);
   bool canFarewellNow() const;  // final form + 7 days: ready to say goodbye (button)
   // Total neglect RIGHT NOW. THE single answer: tick() counts against it and
   // canRunawayNow() re-checks it, because neglectTicks is frozen (neither
@@ -457,10 +418,12 @@ public:
   bool evoTargetShowable() const;
   // the user decides in a dialog; "keep/stay together" postpones and re-offers later
   bool wantEvolveButton() const { return canEvolveNow() && level() > evoDeclinedLv; }
+  // "Keep form" re-offers next level, and the next time round the offer is the next
+  // branch whose conditions hold: declining is how you pass over one for another.
   bool wantFarewellButton() const { return canFarewellNow() && ageMinutes >= farDeclinedAge; }
-  void declineEvolve() { evoDeclinedLv = level(); }              // re-offers on levelling up
+  void declineEvolve() { evoDeclinedLv = level(); evoBranch++; }  // re-offers on levelling up
   void declineFarewell() { farDeclinedAge = ageMinutes + 1440; } // re-offers within 1 day
-  // first game: the player chooses a starter (BOTAMON/AGUMON/BETAMON)
+  // first game: the player chooses a starter (PUNIMON/BOTAMON/POYOMON)
   bool awaitingStarter() const { return starterPick; }
   void chooseStarter(int16_t dex) { eggTarget = dex; starterPick = false; save(); }
   // Empties NVS; the caller restarts into a new game (serial command WIPE).
@@ -478,10 +441,11 @@ public:
     saveFailures = 0;
     pendingSave = false;
   }
+  void dbgRegister(int16_t dex) { registerSpecies(dex); }    // test: as if raised
   void dbgRunawayReady() { fullness = joy = energy = hygiene = 0; neglectTicks = RUNAWAY_TICKS; }  // test
   // test: force what the egg holds and hatch it now (serial command EGG).
-  // The Mega/variant IV guarantees only fire inside hatch(), so without
-  // this there is no way to exercise them from outside the class.
+  // The variant IV guarantee only fires inside hatch(), so without
+  // this there is no way to exercise it from outside the class.
   void dbgHatchAs(int16_t dex, bool wantVariant) {
     if (dex < 1 || dex > DEX_COUNT) return;
     eggTarget = dex;
@@ -509,20 +473,27 @@ public:
   }
   uint16_t registeredCount() const;
   bool lineHasUnregistered(int16_t base) const;
-  uint8_t eggRarity() const;       // rarity of the current egg (without revealing the species)
   int16_t pickEggSpecies();        // public so egg rolls can be simulated (EGGS)
   // What the waiting egg would hatch into. Hidden from the PLAYER, not from the
   // code: the serial console already simulates rolls, and the version tests have
   // to see which creature a switch landed on.
   int16_t eggPeek() const { return eggTarget; }
-  int16_t rollInRegion(uint8_t r, uint8_t tier);
-  // THE digivolution answer: the first branch in EVO_TBL out of this form whose
-  // conditions (care mistakes, training, wins) hold and whose target can be
-  // shown. 0 = none. canEvolveNow() and digivolve() both ask it.
+  // Are this route's conditions met right now? THE single answer: the stage timer,
+  // the age minimum, Agent Rank and every stat minimum. evoOptions() and the card
+  // ask it, so a card cannot promise a digivolution that never comes.
+  bool routeMet(const TsEvo &e) const;
+  // The level a route's clock opens at: its target's stage timer (a minimum), a
+  // de-digivolved form's hold, and the day owed for an early retire. One sum, asked
+  // by routeMet() and by the card's countdown.
+  uint8_t routeClock(const TsEvo &e) const;
+  // Every branch open right now, in the game's order. Returns how many.
+  uint8_t evoOptions(int16_t *out, uint8_t max) const;
+  // The branch on offer: one of evoOptions(), 0 if none. declineEvolve() moves it on.
   int16_t digiTarget() const;
+  // The soonest any showable branch's clock opens, 0 if this form has none left.
+  uint8_t evoNextLevel() const;
+  uint8_t agentRank() const { return AGENT_RANK_STUB; }   // phase 2 replaces this
   uint8_t trainingTotal() const;   // trAtk + trDef + trSpe, capped at 255
-  uint8_t winsNeeded() const;      // the fewest wins any branch out of here asks
-  void addWin();                   // the live Digimon won a battle
   uint8_t lowestStat() const { return min(min(fullness, joy), min(energy, hygiene)); }
   PetMood mood() const;
   // progress of the farewell/runaway ceremony, 0..1 (to animate it)
@@ -587,7 +558,6 @@ private:
   // to be its OWN last plus one for the parity invariant in ckptSlot() to hold.
   uint32_t saveGeneration = 0;
   uint32_t playerGeneration = 0;
-  // Legacy keys are migration-only; save() writes the checkpoints.
   uint32_t lastTick = 0;
   uint32_t eatUntil = 0;
   uint32_t heartUntil = 0;
@@ -599,6 +569,7 @@ private:
   uint8_t ticksSinceSave = 0;
   bool pendingSave = false;     // periodic save waiting to be flushed
   uint8_t evoDeclinedLv = 0;    // "keep form": do not offer evolution until the next level
+  uint8_t evoBranch = 0;        // which open branch is on offer; RAM only, like the decline
   uint32_t farDeclinedAge = 0;  // "stay together": do not offer the farewell until this age
   bool starterPick = false;     // first game: waiting for the player to choose a starter
   uint8_t evoPen = 0;           // levels added to this creature's digivolution gate
@@ -614,8 +585,10 @@ private:
   void registerCare();   // first care of the day: streak + bond
   void addBond(uint8_t amt);
   uint8_t rollIV(int bonus) const;  // an 8-31 roll pushed by care
-  void rollIVs();                   // all 4, with the legendary/variant guarantees
-  uint8_t ivFromGene(uint8_t gene) const;  // migration of saves with genes
+  void rollIVs();                   // all 4, with the variant guarantee
+  uint16_t routeStat(uint8_t tsStat) const;
+  void becomeForm(int16_t dex);     // digivolved or de-digivolved: what both share
+  void skillGranted(uint16_t mv);   // a free slot fills silently, a full set offers
   void defTick(bool resting);       // calm forges defence (see pet.cpp)
   void checkMedals();
   void tick();

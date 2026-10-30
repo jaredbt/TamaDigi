@@ -34,7 +34,6 @@ void uiButtonHeights(int *out, int max, int *n);
 void uiRowHeights(int *out, int max, int *n);
 void gymHeaderRects(int *pillTop, int *pillBot, int *rowTop);
 int uiSleepButton(int *cx, int *cy);
-void uiEggPillRect(int *x, int *y, int *w, int *h, bool hitArea);
 bool uiButtonDisabled(int i);
 void uiButtonAt(int i, int *cx, int *cy, int *half);
 void uiConfirmRects(int *b1Top, int *b1Bot, int *b2Top, int *b2Bot);
@@ -57,7 +56,7 @@ int uiCareArcTop(int i);
 int uiHeaderNameBottom();
 #include "badges.h"
 #include "trainers.h"
-bool badgeArtExists(uint8_t region, uint8_t i);
+bool badgeArtExists(uint8_t i);
 extern Pet pet;
 void onTap(int16_t x, int16_t y);
 
@@ -67,7 +66,7 @@ static void ck(bool ok,const char*w){printf("%s  %s\n",ok?"PASS":"FAIL",w); if(!
 int main(){
   setup();
   for (int i=0;i<4;i++) render();
-  if (pet.awaitingStarter()) pet.chooseStarter(4);
+  if (pet.awaitingStarter()) pet.chooseStarter(6);
   if (pet.isEgg()) pet.dbgHatchAs(6,false);
   pet.ageMinutes = 50UL*MINUTES_PER_LEVEL;
   pet.relearnFromLevel();
@@ -164,7 +163,7 @@ int main(){
     const int BTN_LIGHT_IDX = uiSleepButton(nullptr, nullptr);
     int lx = 0, ly = 0;
     uiSleepButton(&lx, &ly);
-    if (pet.awaitingStarter()) pet.chooseStarter(4);
+    if (pet.awaitingStarter()) pet.chooseStarter(6);
     if (pet.isEgg()) pet.dbgHatchAs(6, false);
     while (pet.hasLearnOffer()) pet.declineLearn();
     if (!pet.sleeping) pet.toggleLight();
@@ -271,60 +270,12 @@ int main(){
     ck(clear == 4, "every care arc clears the Digimon name band");
   }
 
-  // THE EGG REGION PILL. Missing it fell through to pet.eggTap(), and three
-  // taps hatch -- so fumbling at the version selector hatched the egg you were
-  // trying to re-aim. Reported from a board: "i wasnt able to change egg
-  // setting. it kept hatching the egg".
+  // Three taps hatch an egg, and nothing else on its screen takes a tap.
   {
-    int gx, gy, gw, gh, hx, hy, hw, hh;
-    uiEggPillRect(&gx, &gy, &gw, &gh, false);
-    uiEggPillRect(&hx, &hy, &hw, &hh, true);
-    printf("      pill %dx%d, hit area %dx%d\n", gw, gh, hw, hh);
-    ck(hw > gw && hh > gh, "the pill's hit area is bigger than the pill");
-    ck(hh >= 44 && hw >= 44, "and is at least UI_TAP_MIN across");
-
-    // A fresh egg, then taps in the DEAD GUARD BAND -- past the hit area but
-    // inside the swallow zone, which is where a fumbled re-aim actually lands.
-    //
-    // These offsets used to be 8 px, which is INSIDE the hit area (EGGREG_PAD
-    // is 16), so every "near miss" was a direct hit that cycled the version.
-    // The version assertion passed only because 12 taps over REGION_COUNT 4
-    // came full circle back to the start; Pendulum made it 5 and the coincidence
-    // died. It never once exercised the guard band it claims to protect --
-    // CLAUDE.md trap 3, a test proving the arithmetic rather than the firmware.
-    //
-    // Derived from the two rects above, NOT from EGGREG_PAD/EGGREG_GUARD: those
-    // are #defines inside the sketch and copying them here would put a second
-    // copy of a firmware constant in the test, which is the same mistake in a
-    // different place. (gx - hx) IS the pad, so a few px past it is outside the
-    // hit area and inside the swallow zone beyond it.
-    const int band = (gx - hx) + 4;
     pet.newEgg();
     while (!pet.isEgg()) pet.newEgg();
-    uint8_t wasRegion = pet.region;
-    int changed = 0, hatched = 0;
-    for (int i = 0; i < 6; i++) {
-      // checked after EVERY tap, so no number of taps can cancel out again
-      onTap((int16_t)(gx + gw / 2), (int16_t)(gy + gh + band));  // just below
-      if (pet.region != wasRegion) changed++;
-      if (!pet.isEgg()) hatched++;
-      onTap((int16_t)(gx - band), (int16_t)(gy + gh / 2));       // just left
-      if (pet.region != wasRegion) changed++;
-      if (!pet.isEgg()) hatched++;
-    }
-    ck(hatched == 0, "a near miss on the pill does NOT hatch the egg");
-    ck(changed == 0, "and does not silently change the region either");
-    ck(band > (gx - hx) && band > (gy - hy),
-       "and those taps really were outside the hit area, not on the pill");
-
-    // on the pill: it cycles
-    onTap((int16_t)(gx + gw / 2), (int16_t)(gy + gh / 2));
-    ck(pet.region != wasRegion, "tapping the pill really does change the region");
-    ck(pet.isEgg(), "and never cracks the egg while doing it");
-
-    // and the egg itself still hatches when you actually tap the egg
     for (int i = 0; i < 4; i++) onTap(233, 200);
-    ck(!pet.isEgg(), "tapping the egg still hatches it");
+    ck(!pet.isEgg(), "tapping the egg hatches it");
   }
 
   // The runaway fires on the tap, with NO dialog, and that is deliberate: a
@@ -333,7 +284,7 @@ int main(){
   // by going to sleep -- night_test covers that end of it.
   {
     battleOpen = false;
-    if (pet.awaitingStarter()) pet.chooseStarter(4);
+    if (pet.awaitingStarter()) pet.chooseStarter(6);
     if (pet.isEgg()) pet.dbgHatchAs(25, false);
     while (pet.hasLearnOffer()) pet.declineLearn();
     if (pet.sleeping) pet.toggleLight();
@@ -352,36 +303,13 @@ int main(){
     ck(b2t > b1b, "and they do not overlap");
   }
 
-  // ---- badge art must never be borrowed from another version
-  //
-  // BADGES_ART was indexed as [version % BADGE_REGIONS]. The upstream badge set
-  // stops at Pendulum, so the moment Pendulum made GYM_REGIONS 6 against
-  // BADGE_REGIONS 5, `5 % 5 == 0` dressed Pendulum in VER.1's badges on both the
-  // win screen and the player card -- silently, and no test looked. A wrong
-  // badge is worse than a blank one: it claims you won something you did not.
+  // ---- a badge per area boss, and none past them
   {
-    for (uint8_t r = 0; r < BADGE_REGIONS; r++)
-      for (uint8_t i = 0; i < TRAINER_GYMS; i++)
-        if (!badgeArtExists(r, i)) { ck(false, "a region WITH art returned none"); goto done; }
-    ck(true, "every region with art returns it");
-    // and the ones past the art: null, NOT somebody else's badge
-    {
-      bool leaked = false;
-      for (uint8_t r = BADGE_REGIONS; r < GYM_REGIONS; r++)
-        for (uint8_t i = 0; i < TRAINER_GYMS; i++)
-          if (badgeArtExists(r, i)) leaked = true;
-      ck(!leaked, "a region with no art returns none rather than wrapping");
-      // With art for every ladder the loop above is EMPTY and proves nothing,
-      // so the real invariant is checked separately and is exercisable however
-      // the two counts happen to line up: an index past the end is refused
-      // rather than folded back onto version 0 by a modulo.
-      ck(!badgeArtExists(BADGE_REGIONS, 0),
-         "one past the badge art is refused, not wrapped to region 0");
-      ck(!badgeArtExists(GYM_REGIONS, 0),
-         "and so is one past every ladder");
-      ck(!badgeArtExists(250, 0), "and a wildly out-of-range region too");
-    }
-    ck(!badgeArtExists(0, TRAINER_GYMS), "and an out-of-range gym index is refused");
+    bool all = true;
+    for (uint8_t i = 0; i < TRAINER_GYMS; i++) if (!badgeArtExists(i)) all = false;
+    ck(all, "every area boss has badge art");
+    ck(!badgeArtExists(TRAINER_GYMS), "and an elite has none");
+    ck(!badgeArtExists(250), "nor does a wildly out-of-range index");
   }
 
   // ---- the memory game's pads, and the training rows that launch it
@@ -444,7 +372,6 @@ int main(){
     }
     ck(off == 0, "and the panel's own corners are on the glass");
   }
-done:
 
   printf("%s\n", bad?"FAILURES":"all good");
   return bad?1:0;

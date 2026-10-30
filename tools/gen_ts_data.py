@@ -10,9 +10,7 @@ evolutions.json, skills.json) and applies the rules in docs/HANDOFF.md's
   ts_skills.h  the 44 learnable skills, the signature skills and each form's
                learnset
 
-Nothing includes them yet: the firmware cutover will. This pipeline is
-separate from tools/digimon_data.py (which still feeds dex.h, moves.h and the
-rest of today's build). Every rule is asserted before anything is written
+Every rule is asserted before anything is written
 (see validate()), and the run ends with a short summary. The struct layouts
 and field meanings are documented in docs/ts-data-format.md.
 

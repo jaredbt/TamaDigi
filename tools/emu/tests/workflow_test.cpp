@@ -91,10 +91,10 @@ struct LiveMon {
   uint16_t level, medals;
   uint8_t ivAtk, ivDef, ivSpe, ivHp, trAtk, trDef, trSpe, variant;
   uint8_t fullness, joy, energy, hygiene, poops, weight, bond, berryKnown;
-  uint8_t careMistakes, lastLearnLevel;
+  uint8_t careMistakes, learnCursor;
   uint32_t ageMinutes;
   char nick[12];
-  uint8_t moves[MOVE_SLOTS];
+  uint16_t moves[MOVE_SLOTS];
 };
 
 static LiveMon liveMon() {
@@ -104,7 +104,7 @@ static LiveMon liveMon() {
   m.trAtk = pet.trAtk; m.trDef = pet.trDef; m.trSpe = pet.trSpe; m.variant = pet.variant;
   m.fullness = pet.fullness; m.joy = pet.joy; m.energy = pet.energy; m.hygiene = pet.hygiene;
   m.poops = pet.poops; m.weight = pet.weight; m.bond = pet.bond; m.berryKnown = pet.berryKnown;
-  m.careMistakes = pet.careMistakes; m.lastLearnLevel = pet.lastLearnLevel;
+  m.careMistakes = pet.careMistakes; m.learnCursor = pet.learnCursor;
   m.ageMinutes = pet.ageMinutes;
   memcpy(m.nick, pet.nick, sizeof(m.nick));
   memcpy(m.moves, pet.moves, sizeof(m.moves));
@@ -113,11 +113,11 @@ static LiveMon liveMon() {
 
 struct Collection {
   LiveMon live;
-  std::array<uint16_t, GYM_REGIONS> easy, hard;
+  uint16_t easy = 0, hard = 0;
   std::array<uint8_t, sizeof(pet.dexReg)> dex, variant;
   std::array<uint8_t, ITEM_COUNT> items;
   char trainer[sizeof(pet.trainerName)] = {};
-  uint8_t avatar = 0, region = 0;
+  uint8_t avatar = 0;
   uint16_t medals = 0, streak = 0, bestStreak = 0;
   bool sound = true;
   uint8_t volume = 7;
@@ -126,14 +126,12 @@ struct Collection {
 static Collection collection() {
   Collection result{};
   result.live = liveMon();
-  for (uint8_t region = 0; region < GYM_REGIONS; region++) {
-    result.easy[region] = pet.badgeMask(region, false);
-    result.hard[region] = pet.badgeMask(region, true);
-  }
+  result.easy = pet.badgeMask(false);
+  result.hard = pet.badgeMask(true);
   std::copy(std::begin(pet.dexReg), std::end(pet.dexReg), result.dex.begin());
   std::copy(std::begin(pet.dexVariantReg), std::end(pet.dexVariantReg), result.variant.begin());
   memcpy(result.trainer, pet.trainerName, sizeof(result.trainer));
-  result.avatar = pet.avatar; result.region = pet.region;
+  result.avatar = pet.avatar;
   result.medals = pet.totalMedals; result.streak = pet.streak; result.bestStreak = pet.bestStreak;
   for (ItemKey key = 1; key < ITEM_COUNT; key++) result.items[key] = bag.count(key);
   result.sound = audioEnabled(); result.volume = audioVolume();
@@ -145,12 +143,12 @@ static bool sameMon(const LiveMon &left, const LiveMon &right) {
                   left.ivHp, left.trAtk, left.trDef, left.trSpe, left.variant,
                   left.fullness, left.joy, left.energy, left.hygiene, left.poops, left.weight,
                   left.bond, left.berryKnown, left.careMistakes,
-                  left.lastLearnLevel, left.ageMinutes) ==
+                  left.learnCursor, left.ageMinutes) ==
          std::tie(right.dex, right.level, right.medals, right.ivAtk, right.ivDef, right.ivSpe,
                   right.ivHp, right.trAtk, right.trDef, right.trSpe, right.variant,
                   right.fullness, right.joy, right.energy, right.hygiene, right.poops, right.weight,
                   right.bond, right.berryKnown, right.careMistakes,
-                  right.lastLearnLevel, right.ageMinutes) &&
+                  right.learnCursor, right.ageMinutes) &&
          !memcmp(left.nick, right.nick, sizeof(left.nick)) &&
          !memcmp(left.moves, right.moves, sizeof(left.moves));
 }
@@ -163,7 +161,7 @@ static void compareCollection(const Collection &expected, bool live) {
   require(actual.items == expected.items, "inventory rewards differ after battle/reboot");
   require(actual.sound == expected.sound && actual.volume == expected.volume, "audio settings differ after reboot");
   require(!memcmp(actual.trainer, expected.trainer, sizeof(actual.trainer)) &&
-          actual.avatar == expected.avatar && actual.region == expected.region &&
+          actual.avatar == expected.avatar &&
           actual.medals == expected.medals && actual.streak == expected.streak &&
           actual.bestStreak == expected.bestStreak, "existing player data differs");
 }
@@ -174,30 +172,26 @@ static void fixture(const Case &test) {
     pet.dexVariantReg[index] = (uint8_t)(0xAA - index);
   }
   bool losing = test.ending == Ending::Loss;
-  pet.dbgHatchAs(losing ? 1 : 9, true);
+  pet.dbgHatchAs(losing ? 6 : 400, true);              // BOTAMON, or MACHINEDRAMON
   pet.ageMinutes = losing ? 0 : 99 * MINUTES_PER_LEVEL;
+  pet.formAgeMin = pet.ageMinutes;
   pet.ivAtk = pet.ivDef = pet.ivSpe = pet.ivHp = losing ? 0 : 31;
-  pet.trAtk = losing ? 0 : 20; pet.trDef = losing ? 0 : 22; pet.trSpe = losing ? 0 : 24;
+  pet.trAtk = losing ? 0 : 200; pet.trDef = losing ? 0 : 220; pet.trSpe = losing ? 0 : 240;
   pet.relearnFromLevel();
   if (losing) {
-    uint8_t growl = 0;
-    for (uint8_t move = 1; move < MOVE_COUNT; move++)
-      if (!strcmp(MOVE_TBL[move].name, "GROWL")) growl = move;
-    require(growl != 0, "loss fixture needs the real Growl move");
+    uint16_t bind = 0;
+    for (uint16_t move = 1; move < MOVE_COUNT; move++)
+      if (!strcmp(TS_SKILL_TBL[move].name, "ATTACK BIND")) bind = move;
+    require(bind != 0, "loss fixture needs a skill that cannot win");
     memset(pet.moves, 0, sizeof(pet.moves));
-    pet.moves[0] = growl;
+    pet.moves[0] = bind;
   }
   while (pet.hasLearnOffer()) pet.declineLearn();
-  pet.lastLearnLevel = pet.level();
   pet.medals = 0xFF; pet.totalMedals = 19;
   pet.streak = 3; pet.bestStreak = 7;
-  pet.avatar = 3; pet.region = 0;
+  pet.avatar = 3;
   strcpy(pet.nick, "E2E PET"); strcpy(pet.trainerName, "E2E PLAYER");
   pet.badges = 1u << 7; pet.badgesHard = 1u << 5;
-  for (uint8_t region = 1; region < GYM_REGIONS; region++) {
-    pet.badgesX[region - 1] = (uint16_t)(1u << region);
-    pet.badgesHardX[region - 1] = (uint16_t)(3u << region);
-  }
   pet.saveNow();
   advance();
   require(pet.saveHealthy() && !pet.savePending(), "fixture saving is not healthy");
@@ -216,9 +210,7 @@ static void waitMusic(uint8_t music) {
 
 static void battleWorkflow(const Case &test, Collection &preserved, const char *sound) {
   onSwipe(-1); onSwipe(-1);
-  require(gymOpen && gymPick, "gym chooser was not reached through the swipe handler");
-  click(uiRegionRowX(), uiRegionRowCenterY(0));
-  require(gymOpen && !gymPick && gymRegion == 0, "Ver.1 selection did not reach the gym ladder");
+  require(gymOpen, "the boss ladder was not reached through the swipe handler");
   if (test.hard) click(233, GYMDIF_Y + GYMDIF_H / 2);
   int x, y, width, height;
   gymRowRect(0, &x, &y, &width, &height);
@@ -248,7 +240,8 @@ static void battleWorkflow(const Case &test, Collection &preserved, const char *
     for (unsigned tap = 0; tap < 300 && !btlOver; tap++) {
       if (btlMsgCount) { click(233, 320); continue; }
       if (btlMenu == 0) { cell(0); continue; }
-      uint8_t move = test.ending == Ending::Loss ? btlYou.moves[0] : aiChooseMove(btlYou, btlFoe, true);
+      uint16_t move = test.ending == Ending::Loss ? btlYou.moves[0] : aiChooseMove(btlYou, btlFoe, true);
+      if (move == SKILL_BASIC) { btlMenu = 0; cell(2); attacks++; continue; }
       int slot = 0;
       while (slot < MOVE_SLOTS && btlYou.moves[slot] != move) slot++;
       require(slot < MOVE_SLOTS, "battle has no usable move");
@@ -262,8 +255,8 @@ static void battleWorkflow(const Case &test, Collection &preserved, const char *
       require(!btlWon && btlYou.fainted(), "missing milestone: real battle loss rather than foe fleeing");
   }
   if (test.gym && test.ending == Ending::Victory) {
-    require(pet.hasBadge(0, 0, test.hard) && btlTrainGain > 0, "gym badge or training was not awarded");
-    (test.hard ? preserved.hard : preserved.easy)[0] |= 1;
+    require(pet.hasBadge(0, test.hard) && btlTrainGain > 0, "gym badge or training was not awarded");
+    (test.hard ? preserved.hard : preserved.easy) |= 1;
   }
   if (!test.gym && btlWon) {
     require(wildDropN > 0, "wild victory did not award its real drops");

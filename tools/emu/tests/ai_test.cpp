@@ -6,7 +6,7 @@
 #include "pet.h"
 #include "battle.h"
 #include "trainers.h"
-#include "dex.h"
+#include "roster.h"
 #include "types.h"
 #include <cstdio>
 #ifndef TAMA_NATIVE_TEST
@@ -32,8 +32,8 @@ static bool duel(int16_t da,int16_t db,uint8_t lvl,bool aSmart,bool bSmart){
   TurnLog lg; int t=0;
   while(!A.fainted()&&!B.fainted()&&t<300){
     t++;
-    uint8_t ma=aiChooseMove(A,B,aSmart), mb=aiChooseMove(B,A,bSmart);
-    Combatant *f=&A,*s=&B; uint8_t mf=ma,ms=mb;
+    uint16_t ma=aiChooseMove(A,B,aSmart), mb=aiChooseMove(B,A,bSmart);
+    Combatant *f=&A,*s=&B; uint16_t mf=ma,ms=mb;
     if(!battleMovesFirst(A,ma,B,mb)){f=&B;s=&A;mf=mb;ms=ma;}
     battleAct(*f,*s,mf,lg);
     if(!s->fainted()) battleAct(*s,*f,ms,lg);
@@ -43,7 +43,8 @@ static bool duel(int16_t da,int16_t db,uint8_t lvl,bool aSmart,bool bSmart){
 }
 int main(){
   // mirror matches: same Digimon both sides, so only the choosing differs
-  const int16_t roster[]={6,9,3,58,41,27,23,7};
+  // GREYMON, GARURUMON, ANGEMON, KABUTERIMON, DEVIMON, OGREMON, UNIMON, BIRDRAMON
+  const int16_t roster[]={89,86,83,84,155,140,105,98};
   int smartWins=0,total=0;
   for(int i=0;i<8;i++)
     for(int r=0;r<25;r++){
@@ -55,28 +56,47 @@ int main(){
   ck(pct>60,"the hard AI beats the random one in a mirror match");
 
   // it must take a kill when one is available
-  Combatant me,foe; mk(me,6,50); mk(foe,3,50);
+  Combatant me,foe; mk(me,89,50); mk(foe,86,50);
   foe.hp=6;                         // one hit from fainting
-  uint8_t pick=aiChooseMove(me,foe,true);
+  uint16_t pick=aiChooseMove(me,foe,true);
   uint16_t dmg=battleDamage(me,foe,pick,false,236);
-  printf("     foe at 6hp: picks %s for ~%u\n",MOVE_TBL[pick].name,dmg);
+  printf("     foe at 6hp: picks %s for ~%u\n",moveName(pick),dmg);
   ck(dmg>=foe.hp,"it takes the kill when one is on the table");
 
-  // it must not throw a move the target is immune to (there are none in the
-  // element chart, so this guards against one ever being added)
-  Combatant norm,ghost; mk(norm,27,50); mk(ghost,7,50);
-  bool everImmune=false;
-  for(int i=0;i<40;i++){
-    uint8_t p2=aiChooseMove(norm,ghost,true);
-    if(MOVE_TBL[p2].cat!=MC_STATUS && typeEffVsDex(MOVE_TBL[p2].type,ghost.dex)==0) everImmune=true;
+  // it must not throw a skill the target is immune to, and Time Stranger's table
+  // really has immunities: find a Digimon and the element it takes nothing from
+  int16_t ghostDex=0; uint8_t nullEl=0;
+  for(int16_t d=1;d<=DEX_COUNT&&!ghostDex;d++)
+    for(uint8_t e=0;e<TS_ELEMENT_COUNT;e++)
+      if(TS_DEX_TBL[d].resist[e]==0){ghostDex=d;nullEl=e;break;}
+  ck(ghostDex!=0,"the table has an immunity to test against");
+  uint16_t wasted=0,useful=0;
+  for(uint16_t m=1;m<=22;m++){            // the 22 learnable attacks, one per element and kind
+    if(TS_SKILL_TBL[m].element==nullEl) wasted=m;
+    else if(TS_DEX_TBL[ghostDex].resist[TS_SKILL_TBL[m].element]>=10) useful=m;
   }
-  ck(!everImmune,"it never picks a move the target is immune to");
+  Combatant norm,ghost; mk(norm,89,50); mk(ghost,ghostDex,50);
+  norm.moves[0]=wasted; norm.moves[1]=useful; norm.moves[2]=0; norm.moves[3]=0;
+  bool everImmune=false;
+  for(int i=0;i<40;i++) if(aiChooseMove(norm,ghost,true)==wasted) everImmune=true;
+  ck(!everImmune,"it never picks a skill the target is immune to");
 
   // and easy mode must stay dumb, or hard mode means nothing
-  Combatant e1,e2; mk(e1,6,50); mk(e2,3,50);
-  bool varied=false; uint8_t first=aiChooseMove(e1,e2,false);
+  Combatant e1,e2; mk(e1,89,50); mk(e2,86,50);
+  e1.moves[0]=1; e1.moves[1]=3; e1.moves[2]=15; e1.moves[3]=21;
+  bool varied=false; uint16_t first=aiChooseMove(e1,e2,false);
   for(int i=0;i<40 && !varied;i++) if(aiChooseMove(e1,e2,false)!=first) varied=true;
   ck(varied,"easy mode still picks at random");
+
+  // a Digimon with nothing but support skills still attacks, or a fight never ends
+  Combatant s1,s2; mk(s1,89,50); mk(s2,86,50);
+  s1.moves[0]=23; s1.moves[1]=25; s1.moves[2]=0; s1.moves[3]=0;
+  bool hits=false;
+  for(int i=0;i<40;i++) if(aiChooseMove(s1,s2,false)==SKILL_BASIC) hits=true;
+  ck(hits,"a support-only Digimon falls back on the basic attack");
+  Combatant nothing; nothing.dex=89;
+  ck(aiChooseMove(nothing,s2,true)==SKILL_BASIC && aiChooseMove(nothing,s2,false)==SKILL_BASIC,
+     "and one with no skills at all never comes back with 0");
 
   printf("%s\n",bad?"FAILURES":"all good");
   return bad?1:0;

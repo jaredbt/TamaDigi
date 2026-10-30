@@ -33,9 +33,10 @@
 
 // 3: one Digimon a side (the party was removed by design, so there is nothing
 // to bring but the partner), no switch action, no squad index in a result.
-#define LINK_PROTO 3        // bump on ANY wire change; a mismatch is refused
+// 4: the Time Stranger cutover: 16-bit skill ids and 15-character names.
+#define LINK_PROTO 4        // bump on ANY wire change; a mismatch is refused
 #define LINK_MAX_PAYLOAD 200
-#define LINK_NAME_LEN 12
+#define LINK_NAME_LEN 16
 // How many creatures a side brings: the partner, and only the partner. The
 // squad exchange below still counts and indexes them, so a lost SQUAD packet is
 // detected the same way it always was; the count is simply 1.
@@ -59,6 +60,8 @@
 // has -- indistinguishable from silence.
 #define LINK_ACT_MOVE(i) ((uint8_t)((i) + 1))
 #define LINK_ACT_SLOT(a) ((uint8_t)((a) - 1))
+// One past the four skill slots: the basic attack, which no slot holds.
+#define LINK_ACT_BASIC LINK_ACT_MOVE(MOVE_SLOTS)
 
 enum LinkState : uint8_t {
   LINK_OFF = 0,
@@ -89,7 +92,7 @@ struct LinkMon {
   uint8_t level;
   uint16_t maxHp;
   uint16_t base[SI_COUNT];
-  uint8_t moves[MOVE_SLOTS];
+  uint16_t moves[MOVE_SLOTS];
   uint8_t variant;
   char name[LINK_NAME_LEN];
 };
@@ -103,7 +106,7 @@ struct LinkMon {
 struct LinkResult {
   uint16_t hostHp, guestHp;
   uint8_t hostAil, guestAil;
-  uint8_t hostMove, guestMove;
+  uint16_t hostMove, guestMove;
   uint16_t hostDmg, guestDmg;
   uint8_t flags;               // bit0 crit, bit1 super, bit2 a faint happened
 };
@@ -182,4 +185,6 @@ uint16_t linkBuildTag();
 // whatever actually arrived over the air.
 void linkMonFrom(LinkMon &out, const Combatant &c);
 void linkMonTo(Combatant &out, const LinkMon &m);
-uint8_t linkSafeMove(uint8_t m);      // 0 unless it is a real move
+uint16_t linkSafeMove(uint16_t m);    // 0 unless it is a real skill
+// The skill behind an action, whichever the slot: the action comes off the air.
+uint16_t linkActMove(const Combatant &c, uint8_t act);

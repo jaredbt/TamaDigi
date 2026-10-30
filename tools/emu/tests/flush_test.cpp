@@ -66,7 +66,7 @@ static void crumbIs(const char *want){
 int main(){
   setup();
   for (int i=0;i<4;i++) render();
-  if (pet.awaitingStarter()) pet.chooseStarter(4);
+  if (pet.awaitingStarter()) pet.chooseStarter(6);
   if (pet.isEgg()) pet.dbgHatchAs(6,false);
   pet.ageMinutes = 60UL*60;
   while (pet.hasLearnOffer()) pet.declineLearn();
@@ -86,7 +86,7 @@ int main(){
   clearAll(); clockOpen=true; clockPage=1; check("settings");
   // Every player page, including the medals and TODAY's checklist. Derived from
   // PLAYER_PAGES rather than a literal, so a ladder added later brings its page.
-  for (uint8_t p = 0; p < GYM_REGIONS + 2; p++) {
+  for (uint8_t p = 0; p < 3; p++) {
     clearAll(); playerOpen=true; playerPage=p;
     char n[16]; snprintf(n,sizeof(n),"player%u",p); check(n);
   }

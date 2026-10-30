@@ -1,12 +1,12 @@
 import {
   verifyBackup, describeBackup, sendBackup, saveSummary, backupFileName,
-} from './savefile.js?v=1d2637d0211815b5';
+} from './savefile.js?v=1bb767eedb495157';
 import { parsePak, verifyPak, packIsCurrent, probeSum, installFile } from './packs.js?v=2d4d719f12e1ccb6';
 
 const byId = (id) => document.getElementById(id);
 const enc = new TextEncoder();
 const MB = (bytes) => `${(bytes / 1048576).toFixed(1)} MB`;
-const titleCase = (value) => (/^ver\d+$/.test(value) ? 'Ver.' + value.slice(3) : value.charAt(0).toUpperCase() + value.slice(1));
+const titleCase = (value) => value.charAt(0).toUpperCase() + value.slice(1);
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const sentence = (text) => `${String(text).replace(/[.\s]+$/, '')}.`;
 const PACK_QUERY_TIMEOUT_MS = 20000;
@@ -346,7 +346,7 @@ async function loadPacks() {
     const bytes = Object.values(packs).reduce((total, pack) => total + pack.bytes, 0);
     byId('catalogue-summary').textContent = `${count} published version${count === 1 ? '' : 's'}, ${MB(bytes)} total.`;
   } catch (error) {
-    byId('regions').innerHTML = '<p class="muted">The version catalogue could not be loaded.</p>';
+    byId('regions').innerHTML = '<p class="muted">The sprite pack catalogue could not be loaded.</p>';
     byId('catalogue-summary').textContent = error.message;
     log(`Pack catalogue failed: ${error.message}`);
   }

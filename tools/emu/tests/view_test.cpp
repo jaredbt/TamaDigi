@@ -11,7 +11,8 @@
 #include "Arduino_GFX_Library.h"
 #include "Preferences.h"
 #include "pet.h"
-#include "dex.h"
+#include "noart.h"
+#include "roster.h"
 #include <cstdio>
 #include <cstring>
 #include <set>
@@ -25,7 +26,7 @@ void setup(); void render();
 extern Pet pet;
 
 // the view state and the firmware's own answers about it
-extern uint8_t galleryRegion, galleryPage, galleryFilter;
+extern uint8_t galleryPage, galleryFilter;
 extern int16_t galleryDetail;
 bool galleryPass(int16_t dex);
 uint16_t galleryCount();
@@ -65,6 +66,7 @@ uint8_t galleryFilterCount();
 // CAUGHT ("in the party or box") went with the party and box.
 enum : uint8_t { GFILT_ALL = 0, GFILT_RAISED, GFILT_VARIANT };
 
+static const int16_t LIVE = 32, GREYMON = 89, GARURUMON = 86;
 static int bad=0;
 static void ck(bool ok,const char*w){printf("%s  %s\n",ok?"PASS":"FAIL",w); if(!ok)bad++;}
 
@@ -82,10 +84,9 @@ static std::set<int16_t> drawnAcrossPages() {
   return seen;
 }
 
-static std::set<int16_t> passingInRegion() {
+static std::set<int16_t> passingFilter() {
   std::set<int16_t> want;
-  const RegionInfo &rg = REGIONS[galleryRegion % (REGION_COUNT - 1)];
-  for (int16_t d = rg.lo; d <= (int16_t)rg.hi && d <= DEX_COUNT; d++)
+  for (int16_t d = 1; d <= DEX_COUNT; d++)
     if (galleryPass(d)) want.insert(d);
   return want;
 }
@@ -97,37 +98,36 @@ int main(){
   // disagree, every loop below is silently skipping a mode.
   ck(galleryFilterCount() == GFILT_VARIANT + 1,
      "this test knows about every Digidex filter the firmware has");
-  if (pet.awaitingStarter()) pet.chooseStarter(4);
-  if (pet.isEgg()) pet.dbgHatchAs(56,false);
+  if (pet.awaitingStarter()) pet.chooseStarter(6);
+  if (pet.isEgg()) pet.dbgHatchAs(LIVE,false);
   while (pet.hasLearnOffer()) pet.declineLearn();
 
   // ---------------------------------------------------------------- the filter
-  galleryRegion = 3;            // Ver.4: 54..70, two pages
   galleryPage = 0;
 
-  // A known dex state. BIYOMON is live and therefore registered; KUWAGAMON is
-  // registered and variant; LEOMON was NEVER registered.
-  pet.dexReg[(61-1)>>3] |= 1 << ((61-1)&7);          // KUWAGAMON raised
-  pet.dexVariantReg[(61-1)>>3] |= 1 << ((61-1)&7);     // ...and in its colour variant
-  ck(!pet.isRegistered(60), "LEOMON is genuinely NOT in the dex");
+  // A known dex state. BIYOMON is live and therefore registered; GREYMON is
+  // registered and variant; GARURUMON was NEVER registered.
+  pet.dexReg[(GREYMON-1)>>3] |= 1 << ((GREYMON-1)&7);          // raised
+  pet.dexVariantReg[(GREYMON-1)>>3] |= 1 << ((GREYMON-1)&7);   // ...and in its colour variant
+  ck(!pet.isRegistered(GARURUMON), "GARURUMON is genuinely NOT in the dex");
 
   galleryFilter = GFILT_ALL;
-  ck(galleryCount() == 17, "ALL shows the whole version");
-  ck(galleryPages() == 2, "across two pages of sixteen");
-  ck(galleryAt(0) == 54 && galleryAt(16) == 70,
-     "and the grid runs from the first Digimon to the last");
-  ck(galleryAt(17) == 0, "with nothing past the end");
+  ck(galleryCount() == NO_ART_DRAWABLE, "ALL shows every form that has art");
+  ck(galleryPages() == (NO_ART_DRAWABLE + 15) / 16, "across pages of sixteen");
+  ck(speciesHasArt(galleryAt(0)) && speciesHasArt(galleryAt(NO_ART_DRAWABLE - 1)),
+     "and the grid runs from the first form with art to the last");
+  ck(galleryAt(NO_ART_DRAWABLE) == 0, "with nothing past the end");
 
   galleryFilter = GFILT_RAISED;
   {
     const uint16_t n = galleryCount();
     ck(n >= 1, "RAISED shows what has actually been raised");
-    ck(galleryPass(56) && galleryPass(61), "including the live creature and KUWAGAMON");
-    ck(!galleryPass(60), "but NOT one that was never raised");
+    ck(galleryPass(LIVE) && galleryPass(GREYMON), "including the live creature and GREYMON");
+    ck(!galleryPass(GARURUMON), "but NOT one that was never raised");
   }
 
   galleryFilter = GFILT_VARIANT;
-  ck(galleryCount() == 1 && galleryAt(0) == 61, "VARIANT shows only colour-variant records");
+  ck(galleryCount() == 1 && galleryAt(0) == GREYMON, "VARIANT shows only colour-variant records");
   ck(galleryPages() == 1, "on a single page");
 
   // THE MISMATCH CHECK. Every filter, and for each one the set the grid would
@@ -136,7 +136,7 @@ int main(){
   for (uint8_t f = 0; f < galleryFilterCount(); f++) {
     galleryFilter = f;
     galleryPage = 0;
-    const std::set<int16_t> drawn = drawnAcrossPages(), want = passingInRegion();
+    const std::set<int16_t> drawn = drawnAcrossPages(), want = passingFilter();
     char m[120];
     snprintf(m, sizeof(m),
              "filter %u: the grid draws exactly what the filter admits (%u of %u)",
@@ -158,27 +158,20 @@ int main(){
   // Cycling a filter must not leave the page past the end of a shorter result.
   {
     galleryFilter = GFILT_ALL;
-    galleryPage = 1;                     // the last page of 17
+    galleryPage = 4;                     // the last page of the forms with art
     galleryFilter = GFILT_VARIANT;         // now one page
     galleryClampPage();
     ck(galleryPage == 0, "narrowing the filter pulls the page back into range");
   }
 
-  // Every version, so a filter cannot be valid in one version and broken in another.
+  // Only forms with art have an entry yet: phase 2's Digidex states change this.
   {
     galleryFilter = GFILT_ALL;
-    int wrong = 0;
-    for (uint8_t r = 0; r < REGION_COUNT - 1; r++) {
-      galleryRegion = r;
-      galleryPage = 0;
-      const RegionInfo &rg = REGIONS[r];
-      const uint16_t span = (uint16_t)(rg.hi - rg.lo + 1);
-      if (galleryCount() != span) wrong++;
-      if (galleryAt(0) != (int16_t)rg.lo) wrong++;
-      if (galleryAt(span - 1) != (int16_t)rg.hi) wrong++;
-    }
-    ck(wrong == 0, "every region's grid spans exactly that region");
-    galleryRegion = 0;
+    galleryPage = 0;
+    int artless = 0;
+    for (uint16_t v = 0; v < galleryCount(); v++)
+      if (!speciesHasArt(galleryAt(v))) artless++;
+    ck(artless == 0 && galleryAt(galleryCount()) == 0, "the grid lists the forms with art and stops");
   }
 
   // -------------------------------------------------------- derived personality
@@ -422,12 +415,11 @@ int main(){
 
     // The Digidex speaks -- but only for an entry actually filled in. Playing the
     // cry of a silhouette hands over the one thing the "???" is withholding.
-    galleryRegion = 0;
     galleryFilter = GFILT_ALL;
     galleryPage = 0;
     galleryDetail = 0;
-    pet.dexReg[(6 - 1) >> 3] |= 1 << ((6 - 1) & 7);       // TYRANNOMON registered
-    const int16_t unknown = 13;                            // and this one is not
+    pet.dexReg[(6 - 1) >> 3] |= 1 << ((6 - 1) & 7);       // BOTAMON registered
+    const int16_t unknown = 13;                            // and TOKOMON is not
     pet.dexReg[(unknown - 1) >> 3] &= (uint8_t)~(1 << ((unknown - 1) & 7));
     ck(pet.isRegistered(6) && !pet.isRegistered(unknown),
        "(one registered species and one silhouette to compare)");

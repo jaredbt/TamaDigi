@@ -1,11 +1,10 @@
-// Walks one real life: hatch a AGUMON, age it, digivolve at each gate, and
-// print the moveset at every step. Answers what actually happens to moves
-// across an digivolution, rather than assuming.
+// Walks one real life: hatch a BOTAMON, age it, digivolve at each gate, and
+// print the skills at every step. Answers what actually happens to skills
+// across a digivolution, rather than assuming.
 #include "Arduino.h"
 #include "Preferences.h"
 #include "pet.h"
-#include "dex.h"
-#include "moves.h"
+#include "roster.h"
 #include <cstdio>
 
 #ifndef TAMA_NATIVE_TEST
@@ -24,52 +23,42 @@ void sfxPlay(uint8_t) {}
 #endif
 
 static void show(Pet &p, const char *when) {
-  printf("%-22s %-11s L%-3u :", when, DEX_TBL[p.speciesId].name, p.level());
+  printf("%-22s %-11s L%-3u :", when, TS_DEX_TBL[p.speciesId].name, p.level());
   for (int i = 0; i < MOVE_SLOTS; i++)
-    printf(" %s", p.moves[i] ? MOVE_TBL[p.moves[i]].name : "-");
+    printf(" [%s]", p.moves[i] ? moveName(p.moves[i]) : "-");
   printf("\n");
-}
-
-// what the Digimon could learn by this level but does not know
-static void pending(Pet &p) {
-  uint8_t n = learnCount(p.speciesId), miss = 0;
-  char buf[240];
-  buf[0] = 0;
-  for (uint8_t i = 0; i < n; i++) {
-    uint8_t at = learnLevel(p.speciesId, i);
-    if (at == 0 || at > p.level()) continue;      // TMs are on-demand, skip
-    uint8_t mv = learnMove(p.speciesId, i);
-    if (p.knowsMove(mv)) continue;
-    miss++;
-    snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), " %s@%u", MOVE_TBL[mv].name, at);
-  }
-  if (miss) printf("%-22s   MISSED level-up moves:%s\n", "", buf);
 }
 
 int main() {
   Pet p;
-  p.dbgHatchAs(4, false);          // AGUMON, the form that actually hatches
+  p.dbgHatchAs(6, false);          // BOTAMON
   p.ageMinutes = 0;
   show(p, "hatched");
 
-  // healthy pet, so digivolution is never blocked by low stats
   auto healthy = [&] { p.fullness = p.joy = p.energy = p.hygiene = 100; };
-  for (uint32_t lvl : { 15u, 16u, 35u, 36u, 54u, 73u, 100u }) {
+  int offers = 0;
+  for (uint32_t lvl = 1; lvl <= 100; lvl++) {
     p.ageMinutes = (lvl - 1) * MINUTES_PER_LEVEL;
     healthy();
+    // trained as a player would, a session a day's worth of hours
+    if (lvl % 3 == 0) { p.trainStrength(72); p.trainSpeed(36); p.playResult(36); healthy(); }
     const char *note = "";
     if (p.canEvolveNow()) { p.evolve(); note = " (evolved)"; }
     p.checkLearnGates();
     while (p.hasLearnOffer()) {          // accept every offer into the last slot
       printf("%-22s   OFFER %s -> replacing %s\n", "",
-             MOVE_TBL[p.learnOffer()].name,
-             p.moves[MOVE_SLOTS-1] ? MOVE_TBL[p.moves[MOVE_SLOTS-1]].name : "-");
+             moveName(p.learnOffer()),
+             p.moves[MOVE_SLOTS-1] ? moveName(p.moves[MOVE_SLOTS-1]) : "-");
       p.acceptLearn(MOVE_SLOTS - 1);
+      offers++;
     }
-    char when[40];
-    snprintf(when, sizeof(when), "level %u%s", lvl, note);
-    show(p, when);
-    pending(p);
+    if (*note) {
+      char when[40];
+      snprintf(when, sizeof(when), "level %u%s", lvl, note);
+      show(p, when);
+    }
   }
+  show(p, "level 100");
+  printf("%d offers over a life\n", offers);
   return 0;
 }

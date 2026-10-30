@@ -51,7 +51,7 @@ static void fileArrived(){ sdTransferAt = millis(); }
 int main(){
   setup();
   for(int i=0;i<4;i++) render();
-  if (pet.awaitingStarter()) pet.chooseStarter(4);
+  if (pet.awaitingStarter()) pet.chooseStarter(6);
   if (pet.isEgg()) pet.dbgHatchAs(6,false);
   pet.ageMinutes = 60UL*40;
   while (pet.hasLearnOffer()) pet.declineLearn();

@@ -30,12 +30,12 @@ int main(){
   // variant really is a different colouring of the same picture
   {
     PmdMon a, b, v;
-    bool okA = a.load(59, false), okB = b.load(3, false), okV = v.load(59, true);
-    ck(okA && a.dex == 59, "the last Mega loads and is itself");
+    bool okA = a.load(400, false), okB = b.load(21, false), okV = v.load(400, true);
+    ck(okA && a.dex == 400, "MACHINEDRAMON, a dex past 255, loads and is itself");
     if (okA && okB) {
       const PmdAct &x = a.acts[PMD_IDLE], &y = b.acts[PMD_IDLE];
       bool same = x.w == y.w && x.h == y.h && !memcmp(x.data, y.data, x.w * x.h);
-      ck(!same, "H.KABUTERIMON's pixels are not AGUMON's");
+      ck(!same, "MACHINEDRAMON's pixels are not AGUMON's");
     }
     if (okA && okV) {
       const PmdAct &x = a.acts[PMD_IDLE], &y = v.acts[PMD_IDLE];

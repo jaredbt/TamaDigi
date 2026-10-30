@@ -126,7 +126,7 @@ int main() {
   // ---- out-of-range input must be refused, not indexed
   {
     CryNote n[CRY_NOTES];
-    ck(crySynth(0, n) == 0, "dex 0 produces nothing rather than reading DEX_TBL[0]");
+    ck(crySynth(0, n) == 0, "dex 0 produces nothing rather than reading TS_DEX_TBL[0]");
     ck(crySynth(-5, n) == 0, "and neither does a negative");
     ck(crySynth(DEX_COUNT + 1, n) == 0, "nor one past the end of the dex");
     ck(crySynth(30000, n) == 0, "nor a wildly out-of-range number");
@@ -177,13 +177,13 @@ int main() {
     int16_t bulkDex = 1, edgeDex = 1;
     int bHi = -9999, bLo = 9999;
     for (int16_t d = 1; d <= DEX_COUNT; d++) {
-      const DexEntry &e = DEX_TBL[d];
-      int b = (int)e.bHp + e.bDef + e.bSpD - e.bAtk - e.bSpe - e.bSpA;
+      int b = cryStat(d, TS_STAT_HP) + cryStat(d, TS_STAT_DEF) + cryStat(d, TS_STAT_MDEF) -
+              cryStat(d, TS_STAT_ATK) - cryStat(d, TS_STAT_SPD) - cryStat(d, TS_STAT_MATK);
       if (b > bHi) { bHi = b; bulkDex = d; }
       if (b < bLo) { bLo = b; edgeDex = d; }
     }
     const uint16_t bulky = cryBaseHz(bulkDex), quick = cryBaseHz(edgeDex);
-    printf("      %s %u Hz vs %s %u Hz\n", DEX_TBL[bulkDex].name, bulky, DEX_TBL[edgeDex].name, quick);
+    printf("      %s %u Hz vs %s %u Hz\n", TS_DEX_TBL[bulkDex].name, bulky, TS_DEX_TBL[edgeDex].name, quick);
     ck(bulky < quick, "the bulkiest creature speaks lower than the fastest");
     // and the whole band is used rather than everything piling into the middle
     uint16_t lo = 0xFFFF, hi = 0;
@@ -231,7 +231,7 @@ int main() {
   // ---- the type mapping is total: no type falls through to an invalid duty
   {
     int badDuty = 0;
-    for (uint8_t t = 0; t < TYPE_COUNT; t++)
+    for (uint8_t t = 0; t < TS_ELEMENT_COUNT; t++)
       if (cryDutyFor(t) > 3) badDuty++;
     ck(badDuty == 0, "every type maps to a real duty cycle");
   }
