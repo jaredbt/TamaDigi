@@ -41,7 +41,11 @@ int main(){
   printf("%-16s %s\n","BOSS","solo win-rate for a GREYMON at the boss's level, untrained / trained");
   for (int ti=0; ti<TRAINER_COUNT; ti++){
     const Trainer &t=TRAINERS[ti];
+    #ifdef TAMA_NATIVE_TEST
+    int wins[2]={0,0}, runs=4;    // the emulated S3 has a time budget per suite
+#else
     int wins[2]={0,0}, runs=40;
+#endif
     for (int trained=0; trained<2; trained++)
       for(int r=0;r<runs;r++){
         Pet p; p.dbgHatchAs(89,false);

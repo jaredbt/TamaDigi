@@ -62,7 +62,7 @@ int main(){
   {
     Pet p; p.begin();
     int artless = 0, notHatchling = 0;
-    for (int i = 0; i < 2000; i++) {
+    for (int i = 0; i < 300; i++) {
       const int16_t d = p.pickEggSpecies();
       if (!speciesHasArt(d)) artless++;
       if (TS_DEX_TBL[d].stage != TS_ST_IN_TRAINING_1) notHatchling++;

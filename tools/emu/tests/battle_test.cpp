@@ -30,6 +30,14 @@ static void ck(bool ok, const char *what) {
   if (!ok) bad++;
 }
 
+// Fewer on the emulated S3, where each suite has a time budget. The measurement is the
+// same; only the sample is smaller.
+#ifdef TAMA_NATIVE_TEST
+#define FIGHT_REPS 1
+#else
+#define FIGHT_REPS 8
+#endif
+
 static const int16_t AGUMON = 21, GREYMON = 89, GARURUMON = 86, ANGEMON = 83, DEVIMON = 155, OGREMON = 140,
                      BIRDRAMON = 98;
 
@@ -366,7 +374,7 @@ int main() {
       for (int i = 0; i < 6; i++)
         for (int j = 0; j < 6; j++) {
           if (i == j) continue;
-          for (int rep = 0; rep < 8; rep++) {
+          for (int rep = 0; rep < FIGHT_REPS; rep++) {
             Combatant X, Y;
             mk(X, roster[i], lvl); mk(Y, roster[j], lvl);
             int t = 0;

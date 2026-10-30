@@ -233,9 +233,12 @@ LAN sends only the partner.
 - Training dwarfs growth: the cap adds up to 255 to a stat that is about 200 at the
   top of the roster, and ATK training feeds two stats. A fully trained partner hits
   about twice as hard as the same form untrained.
-- The ladder is rough because a boss's stage outruns the stage clock. `gym_test` prints
-  a GREYMON's win rate against each boss: untrained it falls to 0% from DIGITAMAMON
-  (level 54) on, trained it recovers. The real ladder will need the same look.
+- The stand-in ladder can be beaten. `gym_test` prints a GREYMON's win rate against each
+  boss, which falls to 0% from DIGITAMAMON (level 54) on, untrained or trained: that
+  is a Champion against Ultimates and Megas with the wrong matchup, and it is why the
+  partner has to digivolve. A form with art of the right stage (or one below), played
+  by the smart AI against the random one, beats all 13 at 80-100% untrained. The hardest
+  is OGREMON at level 22.
 - `battleDamage()`'s +2 floor is per hit, so below about level 10 a 7-hit skill does
   several times what a 1-hit skill of the same family does. From level 25 the families
   are within about 25% of each other. Multi-hit skills are not learned that early in
