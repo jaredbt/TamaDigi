@@ -892,7 +892,7 @@ static const TsEvo TS_EVO_TBL[TS_EVO_COUNT] = {
   { 81, 214, { 1800, 0, 0, 0, 990, 960 }, 0, 5 },  // Ikkakumon -> Whamon
   { 81, 254, { 0, 0, 0, 0, 1040, 0 }, 67, 5 },  // Ikkakumon -> MegaSeadramon
   { 81, 206, { 1730, 930, 940, 0, 0, 0 }, 0, 5 },  // Ikkakumon -> Zudomon
-  { 81, 274, { 0, 0, 0, 0, 1230, 0 }, 99, 5 },  // Ikkakumon -> SkullSeadramon
+  { 81, 274, { 0, 0, 0, 0, 1230, 0 }, 0, 5 },  // Ikkakumon -> SkullSeadramon
   { 82, 211, { 0, 900, 960, 0, 0, 0 }, 0, 5 },  // Airdramon -> Hisyaryumon
   { 82, 287, { 0, 1050, 0, 0, 0, 940 }, 0, 5 },  // Airdramon -> Megadramon
   { 82, 195, { 1580, 1130, 0, 1020, 0, 0 }, 0, 5 },  // Airdramon -> AeroVeedramon
@@ -1033,7 +1033,7 @@ static const TsEvo TS_EVO_TBL[TS_EVO_COUNT] = {
   { 121, 289, { 0, 740, 1060, 0, 0, 820 }, 0, 5 },  // Coelamon -> MetalTyrannomon
   { 121, 224, { 0, 0, 1060, 0, 0, 0 }, 79, 5 },  // Coelamon -> Scorpiomon
   { 121, 243, { 1610, 860, 0, 830, 0, 0 }, 0, 5 },  // Coelamon -> Divermon
-  { 121, 274, { 0, 0, 0, 0, 1230, 0 }, 99, 5 },  // Coelamon -> SkullSeadramon
+  { 121, 274, { 0, 0, 0, 0, 1230, 0 }, 0, 5 },  // Coelamon -> SkullSeadramon
   { 122, 214, { 1800, 0, 0, 0, 990, 960 }, 0, 5 },  // Shellmon -> Whamon
   { 122, 247, { 1600, 0, 0, 0, 980, 930 }, 0, 5 },  // Shellmon -> Piximon
   { 122, 224, { 0, 0, 1060, 0, 0, 0 }, 55, 5 },  // Shellmon -> Scorpiomon
@@ -1201,7 +1201,7 @@ static const TsEvo TS_EVO_TBL[TS_EVO_COUNT] = {
   { 170, 278, { 1630, 0, 940, 0, 0, 940 }, 0, 5 },  // Raremon -> ShogunGekomon
   { 170, 196, { 1610, 0, 0, 0, 0, 1010 }, 0, 5 },  // Raremon -> ExTyrannomon
   { 170, 233, { 0, 0, 1100, 740, 0, 0 }, 0, 5 },  // Raremon -> SkullBaluchimon
-  { 171, 221, { 0, 0, 0, 1020, 0, 0 }, 99, 5 },  // Waspmon -> Rapidmon
+  { 171, 221, { 0, 0, 0, 1020, 0, 0 }, 0, 5 },  // Waspmon -> Rapidmon
   { 171, 267, { 0, 1060, 0, 0, 0, 0 }, 34, 5 },  // Waspmon -> CannonBeemon
   { 171, 277, { 0, 1150, 900, 0, 0, 0 }, 0, 5 },  // Waspmon -> Tankdramon
   { 172, 198, { 0, 0, 0, 980, 1060, 0 }, 0, 5 },  // Aquilamon -> Garudamon
@@ -1265,7 +1265,7 @@ static const TsEvo TS_EVO_TBL[TS_EVO_COUNT] = {
   { 206, 355, { 2680, 0, 0, 0, 1830, 1660 }, 0, 7 },  // Zudomon -> Plesiomon
   { 207, 320, { 0, 0, 1730, 2060, 1800, 0 }, 0, 7 },  // Chirinmon -> Kentaurosmon
   { 207, 311, { 2260, 0, 1720, 0, 0, 2060 }, 0, 7 },  // Chirinmon -> Eaglemon
-  { 207, 413, { 0, 0, 0, 1650, 0, 0 }, 99, 7 },  // Chirinmon -> Valkyrimon
+  { 207, 413, { 0, 0, 0, 1650, 0, 0 }, 0, 7 },  // Chirinmon -> Valkyrimon
   { 208, 306, { 2350, 2430, 0, 0, 0, 0 }, 0, 7 },  // Duramon -> WarGreymon
   { 208, 382, { 0, 1800, 0, 0, 0, 2240 }, 0, 7 },  // Duramon -> Gallantmon
   { 208, 324, { 2360, 1580, 1740, 0, 0, 0 }, 0, 7 },  // Duramon -> Durandamon
@@ -1304,10 +1304,10 @@ static const TsEvo TS_EVO_TBL[TS_EVO_COUNT] = {
   { 221, 323, { 2500, 1780, 0, 0, 0, 0 }, 27, 7 },  // Rapidmon -> MegaGargomon
   { 221, 326, { 2500, 0, 0, 0, 0, 1780 }, 0, 7 },  // Rapidmon -> HiAndromon
   { 222, 327, { 2620, 2290, 0, 0, 0, 0 }, 0, 7 },  // LoaderLeomon -> BanchoLeomon
-  { 222, 358, { 0, 960, 0, 1850, 0, 0 }, 99, 7 },  // LoaderLeomon -> MetalGarurumon
+  { 222, 358, { 0, 960, 0, 1850, 0, 0 }, 0, 7 },  // LoaderLeomon -> MetalGarurumon
   { 222, 369, { 2100, 2130, 1700, 0, 0, 0 }, 0, 7 },  // LoaderLeomon -> Chaosdramon
   { 223, 403, { 0, 1150, 0, 2100, 0, 0 }, 0, 7 },  // WereGarurumon -> Merukimon
-  { 223, 358, { 0, 960, 0, 1850, 0, 0 }, 99, 7 },  // WereGarurumon -> MetalGarurumon
+  { 223, 358, { 0, 960, 0, 1850, 0, 0 }, 0, 7 },  // WereGarurumon -> MetalGarurumon
   { 223, 446, { 0, 0, 0, 1960, 0, 1810 }, 60, 7 },  // WereGarurumon -> CresGarurumon
   { 224, 337, { 0, 0, 1700, 0, 0, 1820 }, 0, 7 },  // Scorpiomon -> Vulcanusmon
   { 224, 389, { 2690, 1790, 0, 0, 0, 0 }, 0, 7 },  // Scorpiomon -> Pukumon
@@ -1362,7 +1362,7 @@ static const TsEvo TS_EVO_TBL[TS_EVO_COUNT] = {
   { 244, 403, { 0, 1150, 0, 2100, 0, 0 }, 0, 7 },  // Pandamon -> Merukimon
   { 244, 357, { 2470, 0, 0, 1790, 0, 0 }, 0, 7 },  // Pandamon -> MirageGaogamon
   { 244, 317, { 0, 0, 2060, 0, 0, 1960 }, 0, 7 },  // Pandamon -> Justimon
-  { 245, 361, { 0, 1290, 0, 0, 1500, 0 }, 99, 7 },  // Pumpkinmon -> Rosemon
+  { 245, 361, { 0, 1290, 0, 0, 1500, 0 }, 0, 7 },  // Pumpkinmon -> Rosemon
   { 245, 362, { 2380, 0, 0, 0, 1980, 0 }, 50, 7 },  // Pumpkinmon -> Lotosmon
   { 246, 390, { 0, 0, 2220, 0, 0, 0 }, 0, 7 },  // BigMamemon -> PlatinumNumemon
   { 246, 354, { 2140, 0, 1530, 0, 0, 0 }, 0, 7 },  // BigMamemon -> PrinceMamemon
@@ -1390,12 +1390,12 @@ static const TsEvo TS_EVO_TBL[TS_EVO_COUNT] = {
   { 254, 347, { 2010, 0, 1740, 0, 0, 1870 }, 0, 7 },  // MegaSeadramon -> JumboGamemon
   { 254, 307, { 1850, 2150, 1860, 0, 0, 0 }, 0, 7 },  // MegaSeadramon -> Ouryumon
   { 254, 359, { 0, 0, 0, 0, 1530, 0 }, 67, 7 },  // MegaSeadramon -> MetalSeadramon
-  { 255, 358, { 0, 960, 0, 1850, 0, 0 }, 99, 7 },  // MetalMamemon -> MetalGarurumon
+  { 255, 358, { 0, 960, 0, 1850, 0, 0 }, 0, 7 },  // MetalMamemon -> MetalGarurumon
   { 255, 397, { 0, 1940, 0, 0, 0, 0 }, 73, 7 },  // MetalMamemon -> MagnaKidmon
   { 256, 408, { 0, 0, 0, 1860, 2180, 0 }, 31, 7 },  // Lilamon -> Lilithmon
-  { 256, 361, { 0, 1290, 0, 0, 1500, 0 }, 99, 7 },  // Lilamon -> Rosemon
+  { 256, 361, { 0, 1290, 0, 0, 1500, 0 }, 0, 7 },  // Lilamon -> Rosemon
   { 256, 387, { 0, 0, 1430, 0, 0, 1430 }, 0, 7 },  // Lilamon -> Puppetmon
-  { 257, 361, { 0, 1290, 0, 0, 1500, 0 }, 99, 7 },  // Lillymon -> Rosemon
+  { 257, 361, { 0, 1290, 0, 0, 1500, 0 }, 0, 7 },  // Lillymon -> Rosemon
   { 257, 342, { 2470, 0, 0, 0, 0, 2190 }, 0, 7 },  // Lillymon -> Ceresmon
   { 257, 453, { 0, 0, 1660, 1280, 0, 2060 }, 0, 7 },  // Lillymon -> BanchoLillymon
   { 258, 340, { 0, 0, 2250, 0, 0, 1850 }, 0, 7 },  // Locomon -> GroundLocomon
@@ -1433,7 +1433,7 @@ static const TsEvo TS_EVO_TBL[TS_EVO_COUNT] = {
   { 270, 347, { 2010, 0, 1740, 0, 0, 1870 }, 0, 7 },  // Shaujinmon -> JumboGamemon
   { 270, 387, { 0, 0, 1430, 0, 0, 1430 }, 0, 7 },  // Shaujinmon -> Puppetmon
   { 271, 387, { 0, 0, 1430, 0, 0, 1430 }, 0, 7 },  // Cherrymon -> Puppetmon
-  { 271, 361, { 0, 1290, 0, 0, 1500, 0 }, 99, 7 },  // Cherrymon -> Rosemon
+  { 271, 361, { 0, 1290, 0, 0, 1500, 0 }, 0, 7 },  // Cherrymon -> Rosemon
   { 271, 414, { 2770, 0, 2290, 0, 0, 0 }, 0, 7 },  // Cherrymon -> GranKuwagamon
   { 272, 379, { 3220, 1680, 0, 0, 0, 0 }, 0, 7 },  // SkullGreymon -> Titamon
   { 272, 318, { 2570, 1580, 1650, 0, 0, 0 }, 0, 7 },  // SkullGreymon -> SkullMammothmon
@@ -1444,7 +1444,7 @@ static const TsEvo TS_EVO_TBL[TS_EVO_COUNT] = {
   { 274, 359, { 0, 0, 0, 0, 1530, 0 }, 69, 7 },  // SkullSeadramon -> MetalSeadramon
   { 275, 394, { 2200, 1600, 0, 0, 0, 0 }, 70, 7 },  // DarkSuperStarmon -> BeelStarmon
   { 275, 379, { 3220, 1680, 0, 0, 0, 0 }, 0, 7 },  // DarkSuperStarmon -> Titamon
-  { 275, 335, { 0, 0, 0, 1820, 0, 0 }, 99, 7 },  // DarkSuperStarmon -> Ravemon
+  { 275, 335, { 0, 0, 0, 1820, 0, 0 }, 0, 7 },  // DarkSuperStarmon -> Ravemon
   { 276, 337, { 0, 0, 1700, 0, 0, 1820 }, 0, 7 },  // Dragomon -> Vulcanusmon
   { 276, 364, { 0, 0, 0, 0, 2420, 1570 }, 79, 7 },  // Dragomon -> Ebemon
   { 277, 371, { 0, 2130, 0, 0, 0, 0 }, 89, 7 },  // Tankdramon -> Gundramon
@@ -1520,7 +1520,7 @@ static const TsEvo TS_EVO_TBL[TS_EVO_COUNT] = {
   { 382, 460, { 0, 1800, 0, 0, 0, 2240 }, 0, 7 },  // Gallantmon -> Gallantmon (X Antibody)
   { 383, 384, { 4250, 2850, 0, 0, 0, 0 }, 0, 7 },  // Bacchusmon -> Bacchusmon DM
   { 384, 383, { 2880, 1790, 0, 0, 1510, 0 }, 0, 7 },  // Bacchusmon DM -> Bacchusmon
-  { 386, 444, { 0, 0, 0, 0, 3100, 0 }, 99, 8 },  // Piedmon -> Apocalymon
+  { 386, 444, { 0, 0, 0, 0, 3100, 0 }, 0, 8 },  // Piedmon -> Apocalymon
   { 391, 376, { 0, 2500, 0, 0, 1900, 0 }, 0, 7 },  // Plutomon -> ZombiePlutomon
   { 395, 438, { 0, 3760, 0, 2960, 0, 0 }, 0, 8 },  // Beelzemon -> Beelzemon BM
   { 396, 439, { 4680, 2070, 0, 0, 0, 0 }, 0, 8 },  // Belphemon SM -> Belphemon RM

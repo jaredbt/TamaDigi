@@ -59,7 +59,7 @@ de-digivolution is any route read backwards (`to` -> `from`).
 |---|---|
 | `from`, `to` | Dex ids, both raisable |
 | `min[6]` | Raw stat minimums by `TS_STAT_*`; 0 = none. HP minimums are kept even when they exceed the source's level-99 HP (65 kept routes; the summary prints the count): the de-digivolve HP boost (Q16) is what reaches them |
-| `minLevel` | The SP minimum turned into a level: the first level (1-99) at which the source's untrained SP, growing linearly from level 1 to level 99, reaches the minimum. 0 = no SP minimum |
+| `minLevel` | The SP minimum turned into a level: the first level (1-99) at which the source's untrained SP, growing linearly from level 1 to level 99, reaches the minimum. 0 = no SP minimum, or one the source can never reach (dropped) |
 | `rank` | Agent Rank needed. 0 for every route into a stage below Ultimate. The game's value is kept for routes into Ultimate or later: 5 into Ultimate, 7 into Mega, 8 into Mega+ |
 
 Kept routes are those between two raisable forms that need no Jogress, item,
@@ -185,7 +185,7 @@ Per form (`learnFirst` / `learnCount`), as `{ skill, hours }`:
 | "16 fusion-only" | 17 are flagged: Susanomon also has no other route, and its partners are both Hybrids, so its Jogress pair has `partnersRaisable = 0` |
 | Display-name rule behind "29 too long" | Upper case, drop `():`, keep spaces |
 | Hybrids' attribute "Variable" | Its own value, neutral like Free |
-| SP minimum above the source's level-99 SP (13 kept routes, e.g. Lillymon -> Rosemon) | `minLevel` 99: there is no SP boost to reach it otherwise |
+| SP minimum above the source's level-99 SP (13 kept routes, e.g. Lillymon -> Rosemon) | Dropped, `minLevel` 0: Agent Rank and the trainable stats still gate them |
 | Rank on Rookie -> Ultimate (Shoutmon -> OmniShoutmon), Ultimate -> Ultimate, Mega -> Mega | The rule follows the target's stage: kept from Ultimate on (5 / 7) |
 | Aura, X-Aura | Fold into Heal and X-Heal, as each Field folds into its Charge |
 | Signatures left with nothing | Accuracy down (Blinding Ray, Kudamon's only signature) -> ATK and magic attack down by the same percent. Damage-taken down (Bee Cyclone, Elec Guard) -> DEF and magic defence up |

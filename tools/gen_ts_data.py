@@ -317,8 +317,10 @@ def build_evolutions(v1, by_v1, by_name):
             if 'SP' in cond:
                 lv = lvl_for(fs, 'SP', cond['SP'])
                 if lv is None:
+                    # A minimum the source can never reach is dropped: Agent Rank
+                    # and the trainable stats still gate these routes.
                     sp_over.append((src, to, cond['SP'], fs['max']['SP']))
-                    lv = 99
+                    lv = 0
                 r['min_level'] = lv
             routes.append(r)
     jogress = []
@@ -964,8 +966,8 @@ def summary(D):
     hp = [r for r in D['routes'] if r['min']['HP'] > r['from']['max']['HP']]
     print(f'  {len(hp)} HP minimums exceed the source\'s level-99 HP (reached with the de-digivolve HP boost)')
     sp = [r for r in D['routes'] if r['sp']]
-    print(f'  {len(sp)} SP minimums became level minimums; {len(D["sp_over"])} exceed the source\'s level-99 SP '
-          f'and became level 99: ' + ', '.join(f'{a} -> {b}' for a, b, *_ in D['sp_over']
+    print(f'  {len(sp)} routes had an SP minimum and it became a level minimum, except {len(D["sp_over"])} above the source\'s level-99 SP '
+          f'and were dropped: ' + ', '.join(f'{a} -> {b}' for a, b, *_ in D['sp_over']
                                               if a not in ON_ICE and b not in ON_ICE))
     print(f'{len(D["jogress"])} Jogress pairs (data only), {sum(not j["partners_raisable"] for j in D["jogress"])} '
           f'with a partner that cannot be raised')
