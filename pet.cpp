@@ -598,14 +598,14 @@ uint8_t starterForms(int16_t *out, uint8_t max) {
 // the old tiers. With no pack on the card the table is still the answer: it is what
 // the first egg of a board with no SD has always been.
 int16_t Pet::pickEggSpecies() {
-  int16_t pool[TS_DEX_COUNT];
+  int16_t pool[8];       // the roster has seven In-Training I forms
   const uint8_t n = starterForms(pool, sizeof(pool) / sizeof(pool[0]));
   if (!n) {
     for (int16_t d = 1; d <= DEX_COUNT; d++)
       if (TS_DEX_TBL[d].stage == TS_ST_IN_TRAINING_1 && speciesHasArt(d)) return d;
     return 1;
   }
-  int16_t fresh[TS_DEX_COUNT];
+  int16_t fresh[8];
   uint8_t f = 0;
   for (uint8_t i = 0; i < n; i++)
     if (lineHasUnregistered(pool[i])) fresh[f++] = pool[i];

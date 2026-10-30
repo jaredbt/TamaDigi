@@ -16,7 +16,7 @@
 // It is also the shape the synthesiser was built for. gbsynth.h exposes two pulse
 // voices with four duty cycles, volume envelopes and a noise channel, and has NO
 // Arduino dependency on purpose -- so this file has none either. That is what lets
-// cry_test render every one of the 1025 Digimon and check them, on a machine with
+// cry_test render every Digimon on the roster and check them, on a machine with
 // no board attached, which is otherwise impossible: CLAUDE.md is explicit that the
 // emulator cannot judge audio, and it cannot judge how a cry SOUNDS. It can prove
 // each one is audible, bounded, distinct and deterministic, which is the part that

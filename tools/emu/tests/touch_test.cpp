@@ -50,6 +50,7 @@ void startTrainerBattle(uint8_t idx, bool hard);
 extern uint8_t btlMenu;
 extern bool btlHard;
 extern bool gymOpen, gymHard; extern uint8_t gymPage;
+void uiConfirmRects(int *b1Top, int *b1Bot, int *b2Top, int *b2Bot);
 void gymRowRect(int i, int *x, int *y, int *w, int *h);
 #define BTL_CELL_X(i) (69 + ((i) % 2) * 168)
 #define BTL_CELL_Y(i) (286 + ((i) / 2) * 52)
@@ -407,20 +408,45 @@ int main(int argc, char **argv) {
   printf("PASS: the stored creature is untouched (still L%u)\n", pet.level());
   battleOpen = false;
 
-  // ---- there is nothing to switch to: the cell where DIGIMON was is inert
+  // ---- de-digivolving, through the card and the confirm dialog
+  {
+    battleOpen = false;
+    pet.dbgHatchAs(21, false);            // AGUMON
+    pet.ageMinutes = 40UL * MINUTES_PER_LEVEL;
+    pet.trAtk = pet.trDef = pet.trSpe = 200;
+    while (pet.digiTarget() != 89) pet.declineEvolve();
+    pet.evolve();
+    while (pet.hasLearnOffer()) pet.declineLearn();
+    if (pet.speciesId != 89) { printf("FAIL: AGUMON did not become GREYMON\n"); return 1; }
+    pet.fullness = pet.joy = pet.energy = pet.hygiene = 100;
+    cardOpen = true; cardPage = 3;
+    render();
+    click(233, 362 + 22);                 // the DE-DIGIVOLVE button
+    if (cardOpen) { printf("FAIL: the DE-DIGIVOLVE button did not answer\n"); return 1; }
+    render();
+    int b1t, b1b, b2t, b2b;
+    uiConfirmRects(&b1t, &b1b, &b2t, &b2b);
+    click(233, (b1t + b1b) / 2);          // yes
+    if (pet.speciesId != 21 || pet.deDigiCount != 1) {
+      printf("FAIL: confirming did not de-digivolve (dex %d, count %u)\n", pet.speciesId, pet.deDigiCount);
+      return 1;
+    }
+    printf("PASS: DE-DIGIVOLVE on the card asks, then takes it back to AGUMON\n");
+    pump(2);
+  }
+
+  // ---- the lower-left cell is the basic attack: it spends a turn and hits
   pet.badges = 0;
   startTrainerBattle(0, false);
   btlMenu = 0;
   {
-    const int16_t youDex = btlYou.dex;
-    const uint16_t foeHp0 = btlFoe.hp, youHp0 = btlYou.hp;
-    click(150, 274 + 52 + 22);            // the lower-LEFT cell (RUN is right)
-    if (btlMenu != 0 || btlMsgCount || btlYou.dex != youDex ||
-        btlFoe.hp != foeHp0 || btlYou.hp != youHp0) {
-      printf("FAIL: the empty cell where SWITCH was still did something\n");
-      return 1;
+    const uint16_t foeHp0 = btlFoe.hp;
+    for (int i = 0; i < 12 && btlFoe.hp == foeHp0 && battleOpen; i++) {
+      click(150, 274 + 52 + 22);          // the lower-LEFT cell (RUN is right)
+      while (btlMsgCount && battleOpen) click(233, 320);
     }
-    printf("PASS: the empty cell where SWITCH was does nothing and spends no turn\n");
+    if (btlFoe.hp == foeHp0) { printf("FAIL: the basic attack did nothing\n"); return 1; }
+    printf("PASS: the basic attack is a cell of the battle menu, and hits\n");
   }
   battleOpen = false; btlMenu = 0;
 

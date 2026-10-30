@@ -191,7 +191,7 @@ static int shotMode(const char *screen, const char *out, int lvl, int iv, int de
   if (!strcmp(screen, "battle"))      { cardOpen = true; cardPage = 1; }
   else if (!strcmp(screen, "profile")){ cardOpen = true; cardPage = 0; }
   else if (!strcmp(screen, "medals")) { cardOpen = true; cardPage = 3; }
-  else if (!strcmp(screen, "progress")){cardOpen = true; cardPage = 4; }
+  else if (!strcmp(screen, "progress")){cardOpen = true; cardPage = 3; }
   else if (!strcmp(screen, "gallery")) {
     // The grid is static and guarded by galleryDirty, so setting galleryOpen
     // alone leaves the screenshot black -- the real UI sets both.

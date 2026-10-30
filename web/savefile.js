@@ -138,6 +138,9 @@ function hex4(v) {
 // player is trying to keep.
 export function describeBackup(blob) {
   const out = {};
+  const pets = [];
+  const players = [];
+  const u32 = (bytes, at) => (bytes[at] | (bytes[at + 1] << 8) | (bytes[at + 2] << 16) | (bytes[at + 3] << 24)) >>> 0;
   try {
     let at = SAVE_HEADER_BYTES;
     const end = blob.length - SAVE_CRC_BYTES;
@@ -151,11 +154,27 @@ export function describeBackup(blob) {
       if (at + len > end) break;
       const value = blob.subarray(at, at + len);
       at += len;
-      if (key === 'tnam' && len) out.trainer = trimText(value);
-      else if (key === 'dexn' && len >= 2) out.dex = (value[0] | (value[1] << 8)) << 16 >> 16;
-      else if (key === 'age' && len >= 4) {
-        out.ageMinutes = value[0] | (value[1] << 8) | (value[2] << 16) | (value[3] << 24);
-      }
+      if (key === 'petA' || key === 'petB') pets.push(value);
+      else if (key === 'plyA' || key === 'plyB') players.push(value);
+    }
+    // Both records alternate between two slots, and the higher generation is the
+    // newer. A record with another magic is from another format: a v1.0.0 backup's
+    // dex numbers mean other Digimon, so it is better left unlabelled than misnamed.
+    const newest = (records, magic) => records
+      .filter((value) => value.length > 26 && String.fromCharCode(...value.subarray(0, 4)) === magic)
+      .sort((a, b) => u32(b, 8) - u32(a, 8))[0];
+    const pet = newest(pets, 'TKP2');
+    if (pet) {
+      out.ageMinutes = u32(pet, 12);
+      out.dex = (pet[24] | (pet[25] << 8)) << 16 >> 16;
+    }
+    const player = newest(players, 'TKY2');
+    if (player) {
+      // The trainer's name follows the two Digidex bitmaps, whose size is in the record.
+      const dexBytes = player[12] | (player[13] << 8);
+      const nameAt = player[19] + 2 * dexBytes;
+      const name = trimText(player.subarray(nameAt, nameAt + player[16]));
+      if (name) out.trainer = name;
     }
   } catch {
     // a label is never worth failing a backup over

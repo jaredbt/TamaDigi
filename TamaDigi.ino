@@ -39,7 +39,7 @@
 
 // Firmware version. Bump this number on every release (and manifest.json for
 // the web installer). Shown on the settings screen and over serial at boot.
-#define FW_VERSION "1.0.0"
+#define FW_VERSION "2.0.0"
 
 // Set once at boot when a v1.0.0 save was found and replaced, so the first screen
 // can say so. RAM only: the save it describes is gone.
@@ -2132,6 +2132,14 @@ void renderStarterSelect() {
     gfx->setCursor(178, ry + 24);
     gfx->print(TS_DEX_TBL[d].name);
   }
+  // No hatchling can be drawn: the pack is not on the card. Saying so is the only way
+  // off this screen, which a first boot has no other way past.
+  if (!starterCountShown()) {
+    gfx->setTextColor(UI_TEXT_BAD);
+    gfx->setCursor(CX - (int)strlen(T(S_NEED_PACK)) * 6, 200);
+    gfx->setTextSize(2);
+    gfx->print(T(S_NEED_PACK));
+  }
   // A v1.0.0 save cannot be carried forward. A player who just updated has to be told
   // why their partner is gone, on the panel: they are not watching the serial port.
   if (gOldSaveReplaced) {
@@ -3776,6 +3784,9 @@ void startLinkBattle() {
 void startTrainerBattle(uint8_t idx, bool hard) {
   if (idx >= TRAINER_COUNT || pet.isEgg() || pet.ceremony != CER_NONE) return;
   const Trainer &boss = TRAINERS[idx];
+  // The gate the wild has too: a boss that cannot be drawn would open the fight with
+  // a bare dex number where a creature should be.
+  if (!speciesShowable((int16_t)boss.dex)) return;
   // BOTH difficulties cap your level to the boss's. Without it a L73 partner
   // walks every tamer at 100% and the type chart never matters. Hard adds a
   // smarter AI.
@@ -5293,7 +5304,7 @@ void renderLearn() {
   gfx->print(head);
   gfx->setTextColor(dexAccent(pet.speciesId));
   const char *move = moveName(mv);
-  int moveSize = strlen(move) <= 17 ? 3 : 2;
+  int moveSize = strlen(move) <= 17 ? 3 : (strlen(move) <= 26 ? 2 : 1);
   gfx->setTextSize(moveSize);
   gfx->setCursor(CX - (int)strlen(move) * moveSize * 3, moveSize == 3 ? 66 : 72);
   gfx->print(move);
@@ -5525,9 +5536,8 @@ static void bagSay(const char *fmt, const char *arg) {
 static bool bagUseOnPet(ItemKey k) {
   const ItemEntry &e = itemEntry(k);
   if (e.category != IC_TRAIN) return false;
-  // The IV-bound ceiling applies here exactly as it does to the punching bag and
-  // to a boss reward. An item that could push past trMaxFor() would make the ceiling
-  // roll decorative, which is the one thing it must not be.
+  // The ceiling applies here exactly as it does to the punching bag and to a boss
+  // reward.
   uint8_t *cur;
   uint8_t cap;
   switch ((uint8_t)e.param) {

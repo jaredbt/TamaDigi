@@ -113,7 +113,7 @@ emulator is a failure, never an automatic host fallback. `TAMA_TEST_BACKEND=host
 is an explicit local debugging override; CI requires native-first mode.
 
 Native suites cover the battle engine/AI and boss simulation, Digimon/learnset/
-roster data, digivolution and region rules, sleep and clock validation, rewards,
+roster data, digivolution and art rules, sleep and clock validation, rewards,
 player/creature persistence, legacy upgrades, save export/import, link protocol
 and lossy transport, synth/cry samples, palette and CRC calculations. Their
 assertions are the same source files compiled for the S3, not new copies of the

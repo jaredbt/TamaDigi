@@ -20,6 +20,8 @@ String FakeSerial::readStringUntil(char) { return String(""); }
 void setup();
 void onTap(int16_t x, int16_t y);
 bool startWildBattle(bool hard);
+void startTrainerBattle(uint8_t idx, bool hard);
+extern bool battleOpen;
 int uiTapFinger();
 extern Pet pet;
 extern bool exploreOpen;
@@ -57,7 +59,13 @@ int main() {
   // ---- no pack, no encounter: a Digimon that cannot be drawn is not a fight.
   gArtPack = false;
   ck(!startWildBattle(false), "with the sprite pack missing there is no encounter");
+  battleOpen = false;
+  startTrainerBattle(0, false);
+  ck(!battleOpen, "and no boss fight either, which would open on a bare dex number");
   gArtPack = true;
+  startTrainerBattle(0, false);
+  ck(battleOpen, "and with the pack back the boss fights");
+  battleOpen = false;
 
   printf("%s\n", bad ? "FAILURES" : "all good");
   return bad ? 1 : 0;
