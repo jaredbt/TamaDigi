@@ -420,10 +420,10 @@ int main(int argc, char **argv) {
     if (pet.speciesId != 89) { printf("FAIL: AGUMON did not become GREYMON\n"); return 1; }
     pet.fullness = pet.joy = pet.energy = pet.hygiene = 100;
     cardOpen = true; cardPage = 3;
-    render();
+    pump(1);
     click(233, 386 + 22);                 // the DE-DIGIVOLVE button
     if (cardOpen) { printf("FAIL: the DE-DIGIVOLVE button did not answer\n"); return 1; }
-    render();
+    pump(1);
     int b1t, b1b, b2t, b2b;
     uiConfirmRects(&b1t, &b1b, &b2t, &b2b);
     click(233, (b1t + b1b) / 2);          // yes
