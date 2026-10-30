@@ -1,6 +1,5 @@
 #include "link.h"
-#include "moves.h"
-#include "dex.h"
+#include "roster.h"
 #include "pet.h"
 #include <string.h>
 
@@ -32,7 +31,12 @@ uint16_t linkBuildTag() {
   return (uint16_t)(h ^ (h >> 16));
 }
 
-uint8_t linkSafeMove(uint8_t m) { return m < MOVE_COUNT ? m : 0; }
+uint16_t linkSafeMove(uint16_t m) { return (skillValid(m) || m == SKILL_BASIC) ? m : 0; }
+
+uint16_t linkActMove(const Combatant &c, uint8_t act) {
+  if (act == LINK_ACT_BASIC) return SKILL_BASIC;
+  return c.moves[LINK_ACT_SLOT(act) % MOVE_SLOTS];
+}
 
 void linkMonFrom(LinkMon &out, const Combatant &c) {
   memset(&out, 0, sizeof(out));

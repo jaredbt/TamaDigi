@@ -1,6 +1,5 @@
 #pragma once
 #include <stdint.h>
-#include "dex.h"
 #include "types.h"
 
 // ---------------------------------------------------------------------------
@@ -8,8 +7,8 @@
 //
 // Every creature gets its own short sound, and NOT ONE BYTE OF IT IS RECORDED
 // AUDIO. There is no cry data in this repository and none is downloaded: a cry is
-// computed, here, from numbers already in flash -- the dex number, the typing, and
-// the base stats in DEX_TBL. That is a deliberate licensing position as much as a
+// computed, here, from numbers already in flash -- the dex number, the element, and
+// the stats in TS_DEX_TBL. That is a deliberate licensing position as much as a
 // technical one. The real games' cries are copyrighted assets; the sprite packs
 // this project uses are separately licensed community art (see CREDITS.md), and
 // there is no equivalent source for audio. So nothing is borrowed.
@@ -70,10 +69,13 @@ static inline uint16_t cryHzToGb(uint16_t hz) {
 // The Digimon' voice, in Hz, before the contour moves it. Bulk drags it down and
 // edge pulls it up, then it is clamped into a band that is audible on a small
 // speaker at both ends.
+//
+// The level-99 stats over 20, which is the 40-200 range this mapping was tuned on.
+static inline int cryStat(int16_t dex, uint8_t stat) { return TS_DEX_TBL[dex].max[stat] / 20; }
+
 static inline uint16_t cryBaseHz(int16_t dex) {
-  const DexEntry &e = DEX_TBL[dex];
-  const int bulk = (int)e.bHp + e.bDef + e.bSpD;      // ~60..600
-  const int edge = (int)e.bAtk + e.bSpe + e.bSpA;
+  const int bulk = cryStat(dex, TS_STAT_HP) + cryStat(dex, TS_STAT_DEF) + cryStat(dex, TS_STAT_MDEF);
+  const int edge = cryStat(dex, TS_STAT_ATK) + cryStat(dex, TS_STAT_SPD) + cryStat(dex, TS_STAT_MATK);
   // 900 is the middle of the band. A heavy, sluggish creature lands near 200; a
   // light fast one near 1500.
   int hz = 900 - (bulk - edge) * 2;
@@ -86,11 +88,11 @@ static inline uint16_t cryBaseHz(int16_t dex) {
 }
 
 // The duty cycle a type speaks with. 0 is thin and reedy, 2 is the fat square.
-static inline uint8_t cryDutyFor(uint8_t type) {
-  switch (type) {
-    case T_ELECTRIC: case T_WIND: case T_LIGHT: return 0;
-    case T_WATER: case T_DARK: case T_PLANT:    return 1;
-    case T_EARTH: case T_FIRE:                  return 2;
+static inline uint8_t cryDutyFor(uint8_t element) {
+  switch (element) {
+    case TS_EL_ELECTRICITY: case TS_EL_WIND: case TS_EL_LIGHT: return 0;
+    case TS_EL_WATER: case TS_EL_DARK: case TS_EL_PLANT: case TS_EL_ICE: return 1;
+    case TS_EL_EARTH: case TS_EL_FIRE: case TS_EL_STEEL: return 2;
     default: return 3;
   }
 }
@@ -98,11 +100,8 @@ static inline uint8_t cryDutyFor(uint8_t type) {
 // Which types rattle. Percussion is what makes a sound read as an impact rather
 // than a tone, so it belongs to the heavy, mineral types -- and it is mixed in as
 // ONE step rather than under the whole cry, which would just be mud.
-static inline bool cryRattles(uint8_t t1, uint8_t t2) {
-  const uint8_t heavy[] = { T_EARTH };
-  for (uint8_t h : heavy)
-    if (t1 == h || t2 == h) return true;
-  return false;
+static inline bool cryRattles(uint8_t element) {
+  return element == TS_EL_EARTH || element == TS_EL_STEEL;
 }
 
 // Fills up to CRY_NOTES steps and returns how many were written. Deterministic:
@@ -110,10 +109,10 @@ static inline bool cryRattles(uint8_t t1, uint8_t t2) {
 // identity rather than a noise generator.
 static inline uint8_t crySynth(int16_t dex, CryNote *out) {
   if (dex < 1 || dex > DEX_COUNT || !out) return 0;
-  const DexEntry &e = DEX_TBL[dex];
   const uint16_t base = cryBaseHz(dex);
-  const uint8_t duty = cryDutyFor(e.type1);
-  const bool rattle = cryRattles(e.type1, e.type2);
+  const uint8_t element = homeElement(dex);
+  const uint8_t duty = cryDutyFor(element);
+  const bool rattle = cryRattles(element);
   // Faster creatures get shorter, sharper steps.
   //
   // The UPPER BOUND is derived, not chosen: the shape is three steps plus a tail
@@ -122,7 +121,7 @@ static inline uint8_t crySynth(int16_t dex, CryNote *out) {
   // clamp below was actually biting, which silently cut the tail off every sluggish
   // Digimon and flattened the contour it exists to produce. The clamp stays as a
   // backstop; it should simply never fire.
-  uint16_t step = (uint16_t)(70 - (int)e.bSpe / 6);
+  uint16_t step = (uint16_t)(70 - cryStat(dex, TS_STAT_SPD) / 6);
   if (step < 40) step = 40;
   if (step > CRY_MAX_MS * 2 / 9) step = CRY_MAX_MS * 2 / 9;   // 4.5 * step <= budget
 

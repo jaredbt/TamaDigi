@@ -1,0 +1,78 @@
+# The Digimon Color sprite sheets that have a Time Stranger form, one row per sheet.
+# sheet: file stem in furudbat/wayland-vpets assets/dmc/. old: its number in the retired
+# 87-Digimon roster (the file name in a pre-cutover sprite pack). dex: the Time Stranger
+# dex id in ts_dex.h, which names the packed file. tools/pack_sprites.py reads this.
+sheet	old	dex	form
+Punimon	18	5	Punimon
+Botamon	1	6	Botamon
+Poyomon	35	7	Poyomon
+Koromon	2	9	Koromon
+Tanemon	55	10	Tanemon
+Tsunomon	19	11	Tsunomon
+Tokomon	36	13	Tokomon
+Pagumon	72	16	Pagumon
+Agumon	3	21	Agumon
+Piyomon	56	32	Biyomon
+Elecmon	21	40	Elecmon
+Gabumon	20	43	Gabumon
+Patamon	37	51	Patamon
+Palmon	57	53	Palmon
+Gazimon	73	62	Gazimon
+Gizamon	74	63	Gizamon
+Betamon	4	74	Betamon
+Airdramon	9	82	Airdramon
+Angemon	24	83	Angemon
+Kabuterimon	22	84	Kabuterimon
+Garurumon	23	86	Garurumon
+Greymon	5	89	Greymon
+Birdramon	26	98	Birdramon
+Mojyamon	63	103	Mojyamon
+Yukidarumon	25	104	Frigimon
+Unimon	39	105	Unimon
+Leomon	60	108	Leomon
+Centalmon	40	118	Centarumon
+Seadramon	10	120	Seadramon
+Coelamon	62	121	Coelamon
+Shellmon	43	122	Shellmon
+Tyranomon	6	127	Tyrannomon
+Drimogemon	44	130	Drimogemon
+Meramon	8	134	Meramon
+Monochromon	58	135	Monochromon
+Ogremon	41	140	Ogremon
+Kuwagamon	61	145	Kuwagamon
+Cyclomon	76	151	Cyclonemon
+Scumon	45	153	Sukamon
+Tuskmon	78	154	Tuskmon
+Devimon	7	155	Devimon
+Deltamon	80	156	Deltamon
+Nanimon	64	158	Nanimon
+Numemon	11	159	Numemon
+Bakemon	42	160	Bakemon
+Flymon	79	163	Flymon
+Vegimon	28	166	Vegiemon
+Raremon	81	170	Raremon
+Andromon	46	193	Andromon
+Ex-Tyranomon	84	196	ExTyrannomon
+Whamon	27	214	Whamon
+Monzaemon	14	218	Monzaemon
+Chimairamon	49	229	Kimeramon
+Digitamamon	67	237	Digitamamon
+Mamemon	13	253	Mamemon
+Metal Mamemon	30	255	MetalMamemon
+Etemon	48	262	Etemon
+Skull Greymon	29	272	SkullGreymon
+Vademon	31	283	Vademon
+Megadramon	65	287	Megadramon
+Metal Tyranomon	82	289	MetalTyrannomon
+Hi Andromon	50	326	HiAndromon
+Bancho Leomon	52	327	BanchoLeomon
+Gankoomon	70	338	Gankoomon
+Ebemon	34	364	Ebemon
+Gaioumon	87	367	Gaiomon
+Darkdramon	68	377	Darkdramon
+Millenniumon	53	399	Millenniummon
+Mugendramon	85	400	Machinedramon
+Cres Garurumon	33	446	CresGarurumon
+Blitz Greymon	15	448	BlitzGreymon
+Bancho Mamemon	16	452	BanchoMamemon
+Metal Greymon (Virus)	12	466	MetalGreymon (Blue)

@@ -1,35 +1,11 @@
 {
   "schema": 1,
   "regions": {
-    "ver1": {
+    "digimon": {
       "index": 0,
-      "bytes": 1861144,
-      "crc32": "bc98d9a1",
-      "sprites": 35
-    },
-    "ver2": {
-      "index": 1,
-      "bytes": 1865752,
-      "crc32": "7e277888",
-      "sprites": 35
-    },
-    "ver3": {
-      "index": 2,
-      "bytes": 2106146,
-      "crc32": "f8268ffc",
-      "sprites": 39
-    },
-    "ver4": {
-      "index": 3,
-      "bytes": 1959046,
-      "crc32": "95a4f1cd",
-      "sprites": 35
-    },
-    "ver5": {
-      "index": 4,
-      "bytes": 1915582,
-      "crc32": "0ef33ef6",
-      "sprites": 35
+      "bytes": 7942520,
+      "crc32": "10a6db69",
+      "sprites": 147
     }
   }
 }

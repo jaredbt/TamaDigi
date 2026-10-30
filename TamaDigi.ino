@@ -15,9 +15,8 @@
 #include "TouchDrvCSTXXX.hpp"
 #include "pin_config.h"
 #include "species.h"
-#include "dex.h"
+#include "roster.h"
 #include "types.h"
-#include "moves.h"
 #include "battle.h"
 #include "trainers.h"
 #include "link.h"
@@ -31,6 +30,7 @@
 #include "items.h"
 #include "inventory.h"
 #include "wild.h"
+#include "noart.h"
 #include "sdmon.h"
 #include "rtcbat.h"
 #include "nvsinfo.h"
@@ -40,6 +40,10 @@
 // Firmware version. Bump this number on every release (and manifest.json for
 // the web installer). Shown on the settings screen and over serial at boot.
 #define FW_VERSION "1.0.0"
+
+// Set once at boot when a v1.0.0 save was found and replaced, so the first screen
+// can say so. RAM only: the save it describes is gone.
+bool gOldSaveReplaced = false;
 
 Arduino_DataBus *bus = new Arduino_ESP32QSPI(
   LCD_CS, LCD_SCLK, LCD_SDIO0, LCD_SDIO1, LCD_SDIO2, LCD_SDIO3);
@@ -72,26 +76,10 @@ PmdMon galleryPmd;  // large sprite for the gallery detail view (PMD/TPK2, legal
 // digidex gallery
 bool galleryOpen = false;
 bool galleryDirty = false;
-// 16 to a page, and the Digidex is browsed ONE REGION AT A TIME. Three
-// generations flat is 25 pages of swiping to reach Ver.3, which is not a
-// Digidex, it is a scroll. A vertical swipe changes version and a horizontal one
-// pages within it, so nothing is ever more than ten pages from the front.
-// ALL is deliberately not offered here -- it is the thing being replaced.
+// 16 to a page. Phase 2 of the cutover puts a stage picker in front of this grid;
+// until then it lists the forms that have art, in dex order.
 #define GAL_PER_PAGE 16
-#define GAL_REGIONS (REGION_COUNT - 1)          // the real versions, not ALL
-#define GAL_LO (REGIONS[galleryRegion % GAL_REGIONS].lo)
-#define GAL_HI (REGIONS[galleryRegion % GAL_REGIONS].hi)
-#define GAL_SPAN (GAL_HI - GAL_LO + 1)
-#define GAL_PAGES ((GAL_SPAN + GAL_PER_PAGE - 1) / GAL_PER_PAGE)
-uint8_t galleryRegion = 0;
-// Both the Digidex and the boss ladder now open on a REGION CHOOSER rather than
-// dropping you into whichever version was last viewed. The vertical swipe that
-// changes version still works, but it is invisible, so on its own it meant the
-// Ver.2 and Ver.3 content looked absent.
-bool galleryPick = false;
-bool gymPick = false;
-uint8_t rpickPage = 0;      // the version chooser is paged; shared by all 3 modes
-uint8_t galleryPage = 0;    // GAL_PAGES pages of GAL_PER_PAGE
+uint8_t galleryPage = 0;    // galleryPages() pages of GAL_PER_PAGE
 // ---------------------------------------------------------------------------
 // DIGIDEX FILTERS. A view setting, so RAM only -- deliberately NO save field:
 // every one of these is derived from data the save already holds, and a filter
@@ -119,6 +107,7 @@ enum : uint8_t { KB_PET = 0, KB_TRAINER };
 uint8_t kbTarget = KB_PET;          // keyboard for renaming the creature
 char nameBuf[12] = "";
 uint8_t nameLen = 0;
+#define CARD_PROGRESS_PAGE 3
 #define CARD_PAGES 4   // profile, stats, moves, progress -- medals moved to
                        // the player card, where the totals already live
 uint8_t cardPage = 0;         // 0 perfil, 1 stats+medallas
@@ -204,6 +193,7 @@ uint8_t movePickSlot = 0;   // which of the 4 slots is being replaced
 uint8_t movePickPage = 0;
 #define MOVE_ROW_Y(i) (96 + (i) * 58)
 #define MOVE_PICK_PER_PAGE 5
+#define MOVE_PICK_MAX (MOVE_SLOTS + 32)   // the slots, plus more than a form ever offers
 #define MOVE_PICK_Y(i) (76 + (i) * 58)
 // level-up learn prompt: modal, and deliberately without a timeout -- it
 // decides what the creature is for the rest of its life.
@@ -217,8 +207,8 @@ uint8_t movePickPage = 0;
 bool battleOpen = false;
 
 enum : uint8_t {
-  SCR_STARTER = 0, SCR_REGION, SCR_GALLERY, SCR_DEXPICK, SCR_MOVEPICK,
-  SCR_KEYBOARD, SCR_CARD, SCR_PLAYER, SCR_CLOCK, SCR_GYM, SCR_GYMPICK,
+  SCR_STARTER = 0, SCR_GALLERY, SCR_MOVEPICK,
+  SCR_KEYBOARD, SCR_CARD, SCR_PLAYER, SCR_CLOCK, SCR_GYM,
   SCR_EXPLORE, SCR_LAN, SCR_BATTLE, SCR_WIN, SCR_LEARN, SCR_TRAIN, SCR_MENU,
   SCR_BAGSCR, SCR_GAME, SCR_MAIN, SCR_TRANSFER, SCR_COUNT
 };
@@ -242,7 +232,7 @@ bool uiOnRim(int16_t x, int16_t y);
 float uiRimAngle(int16_t x, int16_t y);
 void uiDrawRimBar();
 void uiChrome();
-uint8_t learnableList(uint8_t *out, uint8_t max);
+uint8_t learnableList(uint16_t *out, uint8_t max);
 // Declared here because the confirm dialogs' draw and tap code use it ~5000
 // lines above where it is defined. The emulator generates a proto.h and would
 // compile it either way; arduino-cli would not, and that has shipped once.
@@ -253,7 +243,7 @@ void uiConfirmRects(int *b1Top, int *b1Bot, int *b2Top, int *b2Bot);
 void renderBag();
 void bagTap(int16_t x, int16_t y);
 uint8_t bagPages();
-bool startWildBattle(uint8_t region, bool hard);
+bool startWildBattle(bool hard);
 // A boss row starts its fight directly now that there is no team picker in
 // between, so onTap() calls this ~2000 lines above its definition.
 void startTrainerBattle(uint8_t idx, bool hard);
@@ -285,32 +275,21 @@ void drawConfirmPanel(const char *q, const char *sub1, const char *sub2,
                       uint16_t subCol, const char *o1, uint16_t c1, uint16_t t1,
                       const char *o2, uint16_t c2, uint16_t t2);
 const char *const SCREEN_NAME[SCR_COUNT] = {
-  "starter", "region", "gallery", "dexpick", "movepick",
-  "keyboard", "card", "player", "clock", "gym", "gympick",
+  "starter", "gallery", "movepick",
+  "keyboard", "card", "player", "clock", "gym",
   "explore", "lan", "battle", "win", "learn", "train", "menu",
   "bag", "minigame", "main", "transfer"
 };
 
-// Badge art for a version, or nullptr when that version has none yet.
-//
-// NEVER `BADGES_ART[version % BADGE_REGIONS]`. The moment GYM_REGIONS outgrew
-// BADGE_REGIONS -- which happened when Ver.4 landed and the upstream badge set
-// stops at Ver.4 -- 5 % 5 = 0 silently dressed Ver.4 in VER.1's badges, on both
-// the win screen and the player card. A wrong badge is worse than an honest
-// blank: it claims you won something you did not. The callers draw a
-// placeholder instead, and static_assert below stops the array being indexed
-// out of range whatever the two counts are.
-static_assert(BADGE_REGIONS <= GYM_REGIONS,
-              "more badge sheets than ladders -- BADGES_ART would be indexed by a region that does not exist");
-static const BadgeArt *badgeArtFor(uint8_t region, uint8_t i) {
-  if (region >= BADGE_REGIONS || i >= TRAINER_GYMS) return nullptr;
-  return &BADGES_ART[region][i];
+// Badge art for a boss, or nullptr past the eight area bosses.
+static const BadgeArt *badgeArtFor(uint8_t i) {
+  return i < TRAINER_GYMS ? &BADGES_ART[i] : nullptr;
 }
 
-// Does this version have its own badge art? Split out with a primitive return
-// type so the tests can ask: the emulator's genproto.py emits every prototype
-// ABOVE the includes, where the BadgeArt struct does not exist yet.
-bool badgeArtExists(uint8_t region, uint8_t i) { return badgeArtFor(region, i) != nullptr; }
+// Does this boss have badge art? Split out with a primitive return type so the
+// tests can ask: the emulator's genproto.py emits every prototype ABOVE the
+// includes, where the BadgeArt struct does not exist yet.
+bool badgeArtExists(uint8_t i) { return badgeArtFor(i) != nullptr; }
 
 Combatant btlYou, btlFoe;
 bool btlOver = false;
@@ -340,36 +319,9 @@ bool gymHard = false;   // which ladder the list is showing
 // normal battle screen takes over with btlLink set.
 bool lanOpen = false;
 Link lan;
-// What the shared version chooser is being used FOR. It only changes the
-// subtitle and whether there is a way back: at first boot every count would
-// read zero, which tells the player nothing, and there is nowhere to go back to.
-#define RPICK_FOR_GYMS  0
-#define RPICK_FOR_DEX   1
-#define RPICK_FOR_START 2
-// Three rows is what the round panel fits above the BACK label. The dex now
-// lists four versions and will list more, so the chooser PAGES rather than
-// growing -- and every paged screen in this sketch has to be driven by
-// swipe_test, which is why that test exists at all.
-#define RPICK_PER_PAGE  3
-extern uint8_t rpickPage;
-static void renderRegionPick(uint8_t mode);   // the version chooser, defined below
-// Not static: swipe_test drives these so it asks the FIRMWARE for the page
-// count instead of recomputing it from its own copy of RPICK_PER_PAGE, which
-// would prove the transcription rather than the screen.
-uint8_t rpickRegions(uint8_t mode);           // rows this mode lists (boss ladders: 3)
-uint8_t rpickPageCount(uint8_t mode);
-uint8_t rpickModeNow();                       // which chooser is up, 0xFF for none
-uint8_t rpickModeNow();                       // which chooser is up, or 0xFF
-static bool rpickSwipe(int dir);              // true if it handled the gesture
-// NOT static: explore_test drives it, because the sprite-pack gate it enforces
-// now covers the boss ladders as well and a greyed row that still answered a tap
-// is exactly the fault that change fixes.
-int regionPickTap(int16_t x, int16_t y, uint8_t mode);
-static void drawEggRegion();          // defined with the egg screen helpers
-static int eggRegionTap(int16_t x, int16_t y);
 static void drawBtlBack();
 static void btlLinkPoll();   // defined with the battle code, called from render()
-static void btlResolve(uint8_t yourMove);
+static void btlResolve(uint16_t yourMove);
 uint8_t btlMyAct = 0;        // host: our own action, latched until theirs lands
 // Which ladder the boss screen and the current fight belong to. The battle keeps
 // its own copy so that leaving the boss list mid-fight cannot retarget the badge.
@@ -387,10 +339,6 @@ uint8_t btlMyAct = 0;        // host: our own action, latched until theirs lands
 #define UI_TAP_FINGER 94
 
 // The LAN battle button on the boss version chooser.
-#define LANBTN_W 190
-#define LANBTN_H UI_TAP_MIN
-#define LANBTN_X (233 - LANBTN_W / 2)
-#define LANBTN_Y 336
 
 // The confirm panel, in ONE place. The digivolve/farewell/retire dialog on the
 // main screen and the settings reset both draw it, and hit_test asserts against
@@ -408,10 +356,6 @@ uint8_t btlMyAct = 0;        // host: our own action, latched until theirs lands
 #define CONFIRM_B2_Y 268
 
 
-uint8_t gymRegion = 0;
-uint8_t btlRegion = 0;
-#define TRAINERS (TRAINER_SETS[gymRegion % GYM_REGIONS].list)
-#define BTL_TRAINERS (TRAINER_SETS[btlRegion % GYM_REGIONS].list)
 bool gShowAllAvatars = false;  // emulator screenshot aid, never set on hardware
 // Emulator-only console commands. A RUNTIME FLAG, not a #ifdef, and deliberately:
 // tests/run.sh compiles these same sources twice -- once with g++ for the
@@ -426,21 +370,16 @@ uint8_t btlTrainWhich = 0;
 bool btlLink = false;      // this fight is against another device
 bool btlLinkHost = false;
 static bool gymUnlocked(uint8_t idx, bool hard) {
-  return idx == 0 || pet.hasBadge(gymRegion, idx - 1, hard);
+  return idx == 0 || pet.hasBadge(idx - 1, hard);
 }
 
 // The LAN screen remembers which button the player pressed.
 static void lanOffer(bool host);
 bool lanWantHost = true;
 bool playerOpen = false;
-// One badge page per boss version, then the medals. Three ladders will not fit on
-// one page, and the page you are on IS the version -- no extra control needed,
-// and horizontal paging already works everywhere else.
+// The badges, then the medals, then TODAY's checklist.
 uint8_t playerPage = 0;
-// One page per boss version, then the medals, then TODAY's checklist. Derived from
-// GYM_REGIONS rather than written out, so adding a ladder adds its own page.
-#define PLAYER_PAGES (GYM_REGIONS + 2)
-#define playerBadgeRegion (playerPage % GYM_REGIONS)
+#define PLAYER_PAGES 3
 uint8_t gymPage = 0;
 #define GYM_ROWS 5
 #define GYM_ROW_Y(i) (110 + (i) * 50)
@@ -461,12 +400,6 @@ bool btlHard = false;
 // The bag, and wild encounters.
 bool exploreOpen = false;
 bool exploreHard = false;
-uint8_t exploreRegion = 0xFF;
-#define EXPLORE_REGION_X 78
-#define EXPLORE_REGION_Y 170
-#define EXPLORE_REGION_W 310
-#define EXPLORE_REGION_H UI_TAP_FINGER
-#define EXPLORE_REGION_ARROW_W UI_TAP_FINGER
 #define EXPLORE_DIF_Y 272
 #define EXPLORE_DIF_H UI_TAP_MIN
 #define EXPLORE_BTN_X 78
@@ -484,11 +417,9 @@ uint8_t bagPage = 0;
 // of those is asked through btlWild, so there is no second opinion about what
 // kind of battle is on screen.
 bool btlWild = false;
-// The wild creature's rolled individual, kept BESIDE the Combatant because a
-// Combatant carries no IVs. The WILD console command reports it.
+// What was rolled, for the WILD console command.
 int16_t wildDex = 0;
 uint8_t wildLvl = 1;
-uint8_t wildIv[4] = { 0, 0, 0, 0 };   // atk, def, spe, hp
 bool wildVariant = false;
 // What a win handed over, for the settlement lines on the win screen.
 ItemKey wildDrops[4] = { ITEM_NONE, ITEM_NONE, ITEM_NONE, ITEM_NONE };
@@ -516,7 +447,7 @@ uint32_t btlFaintUntil[2] = { 0, 0 };
 uint8_t btlMenu = 0;
 #define BTL_LUNGE_MS 260
 #define BTL_HIT_MS 420
-char btlMsg[6][40];
+char btlMsg[6][64];        // a 15-letter name and a 30-letter skill both have to fit
 uint8_t btlMsgCount = 0;   // queued lines; a tap shows the next
 #define BTL_CELL_W 160
 #define BTL_CELL_H 54
@@ -740,35 +671,20 @@ static const uint16_t STARS[][2] = { {120,140},{330,120},{370,210},{95,230},{280
 
 bool wasPressed = false;
 // starter choice (first game): BOTAMON / AGUMON / BETAMON, 3 rows
-// The first-boot starter list is the FRONT of each version's starter array in
-// dex.h -- not a copy of it. That array is also the pool a version's first egg
-// is drawn from (pet.cpp rollInRegion). Every version starts from its Baby I
-// egg, and the choice screen only lists the ones that can be drawn. starter_test pins the first three of every version, so
-// reordering that array cannot silently change the first screen anyone sees.
+// The In-Training I forms that can be drawn, from pet.cpp's starterForms(), which is
+// also the egg pool. On public art that is Punimon, Botamon and Poyomon.
 #define STARTER_SHOWN 3
-// Only Baby Is that can actually be drawn are offered: Ver.3's Poyomon has no
-// sprite yet, so the mixed pool skips it rather than offering a "?".
-int16_t starterOf(uint8_t region, uint8_t i) {
-  const RegionInfo &rg = REGIONS[region % REGION_COUNT];
-  uint8_t k = 0;
-  for (uint8_t j = 0; j < rg.starterCount; j++) {
-    if (!speciesShowable(rg.starters[j])) continue;
-    if (k++ == i) return rg.starters[j];
-  }
-  return rg.starters[0];
+int16_t starterOf(uint8_t i) {
+  int16_t forms[STARTER_SHOWN];
+  const uint8_t n = starterForms(forms, STARTER_SHOWN);
+  return i < n && i < STARTER_SHOWN ? forms[i] : 0;
 }
-uint8_t starterCountShown(uint8_t region) {
-  const RegionInfo &rg = REGIONS[region % REGION_COUNT];
-  uint8_t n = 0;
-  for (uint8_t j = 0; j < rg.starterCount; j++)
-    if (speciesShowable(rg.starters[j])) n++;
+uint8_t starterCountShown() {
+  int16_t forms[STARTER_SHOWN];
+  const uint8_t n = starterForms(forms, STARTER_SHOWN);
   return n < STARTER_SHOWN ? n : STARTER_SHOWN;
 }
 
-// First boot runs version -> starter. This is NOT persisted: a reset between the
-// two lands back on the version, which is the harmless direction to fail in --
-// nothing has been chosen yet, and pet.setRegion() is idempotent.
-static bool starterRegionDone = false;
 #define STARTER_ROW_Y 110
 #define STARTER_ROW_H 70
 #define STARTER_ROW_GAP 8
@@ -860,7 +776,21 @@ void brightSetLevel(uint8_t level) {
 bool swallowGesture = false; // the touch that wakes the screen does nothing else
 uint32_t holdStart = 0;     // long press on the creature
 uint32_t confirmUntil = 0;  // "release?" dialog active until this millis
-uint8_t choiceKind = 0;     // decision dialog: 0 none, 1 digivolution, 2 farewell
+uint8_t choiceKind = 0;     // decision dialog: 0 none, 1 digivolution, 2 farewell,
+                            // 3 retirement, 4 de-digivolution
+// Which earlier form the card's button offers. Declining moves it on, the way
+// "keep form" moves the digivolution offer to the next branch.
+uint8_t devolvePick = 0;
+#define DEVO_OPTIONS_MAX 16
+int16_t devolveTarget() {
+  int16_t open[DEVO_OPTIONS_MAX];
+  const uint8_t n = pet.devolveOptions(open, DEVO_OPTIONS_MAX);
+  return n ? open[devolvePick % n] : 0;
+}
+#define DEVO_BTN_W 240
+#define DEVO_BTN_H UI_TAP_MIN
+#define DEVO_BTN_X (CX - DEVO_BTN_W / 2)
+#define DEVO_BTN_Y 362
 uint32_t choiceUntil = 0;   // closes by itself at this millis
 int16_t tX0, tY0, tXl, tYl; // gesture in progress (start and last position)
 uint32_t tStart = 0;
@@ -907,6 +837,8 @@ void setup() {
   // wipe asked for on the previous run finishes here, where there is no window
   // for the old creature to be written back over it. See save.h § RESET_NS.
   resetRecover();
+  // Before the bag and the pet read the namespace: see save.h.
+  gOldSaveReplaced = saveReplaceOld();
   loadLang();  // saved language (ES by default)
   brightLoad();  // saved brightness (default: the usual one)
   Wire.begin(IIC_SDA, IIC_SCL);
@@ -1051,15 +983,15 @@ void loop() {
   ensureMon();
 
   // A sprite pack can arrive long after the card was mounted: the web installer
-  // streams it over PUT into the FIRMWARE THAT IS ALREADY RUNNING. gRegionArt was
-  // computed once in sdBegin(), so without this the version a player just spent ten
-  // minutes downloading stayed greyed out reading NEEDS PACK until they rebooted --
-  // indistinguishable, from the player's side, from the download having failed.
+  // streams it over PUT into the FIRMWARE THAT IS ALREADY RUNNING. gArtPack was
+  // computed once in sdBegin(), so without this the pack a player just spent ten
+  // minutes downloading stayed unused until they rebooted -- indistinguishable,
+  // from the player's side, from the download having failed.
   // Quietly, because the host is still parsing this serial stream -- and once per
   // transfer rather than after every file, which cost 27 lookups in /mons each time.
   if (sdArtDirty && !transferMode()) {
     sdArtDirty = false;
-    sdScanRegionArt(false);
+    sdScanArtPack(false);
   }
   // The same, for the gallery: thumbs.bin is read in setup(), so a copy that arrived
   // over PUT drew nothing new until a restart.
@@ -1189,7 +1121,9 @@ void handleSerial() {
     if (n >= 1 && n <= DEX_COUNT) {
       pet.prevSpeciesId = pet.speciesId;
       pet.speciesId = n;
-      Serial.printf("species #%d %s\n", n, DEX_TBL[n].name);
+      pet.formAgeMin = pet.ageMinutes;
+      pet.relearnFromLevel();
+      Serial.printf("species #%d %s\n", n, TS_DEX_TBL[n].name);
     }
     Serial.println("DONE");
   } else if (line.startsWith("LVL ")) {
@@ -1294,7 +1228,7 @@ void handleSerial() {
     // simulate 20 egg rolls (does not change the game state)
     for (int i = 0; i < 20; i++) {
       int16_t d = pet.pickEggSpecies();
-      Serial.printf("%d:%s(r%u) ", d, DEX_TBL[d].name, DEX_TBL[d].rarity);
+      Serial.printf("%d:%s ", d, TS_DEX_TBL[d].name);
     }
     Serial.println();
     Serial.println("DONE");
@@ -1305,8 +1239,8 @@ void handleSerial() {
     }
     Serial.println("DONE");
   } else if (line.startsWith("GIVE ")) {
-    // GIVE <key> [n]: stock the bag, so catching can be exercised without
-    // grinding wild wins first.
+    // GIVE <key> [n]: stock the bag, so items can be exercised without grinding
+    // wild wins first.
     int key = 0, n = 1;
     if (sscanf(line.c_str() + 5, "%d %d", &key, &n) >= 1 &&
         itemValid((ItemKey)key)) {
@@ -1319,22 +1253,21 @@ void handleSerial() {
     Serial.println("DONE");
   } else if (line == "WILD" || line == "WILD HARD") {
     bool hard = (line == "WILD HARD");
-    if (startWildBattle(currentExploreRegion(), hard))
-      Serial.printf("wild %s Lv.%u%s iv=%u/%u/%u/%u\n", DEX_TBL[wildDex].name,
-                    wildLvl, wildVariant ? " *VARIANT*" : "",
-                    wildIv[0], wildIv[1], wildIv[2], wildIv[3]);
+    if (startWildBattle(hard))
+      Serial.printf("wild %s Lv.%u%s\n", TS_DEX_TBL[wildDex].name,
+                    wildLvl, wildVariant ? " *VARIANT*" : "");
     else
       Serial.println("no encounter (egg, ceremony, or no sprite pack)");
     Serial.println("DONE");
   } else if (line.startsWith("EGG ")) {
-    // EGG <dex> [variant]: hatch a chosen Digimon right now. The Mega and
-    // variant IV guarantees only apply at hatch time, so this is the only way to
+    // EGG <dex> [variant]: hatch a chosen Digimon right now. The variant IV
+    // guarantee only applies at hatch time, so this is the only way to
     // exercise them on hardware (VARIANT below just toggles the flag afterwards).
     int dex = 0, sh = 0;
     int n = sscanf(line.c_str() + 4, "%d %d", &dex, &sh);
     if (n >= 1 && dex >= 1 && dex <= DEX_COUNT) {
       pet.dbgHatchAs(dex, sh != 0);
-      Serial.printf("%s%s iv=%u/%u/%u/%u\n", DEX_TBL[dex].name,
+      Serial.printf("%s%s iv=%u/%u/%u/%u\n", TS_DEX_TBL[dex].name,
                     pet.variant ? " *VARIANT*" : "", pet.ivAtk, pet.ivDef,
                     pet.ivSpe, pet.ivHp);
     }
@@ -1345,7 +1278,7 @@ void handleSerial() {
     int n = sscanf(line.c_str() + 6, "%d %d", &dex, &lvl);
     if (n >= 1 && dex >= 1 && dex <= DEX_COUNT) {
       startBattle(dex, lvl > 0 ? (uint8_t)lvl : pet.level());
-      Serial.printf("battle vs %s Lv.%u\n", DEX_TBL[dex].name, btlFoe.level);
+      Serial.printf("battle vs %s Lv.%u\n", TS_DEX_TBL[dex].name, btlFoe.level);
     } else {
       Serial.println("usage: BATTLE <dex> [level]");
     }
@@ -1612,35 +1545,13 @@ void onSwipeV(int dir) {
 
   if (exploreOpen) { if (back) uiTileGo(TILE_PET); return; }
 
-  // The two multi-version tiles are two levels deep: chooser, then ladder/grid.
-  // DOWN walks back out of them one step at a time; UP keeps the version
-  // shortcut, which is now a convenience rather than the only way in.
-  if (gymOpen) {
-    if (gymPick) { if (back) uiTileGo(TILE_PET); return; }
-    if (back) { gymPick = true; rpickPage = 0; sfxPlay(SFX_TAP); return; }
-    gymRegion = (uint8_t)((gymRegion + 1) % GYM_REGIONS);
-    gymPage = 0;
-    sfxPlay(SFX_TAP);
-    return;
-  }
+  if (gymOpen) { if (back) uiTileGo(TILE_PET); return; }
   if (galleryOpen) {
     if (galleryDetail) {
       if (back) { galleryDetail = 0; galleryPmd.unload(); galleryDirty = true; }
       return;
     }
-    if (galleryPick) { if (back) uiTileGo(TILE_PET); return; }
-    if (back) {
-      galleryPick = true; rpickPage = 0;
-      galleryPmd.unload();
-      galleryDirty = true;
-      sfxPlay(SFX_TAP);
-      return;
-    }
-    galleryRegion = (uint8_t)((galleryRegion + 1) % GAL_REGIONS);
-    galleryPage = 0;
-    galleryClampPage();
-    galleryDirty = true;
-    sfxPlay(SFX_TAP);
+    if (back) uiTileGo(TILE_PET);
     return;
   }
   if (playerOpen) { if (back) uiTileGo(TILE_PET); return; }
@@ -1658,7 +1569,7 @@ void onSwipeV(int dir) {
 void uiButtonHeights(int *out, int max, int *n) {
   // What a control is worth is what you can HIT, not what it draws: the home
   // icons are a 72 px graphic inside a 94 px disc.
-  const int h[] = { LANBTN_H,
+  const int h[] = { GYMBTN_H,
                     BTL_CELL_H + BTL_HIT_PAD * 2,
                     EXPLORE_BTN_H + EXPLORE_BTN_PAD * 2, BTN_HIT * 2,
                     // The memory game's pads. COMPACT controls, like everything
@@ -1739,10 +1650,8 @@ int uiButtonHitR() { return BTN_HIT; }
 // how the same paging bug shipped four times. Paging moved to the rim
 // (onRim), which is what frees this axis to mean one thing.
 void onSwipe(int dir) {
-  // First boot has no axis yet -- nothing but the version chooser exists -- so
-  // horizontal still pages it there. The rim is not a gesture anyone has been
-  // taught on the first screen they ever see.
-  if (pet.awaitingStarter()) { rpickSwipe(dir); return; }
+  // First boot has no axis yet: nothing exists but the starter choice.
+  if (pet.awaitingStarter()) return;
   if (menuOpen) { menuOpen = false; return; }   // any swipe closes the menu
   if (battleOpen) return;   // no swiping out of a fight
 
@@ -1772,30 +1681,12 @@ void onSwipe(int dir) {
 }
 
 void onTap(int16_t x, int16_t y) {
-  if (pet.awaitingStarter()) {  // first game: version, then starter
-    if (!starterRegionDone) {
-      int r = regionPickTap(x, y, RPICK_FOR_START);
-      if (r >= 0) {
-        pet.setRegion((uint8_t)r);   // the version picked here is where eggs come from too
-        starterRegionDone = true;
-        sfxPlay(SFX_TAP);
-        // A version hatches ONE Baby I, so there is nothing left to choose:
-        // its Digi-Egg appears straight away. The mixed pool (ALL) picks one
-        // of the drawable Baby Is at random -- the surprise is the point.
-        {
-          const RegionInfo &rg = REGIONS[pet.region % REGION_COUNT];
-          int16_t ok[8]; uint8_t n = 0;
-          for (uint8_t i = 0; i < rg.starterCount && n < 8; i++)
-            if (speciesShowable(rg.starters[i])) ok[n++] = rg.starters[i];
-          if (n) pet.chooseStarter(ok[random(n)]);
-        }
-      }
-      return;
-    }
-    for (int i = 0; i < starterCountShown(pet.region); i++) {
+  if (pet.awaitingStarter()) {  // first game: choose a starter
+    for (int i = 0; i < starterCountShown(); i++) {
       int ry = STARTER_ROW_Y + i * (STARTER_ROW_H + STARTER_ROW_GAP);
       if (x >= 70 && x <= 396 && y >= ry && y <= ry + STARTER_ROW_H) {
-        pet.chooseStarter(starterOf(pet.region, (uint8_t)i));
+        gOldSaveReplaced = false;
+        pet.chooseStarter(starterOf((uint8_t)i));
         sfxPlay(SFX_TAP);
         break;
       }
@@ -1807,12 +1698,6 @@ void onTap(int16_t x, int16_t y) {
     return;
   }
   if (exploreOpen) {
-    int8_t regionStep = exploreRegionHit(x, y);
-    if (regionStep) {
-      exploreStepRegion(regionStep);
-      sfxPlay(SFX_TAP);
-      return;
-    }
     if (y >= EXPLORE_DIF_Y && y <= EXPLORE_DIF_Y + EXPLORE_DIF_H) {
       exploreHard = !exploreHard;
       sfxPlay(SFX_TAP);
@@ -1822,7 +1707,7 @@ void onTap(int16_t x, int16_t y) {
       x <= EXPLORE_BTN_X + EXPLORE_BTN_W + EXPLORE_BTN_PAD &&
       y >= EXPLORE_BTN_Y - EXPLORE_BTN_PAD &&
       y <= EXPLORE_BTN_Y + EXPLORE_BTN_H + EXPLORE_BTN_PAD) {
-      if (!startWildBattle(currentExploreRegion(), exploreHard)) { sfxPlay(SFX_DENY); return; }
+      if (!startWildBattle(exploreHard)) { sfxPlay(SFX_DENY); return; }
       exploreOpen = false;
       sfxPlay(SFX_TAP);
     }
@@ -1850,26 +1735,6 @@ void onTap(int16_t x, int16_t y) {
   }
   if (lanOpen) {
     lanTap(x, y);
-    return;
-  }
-  if (gymOpen && gymPick) {
-    int r = regionPickTap(x, y, RPICK_FOR_GYMS);
-    if (r >= 0) {
-      gymRegion = (uint8_t)r;
-      gymPage = 0;
-      gymPick = false;
-      sfxPlay(SFX_TAP);
-      return;
-    }
-    if (y >= LANBTN_Y && y <= LANBTN_Y + LANBTN_H &&
-        x >= LANBTN_X && x <= LANBTN_X + LANBTN_W) {   // LAN battle
-      gymOpen = false; gymPick = false;
-      lan.state = LINK_OFF;
-      lanOpen = true;
-      sfxPlay(SFX_TAP);
-      return;
-    }
-    if (y > 380) { gymOpen = false; gymPick = false; }
     return;
   }
   if (gymOpen) {
@@ -1952,7 +1817,7 @@ void onTap(int16_t x, int16_t y) {
       menuOpen = false;
       if (i == 0) { cardOpen = true; cardPage = 1; }   // straight to the stats page
       else if (i == 1) { bagOpen = true; bagPage = 0; }
-      else if (i == 2) { galleryOpen = true; galleryPick = true; galleryPage = 0; rpickPage = 0; galleryDetail = 0; galleryDirty = true; }
+      else if (i == 2) { galleryOpen = true; galleryPage = 0; galleryDetail = 0; galleryDirty = true; }
       else if (i == 3) { openClock(); }
       else if (i == 4) {
         if (!pet.canRetireNow()) { sfxPlay(SFX_DENY); return; }
@@ -1963,8 +1828,8 @@ void onTap(int16_t x, int16_t y) {
     return;
   }
   if (movePickOpen) {
-    uint8_t all[64];
-    uint8_t n = learnableList(all, sizeof(all));
+    uint16_t all[MOVE_PICK_MAX];
+    uint8_t n = learnableList(all, MOVE_PICK_MAX);
     for (uint8_t i = 0; i < MOVE_PICK_PER_PAGE; i++) {
       uint8_t idx = movePickPage * MOVE_PICK_PER_PAGE + i;
       if (idx >= n) break;
@@ -1973,7 +1838,7 @@ void onTap(int16_t x, int16_t y) {
       sfxPlay(SFX_TAP);
       // Swapping for a move already in another slot would silently duplicate
       // it, so trade the two slots instead of overwriting.
-      uint8_t *tgt = pickTargetMoves();
+      uint16_t *tgt = pickTargetMoves();
       for (int s = 0; s < MOVE_SLOTS; s++)
         if (tgt[s] == all[idx] && s != movePickSlot) tgt[s] = tgt[movePickSlot];
       tgt[movePickSlot] = all[idx];
@@ -1985,21 +1850,6 @@ void onTap(int16_t x, int16_t y) {
     return;
   }
   if (galleryOpen) {
-    if (galleryPick) {
-      int r = regionPickTap(x, y, RPICK_FOR_DEX);
-      if (r >= 0) {
-        galleryRegion = (uint8_t)r;
-        galleryPage = 0;
-        galleryClampPage();
-        galleryDetail = 0;
-        galleryDirty = true;
-        galleryPick = false;
-        sfxPlay(SFX_TAP);
-      } else if (y > 380) {
-        galleryOpen = false;
-      }
-      return;
-    }
     galleryTap(x, y);
     return;
   }
@@ -2014,7 +1864,13 @@ void onTap(int16_t x, int16_t y) {
   if (pet.ceremony) return;  // no buttons during the farewell
   if (cardOpen) {
     if (cardPage == 0 && y < 84) openKeyboard();  // tap the name = rename
-    else if (cardPage == 2) {
+    else if (cardPage == CARD_PROGRESS_PAGE && devolveTarget() &&
+             x >= DEVO_BTN_X && x <= DEVO_BTN_X + DEVO_BTN_W &&
+             y >= DEVO_BTN_Y && y <= DEVO_BTN_Y + DEVO_BTN_H) {
+      cardOpen = false;
+      choiceKind = 4; choiceUntil = millis() + 12000;
+      sfxPlay(SFX_TAP);
+    } else if (cardPage == 2) {
       for (int i = 0; i < MOVE_SLOTS; i++) {   // tap a slot to change it
         int ry = MOVE_ROW_Y(i);
         if (x < 70 || x > 396 || y < ry || y > ry + 50) continue;
@@ -2054,6 +1910,13 @@ void onTap(int16_t x, int16_t y) {
     } else if (choiceKind == 3) {          // retirement on request
       if (b1) pet.startRetire();
       // b2 is simply "no": nothing to decline, the row is always there
+    } else if (choiceKind == 4) {          // de-digivolution
+      if (b1) {
+        int16_t old = pet.speciesId;
+        if (pet.devolve(devolveTarget())) evoPmd.load(old, pet.variant);
+      } else if (b2) {
+        devolvePick++;
+      }
     } else if (choiceKind == 2) {          // farewell
       if (b1) pet.startFarewell();
       else if (b2) pet.declineFarewell();
@@ -2083,7 +1946,6 @@ void onTap(int16_t x, int16_t y) {
   if (pet.isEgg()) {
     // the version pill first, or choosing a version would also crack the egg --
     // and a near miss is swallowed rather than counted, since three taps hatch
-    if (eggRegionTap(x, y)) return;
     pet.eggTap();
     sfxPlay(SFX_TAP);
     return;
@@ -2257,18 +2119,28 @@ void renderStarterSelect() {
   gfx->setTextSize(2);
   gfx->setCursor(CX - strlen(t) * 6, 68);
   gfx->print(t);
-  for (int i = 0; i < starterCountShown(pet.region); i++) {
-    int16_t d = starterOf(pet.region, i);
-    const DexEntry &de = DEX_TBL[d];
+  for (int i = 0; i < starterCountShown(); i++) {
+    int16_t d = starterOf(i);
+    const uint16_t accent = dexAccent(d);
     int ry = STARTER_ROW_Y + i * (STARTER_ROW_H + STARTER_ROW_GAP);
-    gfx->fillRoundRect(70, ry, 326, STARTER_ROW_H, 14, lerp565(de.accent, UI_WHITE, 6, 8));
-    gfx->drawRoundRect(70, ry, 326, STARTER_ROW_H, 14, de.accent);
+    gfx->fillRoundRect(70, ry, 326, STARTER_ROW_H, 14, lerp565(accent, UI_WHITE, 6, 8));
+    gfx->drawRoundRect(70, ry, 326, STARTER_ROW_H, 14, accent);
     const uint8_t *th = thumbs.get(d);     // the starter's thumbnail (if the SD is ready)
     if (th) drawThumb(th, 76, ry - 5, 3, false);
     gfx->setTextColor(UI_INK);
     gfx->setTextSize(3);
     gfx->setCursor(178, ry + 24);
-    gfx->print(de.name);
+    gfx->print(TS_DEX_TBL[d].name);
+  }
+  // A v1.0.0 save cannot be carried forward. A player who just updated has to be told
+  // why their partner is gone, on the panel: they are not watching the serial port.
+  if (gOldSaveReplaced) {
+    gfx->setTextColor(UI_TEXT_BAD);
+    gfx->setTextSize(1);
+    gfx->setCursor(CX - (int)strlen(T(S_OLD_SAVE)) * 3, 354);
+    gfx->print(T(S_OLD_SAVE));
+    gfx->setCursor(CX - (int)strlen(T(S_OLD_SAVE2)) * 3, 366);
+    gfx->print(T(S_OLD_SAVE2));
   }
   gfx->flush();
 }
@@ -2292,8 +2164,8 @@ RTC_NOINIT_ATTR uint32_t gCrumbHeap;
 // Which screen is on the panel RIGHT NOW, in the same order render() tests.
 uint8_t uiCurrentScreen() {
   if (transferMode()) return SCR_TRANSFER;
-  if (pet.awaitingStarter()) return starterRegionDone ? SCR_STARTER : SCR_REGION;
-  if (galleryOpen) return galleryPick ? SCR_DEXPICK : SCR_GALLERY;
+  if (pet.awaitingStarter()) return SCR_STARTER;
+  if (galleryOpen) return SCR_GALLERY;
   if (movePickOpen) return SCR_MOVEPICK;
   if (bagOpen) return SCR_BAGSCR;
   if (kbOpen) return SCR_KEYBOARD;
@@ -2304,7 +2176,7 @@ uint8_t uiCurrentScreen() {
   if (battleOpen) return SCR_BATTLE;
   if (lanOpen) return SCR_LAN;
   if (exploreOpen) return SCR_EXPLORE;
-  if (gymOpen) return gymPick ? SCR_GYMPICK : SCR_GYM;
+  if (gymOpen) return SCR_GYM;
   if (pet.hasLearnOffer()) return SCR_LEARN;
   if (gameOpen || sackOpen || spdOpen || memoOpen) return SCR_GAME;
   if (trainOpen) return SCR_TRAIN;
@@ -2330,26 +2202,18 @@ uint8_t uiCurrentScreen() {
 //
 // Vertical stays depth: up opens, down goes back.
 
-// A tile's screen, and the chooser it opens on where it has one. Both belong to
-// the same tile: the version choosers are not a level of depth, they ARE the boss
-// and Digidex tiles until a version is picked. One table, so uiTileIndex() and
-// uiTileGo() cannot end up with different ideas of what is on the axis.
+// One table, so uiTileIndex() and uiTileGo() cannot disagree about the axis.
 //
 // PLAYER . [PET] . EXPLORE . GYM . DEX -- yours on the left, the world on the
 // right. Exploration is a primary loop, not a boss action, so it gets the first
 // world-facing stop and the main screen can name it directly. PARTY used to sit
 // between PLAYER and the pet; with one partner there is no party to show.
-struct TileDef { uint8_t scr, alt; };
-static const TileDef TILE[TILE_COUNT] = {
-  { SCR_PLAYER, SCR_PLAYER }, { SCR_MAIN, SCR_MAIN },
-  { SCR_EXPLORE, SCR_EXPLORE }, { SCR_GYM, SCR_GYMPICK },
-  { SCR_GALLERY, SCR_DEXPICK },
-};
+static const uint8_t TILE[TILE_COUNT] = { SCR_PLAYER, SCR_MAIN, SCR_EXPLORE, SCR_GYM, SCR_GALLERY };
 
 int uiTileIndex() {
   uint8_t s = uiCurrentScreen();
   for (int i = 0; i < TILE_COUNT; i++)
-    if (TILE[i].scr == s || TILE[i].alt == s) return i;
+    if (TILE[i] == s) return i;
   return -1;   // not on the axis: a modal, a minigame, a fight
 }
 
@@ -2360,14 +2224,11 @@ void uiTileGo(int i) {
   if (i >= TILE_COUNT) i = TILE_COUNT - 1;
   exploreOpen = gymOpen = galleryOpen = playerOpen = false;
   galleryDetail = 0;
-  switch (TILE[i].scr) {
-    // The two multi-version screens land on their CHOOSER, never on whichever
-    // version was last set. Opening straight into it is how Ver.2 and Ver.3 came
-    // to be built, reachable, and completely invisible.
-    case SCR_GYM: gymOpen = true; gymPick = true; gymPage = 0; rpickPage = 0; break;
+  switch (TILE[i]) {
+    case SCR_GYM: gymOpen = true; gymPage = 0; break;
     case SCR_EXPLORE: exploreOpen = true; break;
     case SCR_GALLERY:
-      galleryOpen = true; galleryPick = true; galleryPage = 0; rpickPage = 0;
+      galleryOpen = true; galleryPage = 0;
       galleryDirty = true;
       break;
     case SCR_PLAYER: playerOpen = true; playerPage = 0; break;
@@ -2387,8 +2248,8 @@ static uint8_t *uiRimTarget(uint8_t *pages) {
   uint8_t *p = nullptr;
   switch (uiCurrentScreen()) {
     case SCR_GYM:     p = &gymPage;     n = (TRAINER_COUNT + GYM_ROWS - 1) / GYM_ROWS; break;
-    // galleryPages(), not GAL_PAGES: with a filter on, the grid is shorter than
-    // the version, and paging past the filtered end draws an empty screen.
+    // galleryPages(): with a filter on, the grid is shorter, and paging past the
+    // filtered end draws an empty screen.
     case SCR_GALLERY: p = &galleryPage; n = galleryPages(); break;
     case SCR_PLAYER:  p = &playerPage;  n = PLAYER_PAGES; break;
     case SCR_BAGSCR:  p = &bagPage;     n = bagPages(); break;
@@ -2398,8 +2259,8 @@ static uint8_t *uiRimTarget(uint8_t *pages) {
     // same table, so the second page advertises itself with no new control.
     case SCR_CLOCK:   p = &clockPage;   n = CLOCK_PAGES; break;
     case SCR_MOVEPICK: {
-      uint8_t all[64];
-      uint8_t k = learnableList(all, sizeof(all));
+      uint16_t all[MOVE_PICK_MAX];
+      uint8_t k = learnableList(all, MOVE_PICK_MAX);
       p = &movePickPage;
       n = k ? (uint8_t)((k + MOVE_PICK_PER_PAGE - 1) / MOVE_PICK_PER_PAGE) : 1;
       break;
@@ -2412,20 +2273,17 @@ static uint8_t *uiRimTarget(uint8_t *pages) {
 
 uint8_t uiRimPages() {
   uint8_t n = 1;
-  if (rpickModeNow() != 0xFF) return rpickPageCount(rpickModeNow());
   uiRimTarget(&n);
   return n;
 }
 
 uint8_t uiRimPage() {
-  if (rpickModeNow() != 0xFF) return rpickPage;
   uint8_t *p = uiRimTarget(nullptr);
   return p ? *p : 0;
 }
 
 // dir > 0 is clockwise, which is forwards.
 void onRim(int dir) {
-  if (rpickSwipe(-dir)) return;   // the chooser pages itself, and WRAPS
   uint8_t n = 1;
   uint8_t *p = uiRimTarget(&n);
   if (!p || n < 2) return;
@@ -2504,38 +2362,10 @@ void uiChrome() {
   uiDrawRimBar();
 }
 
-uint8_t currentExploreRegion() {
-  if (exploreRegion < REGION_COUNT && regionAvailable(exploreRegion)) return exploreRegion;
-  uint8_t base = pet.region % REGION_COUNT;
-  exploreRegion = regionAvailable(base) ? base : nextAvailableRegion(base);
-  return exploreRegion;
-}
-
-int8_t exploreRegionHit(int16_t x, int16_t y) {
-  if (y < EXPLORE_REGION_Y || y > EXPLORE_REGION_Y + EXPLORE_REGION_H ||
-      x < EXPLORE_REGION_X || x > EXPLORE_REGION_X + EXPLORE_REGION_W) return 0;
-  if (x <= EXPLORE_REGION_X + EXPLORE_REGION_ARROW_W) return -1;
-  if (x >= EXPLORE_REGION_X + EXPLORE_REGION_W - EXPLORE_REGION_ARROW_W) return 1;
-  return 0;
-}
-
-void exploreStepRegion(int8_t step) {
-  int region = currentExploreRegion();
-  for (uint8_t i = 0; i < REGION_COUNT; i++) {
-    region += step < 0 ? -1 : 1;
-    if (region < 0) region = REGION_COUNT - 1;
-    else if (region >= REGION_COUNT) region = 0;
-    if (regionAvailable((uint8_t)region)) {
-      exploreRegion = (uint8_t)region;
-      return;
-    }
-  }
-}
-
 void renderExplore() {
   int h = sceneHour();
   gNight = pet.sleeping || h < 6 || h >= 20;
-  drawScene(pet.isEgg() ? 0 : DEX_TBL[pet.speciesId].biome, millis(), gNight);
+  drawScene(pet.isEgg() ? 0 : dexBiome(pet.speciesId), millis(), gNight);
 
   gfx->fillRoundRect(78, 28, 310, 54, 14, UI_BG_DAY);
   gfx->drawRoundRect(78, 28, 310, 54, 14, UI_INK);
@@ -2544,23 +2374,7 @@ void renderExplore() {
   gfx->setCursor(CX - (int)strlen(T(S_EXPLORE)) * 9, 44);
   gfx->print(T(S_EXPLORE));
 
-  drawMap(SPR_ICON_PLAY, 16, CX - 40, 88, 5, false);
-  const char *region = REGIONS[currentExploreRegion()].name;
-  gfx->fillRoundRect(EXPLORE_REGION_X, EXPLORE_REGION_Y, EXPLORE_REGION_W,
-                     EXPLORE_REGION_H, 16, UI_BG_DAY);
-  gfx->drawRoundRect(EXPLORE_REGION_X, EXPLORE_REGION_Y, EXPLORE_REGION_W,
-                     EXPLORE_REGION_H, 16, UI_INK);
-  gfx->setTextColor(UI_INK);
-  gfx->setTextSize(3);
-  gfx->setCursor(EXPLORE_REGION_X + 38, EXPLORE_REGION_Y + 29);
-  gfx->print("<");
-  gfx->setCursor(EXPLORE_REGION_X + EXPLORE_REGION_W - 56, EXPLORE_REGION_Y + 29);
-  gfx->print(">");
-  gfx->setTextSize(strlen(region) <= 10 ? 3 : 2);
-  int regionCharHalf = strlen(region) <= 10 ? 9 : 6;
-  gfx->setCursor(CX - (int)strlen(region) * regionCharHalf,
-                 EXPLORE_REGION_Y + (strlen(region) <= 10 ? 29 : 35));
-  gfx->print(region);
+  drawMap(SPR_ICON_PLAY, 16, CX - 40, 112, 5, false);
 
   const char *dif = T(exploreHard ? S_HARD : S_EASY);
   int dw = (int)strlen(dif) * 12 + 48;
@@ -2649,13 +2463,11 @@ void render() {
     renderTransfer();
     return;
   }
-  if (pet.awaitingStarter()) {  // first game: version, then starter
-    if (!starterRegionDone) renderRegionPick(RPICK_FOR_START);
-    else renderStarterSelect();
+  if (pet.awaitingStarter()) {  // first game: choose a starter
+    renderStarterSelect();
     return;
   }
   if (galleryOpen) {
-    if (galleryPick) { renderRegionPick(RPICK_FOR_DEX); return; }
     renderGallery();
     return;
   }
@@ -2709,8 +2521,7 @@ void render() {
     return;
   }
   if (gymOpen) {
-    if (gymPick) renderRegionPick(RPICK_FOR_GYMS);
-    else renderGyms();
+    renderGyms();
     return;
   }
   if (playerOpen) {
@@ -2729,14 +2540,14 @@ void render() {
   gNight = pet.sleeping || h < 6 || h >= 20;
   // drawScene covers the full 466x466: no fillScreen(BLACK) beforehand, so
   // an overlapping DMA flush never captures half-black (anti-flicker)
-  drawScene(pet.isEgg() ? 0 : DEX_TBL[pet.speciesId].biome, millis(), gNight);
+  drawScene(pet.isEgg() ? 0 : dexBiome(pet.speciesId), millis(), gNight);
 
   if (pet.ceremony) {
-    const DexEntry &d = DEX_TBL[pet.speciesId];
+    const TsDexEntry &d = TS_DEX_TBL[pet.speciesId];
     const char *msg = (pet.ceremony == CER_FAREWELL) ? T(S_FAREWELL)
                       : (pet.ceremony == CER_RUNAWAY) ? T(S_RUNAWAY)
                                                       : T(S_GOODBYE);
-    drawHeader(d.name, d.accent, msg);
+    drawHeader(d.name, dexAccent(pet.speciesId), msg);
     drawCeremony();
     gfx->flush();
     return;
@@ -2750,13 +2561,6 @@ void render() {
       for (auto &c : CRACK1) gfx->fillRect(x + c[0] * s, y + c[1] * s, s, s, INK_K);
     if (pet.eggCracks() >= 2)
       for (auto &c : CRACK2) gfx->fillRect(x + c[0] * s, y + c[1] * s, s, s, INK_K);
-    if (pet.eggRarity() >= R_RARO) {
-      const char *rar = (pet.eggRarity() == R_LEGENDARIO) ? T(S_EGG_LEGEND) : T(S_EGG_RARE);
-      gfx->setTextColor(pet.eggRarity() == R_LEGENDARIO ? UI_BAR_WARN : 0x4C98);
-      gfx->setTextSize(2);
-      gfx->setCursor(CX - strlen(rar) * 6, 316);
-      gfx->print(rar);
-    }
     char reg[24];
     snprintf(reg, sizeof(reg), T(S_DIGIDEX_FMT), pet.registeredCount(), DEX_COUNT);
     gfx->fillRect(0, 312, 466, 154, gNight ? UI_BG_NIGHT : UI_BG_DAY);
@@ -2769,13 +2573,12 @@ void render() {
     // settings screen because this is the only moment it does anything: the
     // Digimon is decided when the egg appears, so choosing the version is
     // something you do to the egg in front of you.
-    drawEggRegion();
   } else {
-    const DexEntry &d = DEX_TBL[pet.speciesId];
+    const TsDexEntry &d = TS_DEX_TBL[pet.speciesId];
     char name[28];
     const char *base = pet.nick[0] ? pet.nick : d.name;
     snprintf(name, sizeof(name), T(S_NAME_FMT), pet.variant ? "*" : "", base, pet.level());
-    drawHeader(name, gNight ? UI_INK_NIGHT : d.accent, statusMsg());
+    drawHeader(name, gNight ? UI_INK_NIGHT : dexAccent(pet.speciesId), statusMsg());
     drawStreakBadge();
     drawPet();
     drawBath();
@@ -2819,7 +2622,7 @@ void render() {
       gfx->fillRoundRect(94, 168, 278, 152, 16, UI_WHITE);
       gfx->drawRoundRect(94, 168, 278, 152, 16, UI_INK);
       char q[28];
-      snprintf(q, sizeof(q), T(S_RELEASE_FMT), DEX_TBL[pet.speciesId].name);
+      snprintf(q, sizeof(q), T(S_RELEASE_FMT), TS_DEX_TBL[pet.speciesId].name);
       gfx->setTextColor(UI_INK);
       gfx->setTextSize(2);
       gfx->setCursor(CX - strlen(q) * 6, 196);
@@ -3072,7 +2875,7 @@ void drawGameScene() {
     gfx->fillRect(0, y, 466, 8, lerp565(top, bot, y, hor));
   if (night)
     for (auto &st : STARS) gfx->fillRect(st[0], st[1], 4, 4, UI_WHITE);
-  uint8_t bio = pet.isEgg() ? 0 : DEX_TBL[pet.speciesId].biome;
+  uint8_t bio = pet.isEgg() ? 0 : dexBiome(pet.speciesId);
   uint16_t soil = BIOME_SOIL[bio < 6 ? bio : 0];
   if (night) soil = lerp565(soil, C565(0x16, 0x1c, 0x30), 9, 16);
   gfx->fillRect(0, hor, 466, 466 - hor, soil);
@@ -3578,11 +3381,11 @@ void drawMedalBadge(int x, int y, int i) {
 
 // pagina 0: perfil (retrato grande, identidad, racha, vinculo, baya)
 void renderCardProfile() {
-  const DexEntry &d = DEX_TBL[pet.speciesId];
+  const TsDexEntry &d = TS_DEX_TBL[pet.speciesId];
   const char *nm = pet.nick[0] ? pet.nick : d.name;
   char head[26];
   snprintf(head, sizeof(head), T(S_NAME_FMT), pet.variant ? "*" : "", nm, pet.level());
-  gfx->setTextColor(d.accent);
+  gfx->setTextColor(dexAccent(pet.speciesId));
   // auto-shrink: at size 3 long names do not fit the narrow strip at the
   // top of the round screen, so they were cut off at the edge
   int hlen = strlen(head);
@@ -3633,7 +3436,7 @@ void renderCardProfile() {
   // Its temperament, beside the food it likes -- the other thing about this
   // individual that is true from the moment it hatches and never changes. Derived
   // from the IVs, so it costs the save nothing; see Pet::personality().
-  gfx->setTextColor(DEX_TBL[pet.speciesId].accent);
+  gfx->setTextColor(dexAccent(pet.speciesId));
   gfx->setTextSize(2);
   gfx->setCursor(CX - (int)strlen(personalityName()) * 6, 320);
   gfx->print(personalityName());
@@ -3651,19 +3454,19 @@ void renderCardStats() {
   gfx->setCursor(CX - strlen(T(S_BATTLE)) * 9, 44);
   gfx->print(T(S_BATTLE));
 
-  // typing, in the accent colour of the Digimon (English in every language,
-  // same as the Digimon names themselves)
-  const DexEntry &de = DEX_TBL[pet.speciesId];
-  // element and attribute: the two things a matchup is decided by
+  // its element, in its accent colour (English in every language, same as the
+  // Digimon names themselves), and its attribute: the two things a matchup turns on
+  const int16_t dex = pet.speciesId;
+  const TsDexEntry &de = TS_DEX_TBL[dex];
   char ty[32];
-  snprintf(ty, sizeof(ty), "%s / %s", typeName(de.type1), attrName(de.attr));
-  gfx->setTextColor(de.accent);
+  snprintf(ty, sizeof(ty), "%s / %s", typeName(homeElement(dex)), attrName(de.attr));
+  gfx->setTextColor(dexAccent(dex));
   gfx->setTextSize(2);
   gfx->setCursor(CX - (int)strlen(ty) * 6, 76);
   gfx->print(ty);
 
-  // bar maximum 360: at level 73 (end of the cycle) the highest stat in the whole
-  // dex is CHANSEY's vitality (355). The previous 260 already overflowed.
+  // bar maximum 360: untrained, nothing passes HP 390 and most stats sit under 200,
+  // and training only counts while it stays on the scale.
   drawCardStat(104, T(S_STAT_ATK), pet.atkStat(), 360, UI_BAR_BAD, pet.ivAtk);
   drawCardStat(144, T(S_STAT_DEF), pet.defStat(), 360, 0x4C98, pet.ivDef);
   drawCardStat(184, T(S_STAT_SPE), pet.speStat(), 360, UI_BAR_WARN, pet.ivSpe);
@@ -3688,7 +3491,28 @@ int drawTypeChip(int x, int y, uint8_t type) {
   return w;
 }
 
-void drawMoveRow(int y, uint8_t mv, bool highlight, int16_t dex) {
+// A skill's name in a box `w` px wide: size 2 when it fits, else size 1, and broken at
+// a space into two lines when even that does not (names run to 30 characters).
+// Returns nothing to lay out around: both forms stay inside `h` px of height.
+static void drawSkillName(int x, int y, int w, int h, const char *name) {
+  const int len = (int)strlen(name);
+  gfx->setTextSize(len * 12 <= w ? 2 : 1);
+  if (len * 12 <= w) { gfx->setCursor(x, y); gfx->print(name); return; }
+  if (len * 6 <= w) { gfx->setCursor(x, y + 3); gfx->print(name); return; }
+  char first[32];
+  int cut = w / 6 < len ? w / 6 : len;
+  while (cut > 0 && name[cut] != ' ') cut--;
+  if (cut <= 0) cut = w / 6;
+  if (cut >= (int)sizeof(first)) cut = sizeof(first) - 1;
+  memcpy(first, name, cut);
+  first[cut] = 0;
+  gfx->setCursor(x, y);
+  gfx->print(first);
+  gfx->setCursor(x, y + h / 2);
+  gfx->print(name + cut + (name[cut] == ' ' ? 1 : 0));
+}
+
+void drawMoveRow(int y, uint16_t mv, bool highlight, int16_t dex) {
   gfx->fillRoundRect(70, y, 326, 50, 12, highlight ? UI_BAR_WARN : UI_BG_DAY);
   gfx->drawRoundRect(70, y, 326, 50, 12, UI_INK);
   if (!mv) {
@@ -3698,31 +3522,27 @@ void drawMoveRow(int y, uint8_t mv, bool highlight, int16_t dex) {
     gfx->print(T(S_MOVE_EMPTY));
     return;
   }
-  const MoveEntry &m = MOVE_TBL[mv];
-  const char *name = moveName(mv);
+  const TsSkill &m = skillEntry(mv);
   gfx->setTextColor(UI_INK);
-  gfx->setTextSize(2);
-  gfx->setCursor(82, y + 8);
-  gfx->print(name);
-  // There is no per-type palette (DexEntry.accent is per Digimon), and inventing
-  // one by hand would duplicate what gen_dex.py generates. Colouring same-type
-  // moves in the Digimon accent is more useful anyway: STAB is a 1.5x damage
-  // bonus, so this marks the moves that actually hit hardest for this creature.
-  // The chip carries the TYPE; STAB moved onto the power figure, where it
-  // belongs -- STAB is a damage bonus, so saying it next to the damage reads
-  // straight, and it leaves the type free to be its own colour.
-  bool stab = hasStab(dex, m.type) && m.cat != MC_STATUS;
-  int cw = drawTypeChip(82, y + 29, m.type);
+  drawSkillName(82, y + 8, 302, 16, moveName(mv));
+  // Colouring same-element skills in the Digimon's accent marks the ones that hit
+  // hardest for this creature: the bonus is x1.5. The chip carries the ELEMENT; the
+  // bonus sits on the power figure, where it belongs -- it is a damage bonus, so
+  // saying it next to the damage reads straight.
+  const bool support = m.cat == TS_SC_SUPPORT;
+  bool stab = !support && hasStab(dex, m.element);
+  int cw = support ? 0 : drawTypeChip(82, y + 29, m.element);
   if (stab) {
-    gfx->setTextColor(DEX_TBL[dex].accent);
+    gfx->setTextColor(dexAccent(dex));
     gfx->setTextSize(1);
     gfx->setCursor(82 + cw + 6, y + 33);
-    gfx->print("STAB");
+    gfx->print("SAME");
   }
-  char pw[16];
-  if (m.cat == MC_STATUS) snprintf(pw, sizeof(pw), "%s", T(S_MOVE_STATUS));
-  else snprintf(pw, sizeof(pw), T(S_MOVE_PWR), m.power);
-  gfx->setTextColor(stab ? DEX_TBL[dex].accent : UI_INK);
+  char pw[20];
+  if (support) snprintf(pw, sizeof(pw), "%s", T(S_MOVE_STATUS));
+  else if (m.hits > 1) snprintf(pw, sizeof(pw), "%ux%u", (unsigned)skillPower(mv, pet.level()), (unsigned)m.hits);
+  else snprintf(pw, sizeof(pw), T(S_MOVE_PWR), (unsigned)skillPower(mv, pet.level()));
+  gfx->setTextColor(stab ? dexAccent(dex) : UI_INK);
   gfx->setTextSize(1);
   gfx->setCursor(384 - (int)strlen(pw) * 6, y + 33);
   gfx->print(pw);
@@ -3741,33 +3561,44 @@ void renderCardMoves() {
   gfx->print(T(S_MOVE_TAP));
 }
 
-// Every move the Digimon can learn by this level, so a slot can be swapped for
-// anything legal -- not just the handful a level-up would have offered.
-uint8_t learnableFor(int16_t dex, uint8_t lvl, uint8_t *out, uint8_t max) {
-  if (dex < 1 || dex > DEX_COUNT) return 0;
-  uint8_t n = learnCount(dex), w = 0;
-  for (uint8_t i = 0; i < n && w < max; i++) {
-    // moveUnlockLevel(), NOT learnLevel(): a TM is stored as level 0 and would
-    // otherwise clear this check at level 1. That is how a level 22 AGUMON
-    // came to be offered FIRE BLAST -- the same class of bug as the level 1
-    // BETAMON with SURF, in the one path that fix did not reach.
-    if (moveUnlockLevel(dex, i) > lvl) continue;
-    uint8_t mv = learnMove(dex, i);
-    if (!mv || mv >= MOVE_COUNT) continue;
+// What a form offers `hours` after becoming it: its specials and the attachment
+// skills unlocked so far. Skills are not remembered once dropped, so this is the
+// whole of what a slot can be swapped for, beside the other slots.
+uint8_t learnableFor(int16_t dex, uint8_t hours, uint16_t *out, uint8_t max) {
+  if (!dexValid(dex)) return 0;
+  const TsDexEntry &d = TS_DEX_TBL[dex];
+  uint8_t w = 0;
+  for (uint8_t i = 0; i < d.learnCount && w < max; i++) {
+    const TsLearn &l = TS_LEARN_TBL[d.learnFirst + i];
+    if (l.hours > hours) break;
     bool dup = false;
     for (uint8_t j = 0; j < w; j++)
-      if (out[j] == mv) { dup = true; break; }
-    if (!dup) out[w++] = mv;
+      if (out[j] == l.skill) { dup = true; break; }
+    if (!dup) out[w++] = l.skill;
   }
   return w;
 }
 
-// The picker edits the partner's moves. It used to edit a party member's too.
-uint8_t learnableList(uint8_t *out, uint8_t max) {
-  return pet.isEgg() ? 0 : learnableFor(pet.speciesId, pet.level(), out, max);
+// The picker's list: the partner's current slots, then what its form offers. A skill
+// carried over from another form stays listed, or moving it to another slot would
+// be impossible and swapping it out would look like the only choice.
+uint8_t learnableList(uint16_t *out, uint8_t max) {
+  if (pet.isEgg()) return 0;
+  uint8_t w = 0;
+  for (uint8_t i = 0; i < MOVE_SLOTS && w < max; i++)
+    if (pet.moves[i]) out[w++] = pet.moves[i];
+  uint16_t offered[MOVE_PICK_MAX];
+  const uint8_t n = learnableFor(pet.speciesId, pet.formHours(), offered, MOVE_PICK_MAX);
+  for (uint8_t i = 0; i < n && w < max; i++) {
+    bool dup = false;
+    for (uint8_t j = 0; j < w; j++)
+      if (out[j] == offered[i]) { dup = true; break; }
+    if (!dup) out[w++] = offered[i];
+  }
+  return w;
 }
 
-uint8_t *pickTargetMoves() { return pet.moves; }
+uint16_t *pickTargetMoves() { return pet.moves; }
 int16_t pickTargetDex() { return pet.speciesId; }
 
 void renderMovePick() {
@@ -3778,8 +3609,8 @@ void renderMovePick() {
   gfx->setCursor(CX - strlen(T(S_MOVE_PICK)) * 6, 40);
   gfx->print(T(S_MOVE_PICK));
 
-  uint8_t all[64];
-  uint8_t n = learnableList(all, sizeof(all));
+  uint16_t all[MOVE_PICK_MAX];
+  uint8_t n = learnableList(all, MOVE_PICK_MAX);
   uint8_t pages = n ? (n + MOVE_PICK_PER_PAGE - 1) / MOVE_PICK_PER_PAGE : 1;
   if (movePickPage >= pages) movePickPage = 0;
   for (uint8_t i = 0; i < MOVE_PICK_PER_PAGE; i++) {
@@ -3828,7 +3659,7 @@ static void drawBack(const BackScene &b, int y0) {
 static void drawBattleBack() {
   int16_t dex = btlFoe.dex;
   if (dex < 1 || dex > DEX_COUNT) { gfx->fillCircle(CX, CY, 231, UI_BG_DAY); return; }
-  uint8_t bi = DEX_TBL[dex].biome;
+  uint8_t bi = dexBiome(dex);
   if (bi >= BACK_BIOMES) bi = 0;
   bool night = sceneHour() < 6 || sceneHour() >= 20;
   drawBack(BACKS[bi][night ? 1 : 0], 30);
@@ -3867,17 +3698,16 @@ static void btlSfxFor(const TurnLog &lg) {
   if (lg.inflicted) { sfxPlay(SFX_STATUS); return; }
   if (lg.damage && lg.effPct > 100) { sfxPlay(SFX_SUPER); return; }
   if (lg.damage) {
-    sfxPlay(lg.move && MOVE_TBL[lg.move].cat == MC_SPEC ? SFX_BEAM : SFX_HIT);
+    sfxPlay(lg.move && skillEntry(lg.move).cat == TS_SC_MAGIC ? SFX_BEAM : SFX_HIT);
     return;
   }
-  if (lg.move && MOVE_TBL[lg.move].cat == MC_STATUS && !lg.missed) sfxPlay(SFX_STATUS);
+  if (lg.move && skillEntry(lg.move).cat == TS_SC_SUPPORT && !lg.missed) sfxPlay(SFX_STATUS);
 }
 
 static void btlNarrate(const Combatant &actor, const Combatant &target, const TurnLog &lg) {
-  if (lg.skipped) return;
+  if (lg.skipped || (!lg.move && !lg.hurtSelf && !lg.damage)) return;
   btlSfxFor(lg);
   if (lg.hurtSelf) { btlSay(T(S_BTL_HURTSELF)); return; }
-  if (lg.charged) { btlSay(T(S_BTL_USED), actor.name, moveName(lg.move)); return; }
   if (lg.move) btlSay(T(S_BTL_USED), actor.name, moveName(lg.move));
   if (lg.missed) { btlSay(T(S_BTL_MISS), actor.name); return; }
   if (lg.immune) { btlSay(T(S_BTL_IMMUNE)); return; }
@@ -3893,11 +3723,11 @@ static void btlNarrate(const Combatant &actor, const Combatant &target, const Tu
 }
 
 // Builds one opponent through Pet, so it gets the same stat formula and the
-// same learnset-driven moveset the player's creatures do.
-static void foeFromSpecies(Combatant &c, int16_t dex, uint8_t lvl, uint8_t iv) {
+// same learnset-driven skills the player's creatures do. IVs no longer touch a stat,
+// so a Hard boss differs by its AI until phase 2 brings Hard mode's level rule.
+static void foeFromSpecies(Combatant &c, int16_t dex, uint8_t lvl, bool variant) {
   Pet foe;
-  foe.dbgHatchAs(dex, false);
-  foe.ivAtk = foe.ivDef = foe.ivSpe = foe.ivHp = iv;
+  foe.dbgHatchAs(dex, variant);
   foe.ageMinutes = (uint32_t)(lvl ? lvl - 1 : 0) * MINUTES_PER_LEVEL;
   foe.relearnFromLevel();
   combatantFromPet(c, foe);
@@ -3913,13 +3743,6 @@ static bool buildPartner(uint8_t maxLvl) {
   if (pet.isEgg()) return false;
   combatantFromPet(btlYou, pet, maxLvl);
   return true;
-}
-
-// The one Digimon a boss fights with. Ladders still list a team, from the
-// TamaPoke engine; with no teams anywhere, a boss brings only its LAST member,
-// the strongest. The Time Stranger ladder of single Digimon replaces this data.
-const TrainerMon &bossMon(const Trainer &t) {
-  return t.team[t.count ? t.count - 1 : 0];
 }
 
 // A fight against another device. Each side's partner is already exchanged; the
@@ -3952,17 +3775,15 @@ void startLinkBattle() {
 
 void startTrainerBattle(uint8_t idx, bool hard) {
   if (idx >= TRAINER_COUNT || pet.isEgg() || pet.ceremony != CER_NONE) return;
-  uint8_t region = gymRegion % GYM_REGIONS;
-  const TrainerMon &boss = bossMon(TRAINER_SETS[region].list[idx]);
+  const Trainer &boss = TRAINERS[idx];
   // BOTH difficulties cap your level to the boss's. Without it a L73 partner
   // walks every tamer at 100% and the type chart never matters. Hard adds a
-  // smarter AI and better opposing IVs.
+  // smarter AI.
   if (!buildPartner(boss.level)) return;
   btlTrainer = (int8_t)idx;
-  btlRegion = region;
   btlHard = hard;
   btlWild = false;
-  foeFromSpecies(btlFoe, boss.dex, boss.level, hard ? HARD_IV : EASY_IV);
+  foeFromSpecies(btlFoe, boss.dex, boss.level, false);
   btlMsgCount = 0;
   btlOver = false;
   btlWon = false;
@@ -3983,15 +3804,7 @@ void startBattle(int16_t dex, uint8_t lvl) {
   if (pet.isEgg() || pet.ceremony != CER_NONE) return;
   if (dex < 1 || dex > DEX_COUNT) return;
   if (!buildPartner(0)) return;
-  // The opponent is built through Pet so it gets the same stat formula and the
-  // same learnset-driven moveset the player's creature does -- no special-cased
-  // "enemy" maths that could quietly diverge.
-  Pet foe;
-  foe.dbgHatchAs(dex, false);
-  foe.ivAtk = foe.ivDef = foe.ivSpe = foe.ivHp = 20;
-  foe.ageMinutes = (uint32_t)(lvl ? lvl - 1 : 0) * MINUTES_PER_LEVEL;
-  foe.relearnFromLevel();
-  combatantFromPet(btlFoe, foe);
+  foeFromSpecies(btlFoe, dex, lvl, false);
   btlWild = false;
   btlMsgCount = 0;
   btlOver = false;
@@ -4064,7 +3877,7 @@ static void btlLinkPoll() {
     if (btlMyAct && lan.hasPeerAct() && !btlOver && !btlMsgCount) {
       uint8_t act = btlMyAct;
       btlMyAct = 0;
-      btlResolve(btlYou.moves[LINK_ACT_SLOT(act) % MOVE_SLOTS]);
+      btlResolve(linkActMove(btlYou, act));
     }
     return;
   }
@@ -4073,7 +3886,6 @@ static void btlLinkPoll() {
   if (lan.state == LINK_DONE && !btlOver) {
     btlOver = true;
     btlWon = lan.youWon;
-    if (btlWon) pet.addWin();
     audioMusic(btlWon ? MUS_VICTORY : MUS_NONE);
     if (btlWon) sfxPlay(SFX_VICTORY);
     btlSay("%s", btlWon ? T(S_BTL_WIN) : T(S_BTL_LOSE));
@@ -4081,7 +3893,7 @@ static void btlLinkPoll() {
 }
 
 // Packs the outcome for the guest. Only the host ever calls this.
-static void btlShipResult(uint8_t yourMove, uint8_t theirMove,
+static void btlShipResult(uint16_t yourMove, uint16_t theirMove,
                           uint16_t hp0You, uint16_t hp0Foe) {
   LinkResult r = {};
   r.hostHp = btlYou.hp;   r.guestHp = btlFoe.hp;
@@ -4114,14 +3926,11 @@ static void wildGrantDrops() {
 }
 
 
-// What the battle bag lists: medicine, never vitamins -- training is permanent
-// and belongs to the care sim -- and no scan chips. A scan used to capture the
-// wild Digimon into the party or box; with one partner there is nowhere for it
-// to go, so the chips stay in the bag unused until the data cutover removes
-// them. ONE predicate, asked by the draw and the tap alike, so a cell can never
-// be drawn and then do something else.
+// What the battle bag lists: medicine, never vitamins -- training is permanent and
+// belongs to the care sim. ONE predicate, asked by the draw and the tap alike, so a
+// cell can never be drawn and then do something else.
 static bool btlBagShows(ItemKey k) {
-  return itemUsableInBattle(k) && !itemIsBall(k);
+  return itemUsableInBattle(k);
 }
 
 // A potion or a full heal, on whichever creature is out. It works on the
@@ -4129,7 +3938,7 @@ static bool btlBagShows(ItemKey k) {
 static void btlUseItem(ItemKey k) {
   const ItemEntry &e = itemEntry(k);
   bool useful = (e.category == IC_HEAL) ? btlYou.hp < btlYou.maxHp
-              : (e.category == IC_CURE) ? btlYou.ailment != AIL_NONE
+              : (e.category == IC_CURE) ? (btlYou.ailment != TS_AIL_NONE || btlYou.confuseTurns)
               : false;
   if (!useful) { sfxPlay(SFX_DENY); btlSay("%s", T(S_ITEM_NOUSE)); btlMenu = 0; return; }
   if (!bag.consume(k)) { sfxPlay(SFX_DENY); return; }
@@ -4137,7 +3946,7 @@ static void btlUseItem(ItemKey k) {
     uint32_t hp = (uint32_t)btlYou.hp + (uint16_t)e.param;
     btlYou.hp = hp > btlYou.maxHp ? btlYou.maxHp : (uint16_t)hp;
   } else {
-    btlYou.ailment = AIL_NONE;
+    btlYou.ailment = TS_AIL_NONE;
     btlYou.ailTurns = 0;
     btlYou.confuseTurns = 0;
   }
@@ -4147,16 +3956,16 @@ static void btlUseItem(ItemKey k) {
   btlResolve(0);   // using an item costs the turn, as it does in the real games
 }
 
-// One exchange: both sides act in speed order, then burn/poison chip.
-static void btlResolve(uint8_t yourMove) {
+// One exchange: both sides act in speed order, then injury/poison chip.
+static void btlResolve(uint16_t yourMove) {
   TurnLog lg;
   // Against another device the opponent's move comes off the wire, never from
   // the AI -- and the host is the only side that runs this at all.
-  uint8_t foeMove;
+  uint16_t foeMove;
   uint32_t now = millis();
   if (btlLink) {
     // Off the wire, never from the AI.
-    foeMove = btlFoe.moves[LINK_ACT_SLOT(lan.pendingAct) % MOVE_SLOTS];
+    foeMove = linkActMove(btlFoe, lan.pendingAct);
     lan.pendingAct = 0;
   } else {
     foeMove = aiChooseMove(btlFoe, btlYou, btlHard);
@@ -4175,8 +3984,8 @@ static void btlResolve(uint8_t yourMove) {
   bool youFirst = battleMovesFirst(btlYou, yourMove, btlFoe, foeMove);
   Combatant *a = youFirst ? &btlYou : &btlFoe;
   Combatant *b = youFirst ? &btlFoe : &btlYou;
-  uint8_t ma = youFirst ? yourMove : foeMove;
-  uint8_t mb = youFirst ? foeMove : yourMove;
+  uint16_t ma = youFirst ? yourMove : foeMove;
+  uint16_t mb = youFirst ? foeMove : yourMove;
 
   uint16_t hp0You = btlYou.hp, hp0Foe = btlFoe.hp;
   battleAct(*a, *b, ma, lg);
@@ -4202,13 +4011,10 @@ static void btlResolve(uint8_t yourMove) {
   if (btlFoe.fainted() || btlYou.fainted()) {
     btlOver = true;
     btlWon = btlFoe.fainted();
-    // Every won battle counts towards the live Digimon's next digivolution
-    // (Champion -> Ultimate needs them).
-    if (btlWon) pet.addWin();
     btlNewBadge = false;
     btlTrainGain = 0;
-    if (btlWon && btlTrainer >= 0 && !pet.hasBadge(btlRegion, btlTrainer, btlHard)) {
-      pet.winBadge(btlRegion, btlTrainer, btlHard);
+    if (btlWon && btlTrainer >= 0 && !pet.hasBadge(btlTrainer, btlHard)) {
+      pet.winBadge(btlTrainer, btlHard);
       btlNewBadge = true;
     }
     // A badge and nothing else made the ladder a one-way checklist. A win now
@@ -4266,7 +4072,7 @@ static void btlSide(int tx, int ty, int sx, int sy, const Combatant &c, uint8_t 
     gfx->setCursor(tx + 140 - (int)strlen(hp) * 6, ty + 28);
     gfx->print(hp);
   }
-  if (c.ailment != AIL_NONE) {   // a status is the thing you most need to see
+  if (c.ailment != TS_AIL_NONE) {   // a status is the thing you most need to see
     static const StrId AIL_STR[] = { S_AIL_PARA, S_AIL_PARA, S_AIL_BURN, S_AIL_POISON,
                                      S_AIL_SLEEP, S_AIL_FREEZE, S_AIL_CONFUSE };
     gfx->setTextColor(UI_BAR_BAD);
@@ -4334,7 +4140,7 @@ static void btlEaseBars() {
 // The moment the ladder builds toward. It used to be one more line in the same
 // message box as "It's super effective!", with the badge awarded silently.
 void renderWin() {
-  const Trainer &t = BTL_TRAINERS[btlTrainer];
+  const Trainer &t = TRAINERS[btlTrainer];
   gfx->fillScreen(RGB565_BLACK);
   gfx->fillCircle(CX, CY, 231, UI_BG_DAY);
 
@@ -4356,7 +4162,7 @@ void renderWin() {
     if (btlHard) {
       for (int r = 62; r >= 56; r--) gfx->drawCircle(CX, by, r, r % 2 ? 0xFEA0 : 0xFF60);
     }
-    const BadgeArt *a = badgeArtFor(btlRegion, btlTrainer);
+    const BadgeArt *a = badgeArtFor(btlTrainer);
     if (a) {
       for (int r = 0; r < BADGE_PX; r++)
         for (int c = 0; c < BADGE_PX; c++) {
@@ -4367,15 +4173,14 @@ void renderWin() {
                         3, 3, a->pal[v]);
         }
     } else {
-      // This version has no badge art. Say so with a plain medal in the boss's
-      // type colour rather than borrowing another version's badge.
-      const Trainer &tr = TRAINER_SETS[btlRegion % GYM_REGIONS].list[btlTrainer];
-      gfx->fillCircle(CX, by, 26, typeColor(tr.type));
+      // An elite or the champion has no badge. A plain medal in the boss's colour.
+      const uint8_t el = homeElement((int16_t)TRAINERS[btlTrainer].dex);
+      gfx->fillCircle(CX, by, 26, typeColor(el));
       gfx->drawCircle(CX, by, 26, UI_INK);
       char n[4];
       snprintf(n, sizeof(n), "%u", (unsigned)(btlTrainer + 1));
       gfx->setTextSize(3);
-      gfx->setTextColor(typeColorIsLight(tr.type) ? UI_INK : UI_WHITE);
+      gfx->setTextColor(typeColorIsLight(el) ? UI_INK : UI_WHITE);
       gfx->setCursor(CX - (int)strlen(n) * 9, by - 11);
       gfx->print(n);
     }
@@ -4386,7 +4191,7 @@ void renderWin() {
       gfx->print(T(S_BTL_NEWBADGE));
     }
   }
-  snprintf(l, sizeof(l), T(S_BADGES_FMT), pet.badgeCountIn(btlRegion, btlHard));
+  snprintf(l, sizeof(l), T(S_BADGES_FMT), pet.badgeCount(btlHard));
   gfx->setTextColor(UI_INK);
   gfx->setTextSize(2);
   gfx->setCursor(CX - (int)strlen(l) * 6, 316);
@@ -4475,18 +4280,13 @@ void renderBattle() {
     gfx->setCursor(CX - 18, BTL_GRID_Y + BTL_GRID_H - 14);
     gfx->print("tap...");
   } else if (btlMenu == 0) {
-    // The 2x2 grid: FIGHT and BAG on top, RUN bottom right. FIGHT used to be a
-    // full-width row, which left nowhere for the bag; all of them reuse the move
-    // grid's cells and so inherit its padded hit areas. The bottom-left cell was
-    // DIGIMON, the switch; with one Digimon a side it is an empty, inert cell,
-    // so BAG and RUN keep the places a thumb already knows.
-    const char *opt[4] = { T(S_FIGHT), T(S_BAG), "", T(S_BTL_RUN) };
+    // The 2x2 grid: FIGHT and BAG on top, the basic attack and RUN below. All of
+    // them reuse the skill grid's cells and so inherit its padded hit areas. The
+    // bottom-left cell was the switch; now it is what a Digimon with nothing but
+    // support skills fights with.
+    const char *opt[4] = { T(S_FIGHT), T(S_BAG), T(S_BASIC_ATK), T(S_BTL_RUN) };
     for (int i = 0; i < 4; i++) {
       int x = BTL_CELL_X(i), y = BTL_CELL_Y(i);
-      if (i == 2) {
-        gfx->fillRoundRect(x, y, BTL_CELL_W, BTL_CELL_H, 10, UI_TRACK);
-        continue;
-      }
       // The bag is dead in a link fight: an item the peer was never told about
       // would desync the two devices, and the host is authoritative.
       bool live = !(i == 1 && btlLink);
@@ -4532,22 +4332,20 @@ void renderBattle() {
     drawBtlBack();
     for (int i = 0; i < MOVE_SLOTS; i++) {
       int x = BTL_CELL_X(i), y = BTL_CELL_Y(i);
-      uint8_t mv = btlYou.moves[i];
+      uint16_t mv = btlYou.moves[i];
       gfx->fillRoundRect(x, y, BTL_CELL_W, BTL_CELL_H, 10, mv ? UI_BG_DAY : UI_TRACK);
       gfx->drawRoundRect(x, y, BTL_CELL_W, BTL_CELL_H, 10, UI_INK);
       if (!mv) continue;
-      const char *name = moveName(mv);
+      const TsSkill &sk = skillEntry(mv);
       gfx->setTextColor(UI_INK);
-      gfx->setTextSize(strlen(name) <= 11 ? 2 : 1);
-      gfx->setCursor(x + 10, y + 7);
-      gfx->print(name);
-      // Same chip as the move list: in a fight the type IS the decision, and
+      drawSkillName(x + 10, y + 7, BTL_CELL_W - 18, 22, moveName(mv));
+      // Same chip as the skill list: in a fight the element IS the decision, and
       // grey 6px text was the least visible thing on the busiest screen.
-      int cw = drawTypeChip(x + 10, y + 34, MOVE_TBL[mv].type);
-      if (hasStab(btlYou.dex, MOVE_TBL[mv].type) &&
-          MOVE_TBL[mv].cat != MC_STATUS) {
+      if (sk.cat == TS_SC_SUPPORT) continue;
+      int cw = drawTypeChip(x + 10, y + 34, sk.element);
+      if (hasStab(btlYou.dex, sk.element)) {
         gfx->setTextSize(1);
-        gfx->setTextColor(DEX_TBL[btlYou.dex].accent);
+        gfx->setTextColor(dexAccent(btlYou.dex));
         gfx->setCursor(x + 10 + cw + 4, y + 38);
         gfx->print("+");
       }
@@ -4587,8 +4385,7 @@ static bool btlBackTap(int16_t x, int16_t y) {
 // will never come.
 //
 // A WILD fight is the exception: getting away is a roll, and failing it costs
-// the turn. That is what stops a ball being risk-free -- you cannot throw one,
-// see it fail and simply leave.
+// the turn.
 static void btlRun() {
   if (btlWild && !btlOver) {
     btlMenu = 0;
@@ -4653,7 +4450,17 @@ void battleTap(int16_t x, int16_t y) {
       if (btlLink) { sfxPlay(SFX_DENY); return; }   // see renderBattle
       sfxPlay(SFX_TAP); btlMenu = 3; btlBagPage = 0; return;
     }
-    // cell 2 was the switch, and is inert now: see renderBattle
+    if (btlCellHit(2, x, y)) {   // the basic attack: see renderBattle
+      sfxPlay(SFX_TAP);
+      if (btlLink && !btlLinkHost) { lan.sendAct(LINK_ACT_BASIC); return; }
+      if (btlLink) {
+        btlMyAct = LINK_ACT_BASIC;
+        if (!lan.hasPeerAct()) return;   // resolved by btlLinkPoll when it lands
+        btlMyAct = 0;
+      }
+      btlResolve(SKILL_BASIC);
+      return;
+    }
     if (btlCellHit(3, x, y)) { btlRun(); return; }
     return;
   }
@@ -4715,15 +4522,7 @@ static void renderPlayerBadges() {
   gfx->setCursor(CX - (int)strlen(tn) * 9, 40);
   gfx->print(tn);
 
-  // Pages 1 and 2 are the other versions' ladders: name them, and drop the
-  // avatar so the badges have the room. Only page 0 is "you".
-  if (playerBadgeRegion != 0) {
-    const char *rn = TRAINER_SETS[playerBadgeRegion].region;
-    gfx->setTextColor(UI_INK);
-    gfx->setTextSize(2);
-    gfx->setCursor(CX - (int)strlen(rn) * 6, 120);
-    gfx->print(rn);
-  } else if (gShowAllAvatars) {          // emulator only: every avatar at once
+  if (gShowAllAvatars) {                 // emulator only: every avatar at once
     for (uint8_t i = 0; i < AVATAR_COUNT; i++)
       drawAvatar(i, 60 + (i % 4) * 88, 60 + (i / 4) * 60, 3);
   } else {
@@ -4743,8 +4542,8 @@ static void renderPlayerBadges() {
   // of what is missing is still visible.
   for (int i = 0; i < TRAINER_GYMS; i++) {
     int bx = 140 + (i % 4) * 62, by = 188 + (i / 4) * 62;
-    bool got = pet.hasBadge(playerBadgeRegion, i, false);
-    bool hard = pet.hasBadge(playerBadgeRegion, i, true);
+    bool got = pet.hasBadge(i, false);
+    bool hard = pet.hasBadge(i, true);
     if (hard) {
       // Beaten on hard: a golden halo. Concentric rings, not a filled disc --
       // a disc sat behind the art and read as a gold coin rather than a glow.
@@ -4758,12 +4557,7 @@ static void renderPlayerBadges() {
       gfx->drawCircle(bx, by, 20, UI_TRACK);
       continue;
     }
-    const BadgeArt *a = badgeArtFor(playerBadgeRegion, i);
-    if (!a) {                 // no art for this version: a filled disc, won is won
-      gfx->fillCircle(bx, by, 14, typeColor(TRAINER_SETS[playerBadgeRegion % GYM_REGIONS].list[i].type));
-      gfx->drawCircle(bx, by, 14, UI_INK);
-      continue;
-    }
+    const BadgeArt *a = badgeArtFor(i);
     for (int r = 0; r < BADGE_PX; r++)
       for (int c = 0; c < BADGE_PX; c++) {
         uint8_t v = a->idx[r * BADGE_PX + c];
@@ -4921,8 +4715,8 @@ static void renderPlayerGoals() {
 void renderPlayer() {
   gfx->fillScreen(RGB565_BLACK);
   gfx->fillCircle(CX, CY, 231, UI_BG_DAY);
-  if (playerPage < GYM_REGIONS) renderPlayerBadges();
-  else if (playerPage == GYM_REGIONS) renderPlayerMedals();
+  if (playerPage == 0) renderPlayerBadges();
+  else if (playerPage == 1) renderPlayerMedals();
   else renderPlayerGoals();
 
   gfx->setTextColor(UI_INK_SOFT);
@@ -5427,18 +5221,12 @@ void lanTap(int16_t x, int16_t y) {
 void renderGyms() {
   gfx->fillScreen(RGB565_BLACK);
   gfx->fillCircle(CX, CY, 231, UI_BG_DAY);
-  // The ladder's own version in the title, since a vertical swipe moves between
-  // three of them and "GYMS" alone would not say which you are looking at.
   char title[28];
-  snprintf(title, sizeof(title), "%s %s", TRAINER_SETS[gymRegion % GYM_REGIONS].region,
-           T(S_GYMS));
+  snprintf(title, sizeof(title), T(S_BADGES_FMT), pet.badgeCount(gymHard));
   gfx->setTextColor(UI_INK);
   gfx->setTextSize(2);
   gfx->setCursor(CX - (int)strlen(title) * 6, 42);
   gfx->print(title);
-  // The badge count used to sit here, directly behind the difficulty pill. The
-  // version chooser already shows it per version, which is where you are choosing
-  // from, so it was both redundant and in the way.
   // difficulty pill: hard brings better boss IVs and a smarter AI, so it is a
   // different ladder with its own badges rather than a damage multiplier
   const char *dif = T(gymHard ? S_HARD : S_EASY);
@@ -5457,7 +5245,7 @@ void renderGyms() {
     const Trainer &t = TRAINERS[idx];
     int rx, y, rw, rh;
     gymRowRect(i, &rx, &y, &rw, &rh);
-    bool done = pet.hasBadge(gymRegion, idx, gymHard);
+    bool done = pet.hasBadge(idx, gymHard);
     bool open_ = gymUnlocked(idx, gymHard);
     gfx->fillRoundRect(rx, y, rw, rh, 10, done ? UI_TRACK : UI_BG_DAY);
     gfx->drawRoundRect(rx, y, rw, rh, 10, open_ ? UI_INK : UI_TRACK);
@@ -5471,7 +5259,7 @@ void renderGyms() {
     gfx->print(open_ ? t.place : T(S_LOCKED));
     // the level of the one Digimon it fights with: the honest measure of the wall
     char lv[16];
-    snprintf(lv, sizeof(lv), "Lv.%u", (unsigned)bossMon(t).level);
+    snprintf(lv, sizeof(lv), "Lv.%u", (unsigned)t.level);
     gfx->setTextColor(done ? UI_BAR_OK : (open_ ? UI_INK : UI_TRACK));
     gfx->setCursor(rx + rw - 12 - (int)strlen(lv) * 6, y + 28);
     gfx->print(lv);
@@ -5491,270 +5279,19 @@ void renderGyms() {
   gfx->flush();
 }
 
-// The version pill under a waiting egg. Tapping it cycles; Pet::setRegion swaps
-// the egg to that version's creature, keeping the rarity it was granted and
-// remembering each version's answer so flipping back and forth is not a re-roll.
-#define EGGREG_X 133
-#define EGGREG_Y 374
-#define EGGREG_W 200
-#define EGGREG_H 34
-// The hit area is BIGGER than the pill, like the BOX button and the battle
-// grid, and for the same reason: a 34 px target is under UI_TAP_MIN and a
-// finger is not a stylus.
-//
-// The guard band matters more than the padding. Missing this pill fell through
-// to pet.eggTap(), and THREE taps hatch the egg -- so fumbling at the version
-// selector hatched the very egg you were trying to re-aim. A near miss now
-// does nothing at all, which is the correct answer for a control whose
-// neighbour is irreversible.
-#define EGGREG_PAD 16
-#define EGGREG_GUARD 14
-
-static void drawEggRegion() {
-  char l[24];
-  snprintf(l, sizeof(l), "%s >", pet.regionName());
-  gfx->fillRoundRect(EGGREG_X, EGGREG_Y, EGGREG_W, EGGREG_H, 10, UI_WHITE);
-  gfx->drawRoundRect(EGGREG_X, EGGREG_Y, EGGREG_W, EGGREG_H, 10, UI_INK);
-  gfx->setTextColor(UI_INK);
-  gfx->setTextSize(2);
-  gfx->setCursor(EGGREG_X + (EGGREG_W - (int)strlen(l) * 12) / 2, EGGREG_Y + 9);
-  gfx->print(l);
-  gfx->setTextColor(UI_INK_SOFT);
-  gfx->setTextSize(1);
-  gfx->setCursor(CX - (int)strlen(T(S_EGG_REGION)) * 3, EGGREG_Y + EGGREG_H + 6);
-  gfx->print(T(S_EGG_REGION));
-}
-
-// True if the tap was on the version pill, so the egg does not also get cracked.
-// The egg's version pill: its graphic, and the area that actually accepts a tap.
-// Exposed so a test can prove the second is bigger than the first and that a
-// near miss does not reach pet.eggTap().
-void uiEggPillRect(int *x, int *y, int *w, int *h, bool hitArea) {
-  int pad = hitArea ? EGGREG_PAD : 0;
-  if (x) *x = EGGREG_X - pad;
-  if (y) *y = EGGREG_Y - pad;
-  if (w) *w = EGGREG_W + 2 * pad;
-  if (h) *h = EGGREG_H + 2 * pad;
-}
-
-// 1 = cycled the version, -1 = a near miss that must NOT reach the egg, 0 = not
-// ours at all.
-static int eggRegionTap(int16_t x, int16_t y) {
-  if (!pet.isEgg()) return 0;
-  int inset = EGGREG_PAD, guard = EGGREG_PAD + EGGREG_GUARD;
-  bool hit = x >= EGGREG_X - inset && x <= EGGREG_X + EGGREG_W + inset &&
-             y >= EGGREG_Y - inset && y <= EGGREG_Y + EGGREG_H + inset;
-  if (hit) {
-    pet.setRegion(nextHatchableRegion(pet.region));
-    sfxPlay(SFX_TAP);
-    return 1;
-  }
-  bool near = x >= EGGREG_X - guard && x <= EGGREG_X + EGGREG_W + guard &&
-              y >= EGGREG_Y - guard && y <= EGGREG_Y + EGGREG_H + guard;
-  if (near) { sfxPlay(SFX_DENY); return -1; }
-  return 0;
-}
-
-// The version chooser used by the Digidex and the boss ladder. Each row carries
-// its own progress, so the screen answers "where am I up to" as well as "where
-// do I want to go".
-#define RPICK_X 74
-#define RPICK_W 318
-#define RPICK_H 62
-#define RPICK_Y(i) (108 + (i) * 72)
-// The page dots sit BETWEEN the last row and the LAN button, not over it.
-// They used to be at y=366, which is inside the LAN button (336..380) and on
-// top of its label -- invisible until a version chooser had more than one page,
-// so it appeared the moment Ver.4 made GYM_REGIONS 4 and went unnoticed
-// because swipe_test drives the paging and never looks at the pixels.
-#define RPICK_DOTS_Y 325
-#define RPICK_DOT_R 5
-// Guards, not decoration: both of these are the collision that shipped, and a
-// static_assert is the only check that cannot be forgotten when somebody moves
-// a button. The dots must clear the LAN button below and the last row above.
-static_assert(RPICK_DOTS_Y + RPICK_DOT_R < LANBTN_Y,
-              "the region-chooser page dots overlap the LAN button");
-static_assert(RPICK_DOTS_Y - RPICK_DOT_R > RPICK_Y(RPICK_PER_PAGE - 1) + RPICK_H,
-              "the region-chooser page dots overlap the last region row");
-
-// How many versions this mode lists. Bosses genuinely only exist for three
-// (GYM_REGIONS); the Digidex and the starter screen list every REAL version,
-// which is GAL_REGIONS -- REGION_COUNT minus the ALL pseudo-version.
-//
-// This used to be GYM_REGIONS for ALL THREE MODES, with the names read out of
-// TRAINER_SETS -- a tamer table driving the Digidex chooser. So the moment
-// Ver.4 landed it had no row, while the gallery's vertical swipe cycled it
-// happily: built, reachable, and looking absent. That is the exact failure the
-// chooser was added to prevent.
-uint8_t rpickRegions(uint8_t mode) {
-  return (mode == RPICK_FOR_GYMS) ? (uint8_t)GYM_REGIONS : (uint8_t)GAL_REGIONS;
-}
-
-uint8_t rpickPageCount(uint8_t mode) {
-  uint8_t n = rpickRegions(mode);
-  uint8_t p = (uint8_t)((n + RPICK_PER_PAGE - 1) / RPICK_PER_PAGE);
-  return p ? p : 1;
-}
-
-// The chooser WRAPS rather than closing off the end, unlike the other paged
-// screens. It is the root of its own screen, and at first boot there is
-// nowhere to go back to at all -- exiting would strand the player before they
-// have chosen anything.
-// Which chooser is on the panel, or 0xFF for none. THE single answer: the
-// swipe handler and swipe_test both ask this rather than each deciding.
-uint8_t rpickModeNow() {
-  switch (uiCurrentScreen()) {
-    case SCR_REGION:  return RPICK_FOR_START;
-    case SCR_DEXPICK: return RPICK_FOR_DEX;
-    case SCR_GYMPICK: return RPICK_FOR_GYMS;
-    default: return 0xFF;
-  }
-}
-
-static bool rpickSwipe(int dir) {
-  uint8_t mode = rpickModeNow();
-  if (mode == 0xFF) return false;
-  uint8_t pages = rpickPageCount(mode);
-  int p = (int)rpickPage + (dir > 0 ? -1 : 1);
-  if (p < 0) p = pages - 1;
-  if (p >= pages) p = 0;
-  rpickPage = (uint8_t)p;
-  sfxPlay(SFX_TAP);
-  return true;
-}
-
-static void renderRegionPick(uint8_t mode) {
-  bool forGyms = (mode == RPICK_FOR_GYMS);
-  uint8_t nreg = rpickRegions(mode);
-  uint8_t pages = rpickPageCount(mode);
-  if (rpickPage >= pages) rpickPage = 0;
-  uint8_t first = (uint8_t)(rpickPage * RPICK_PER_PAGE);
-  gfx->fillScreen(RGB565_BLACK);
-  gfx->fillCircle(CX, CY, 231, UI_BG_DAY);
-  char ttl[40];
-  if (mode == RPICK_FOR_START) snprintf(ttl, sizeof(ttl), "%s", T(S_CHOOSE_REGION));
-  else if (forGyms) snprintf(ttl, sizeof(ttl), "%s", T(S_GYMS));
-  else snprintf(ttl, sizeof(ttl), T(S_DIGIDEX_FMT), pet.registeredCount(), DEX_COUNT);
-  gfx->setTextColor(UI_INK);
-  gfx->setTextSize(2);
-  gfx->setCursor(CX - (int)strlen(ttl) * 6, 48);
-  gfx->print(ttl);
-
-  for (uint8_t row = 0; row < RPICK_PER_PAGE; row++) {
-    uint8_t i = (uint8_t)(first + row);
-    if (i >= nreg) break;
-    int y = RPICK_Y(row);
-    // The sprite pack is the gate. A version without it is drawn GREYED with a
-    // reason rather than dropped from the list: hiding it would say "this
-    // version does not exist" when what we mean is "download its pack".
-    //
-    // AND THAT NOW INCLUDES THE GYMS. This read `forGyms || regionAvailable(i)`,
-    // so a ladder was always enterable whether its pack was on the card or not --
-    // the rule was enforced for the Digidex and the egg pool and not for its twin,
-    // which is the shape CLAUDE.md keeps warning about. The cost was a boss
-    // opening with a bare dex NUMBER where a creature should be, which tamers.h
-    // calls out as the one thing that must not happen. Ver.4 could already do it;
-    // Ver.4 and Ver.5 would have made it ordinary.
-    //
-    // It fails in the safe direction: gRegionArt defaults to ALL SET, so a board
-    // with no card at all keeps every ladder exactly as before.
-    // A Digi-Egg also needs its Baby I to have art (Ver.3 lacks Poyomon).
-    bool open = (mode == RPICK_FOR_START) ? regionHatchable(i) : regionAvailable(i);
-    gfx->fillRoundRect(RPICK_X, y, RPICK_W, RPICK_H, 12, open ? UI_WHITE : UI_BG_DAY);
-    gfx->drawRoundRect(RPICK_X, y, RPICK_W, RPICK_H, 12, open ? UI_INK : UI_TRACK);
-    const char *nm = forGyms ? TRAINER_SETS[i].region : REGIONS[i].name;
-    gfx->setTextColor(open ? UI_INK : UI_TRACK);
-    gfx->setTextSize(3);
-    gfx->setCursor(RPICK_X + 18, y + 12);
-    gfx->print(nm);
-    // At first boot there is no subtitle: naming the starter here would give
-    // away the next screen, and the counts the other two modes show would all
-    // read zero on a new save anyway.
-    char sub[28];
-    sub[0] = 0;
-    if (!open)
-      snprintf(sub, sizeof(sub), "%s", T(S_NEED_PACK));
-    else if (mode == RPICK_FOR_GYMS)
-      snprintf(sub, sizeof(sub), T(S_BADGES_FMT), pet.badgeCountIn(i, gymHard));
-    else if (mode == RPICK_FOR_DEX)
-      snprintf(sub, sizeof(sub), "%u/%u",
-               pet.registeredCountIn(REGIONS[i].lo, REGIONS[i].hi),
-               (unsigned)(REGIONS[i].hi - REGIONS[i].lo + 1));
-    if (sub[0]) {
-      gfx->setTextColor(UI_INK_SOFT);
-      gfx->setTextSize(2);
-      gfx->setCursor(RPICK_X + RPICK_W - 18 - (int)strlen(sub) * 12, y + 22);
-      gfx->print(sub);
-    }
-  }
-  if (forGyms) {
-    gfx->fillRoundRect(LANBTN_X, LANBTN_Y, LANBTN_W, LANBTN_H, 11, UI_BG_DAY);
-    gfx->drawRoundRect(LANBTN_X, LANBTN_Y, LANBTN_W, LANBTN_H, 11, UI_INK);
-    gfx->setTextColor(UI_INK);
-    gfx->setTextSize(2);
-    gfx->setCursor(CX - strlen(T(S_LAN)) * 6, LANBTN_Y + 14);
-    gfx->print(T(S_LAN));
-  }
-  if (pages > 1) {                        // dots: which page of versions this is
-    int total = pages * 16 - 8;
-    for (uint8_t d = 0; d < pages; d++) {
-      int cx = CX - total / 2 + d * 16;
-      if (d == rpickPage) gfx->fillCircle(cx, RPICK_DOTS_Y, RPICK_DOT_R, UI_INK);
-      else gfx->drawCircle(cx, RPICK_DOTS_Y, RPICK_DOT_R, UI_TRACK);
-    }
-  }
-  if (mode != RPICK_FOR_START) {          // first boot has nowhere to go back to
-    gfx->setTextColor(UI_INK_SOFT);
-    gfx->setTextSize(2);
-    gfx->setCursor(CX - strlen(T(S_BACK)) * 6, 392);
-    gfx->print(T(S_BACK));
-  }
-  uiChrome();
-  gfx->flush();
-}
-
-// Returns the version tapped, or -1. Takes the mode because the row on screen is
-// an offset into the current page, not the version index -- and because a version
-// whose sprite pack is missing must not be selectable, which is the whole point
-// of the gate. The chooser still SHOWS it, greyed, saying why.
-// Where a version-chooser row is, so a test can tap one without restating the
-// geometry. Same reason uiMenuRowCenterY() and uiTrainRowTop() exist.
-int uiRegionRowCenterY(int row) { return RPICK_Y(row) + RPICK_H / 2; }
-int uiRegionRowX() { return RPICK_X + RPICK_W / 2; }
-int uiRegionRowsPerPage() { return RPICK_PER_PAGE; }
-
-int regionPickTap(int16_t x, int16_t y, uint8_t mode) {
-  if (x < RPICK_X || x > RPICK_X + RPICK_W) return -1;
-  uint8_t nreg = rpickRegions(mode);
-  for (uint8_t row = 0; row < RPICK_PER_PAGE; row++) {
-    uint8_t i = (uint8_t)(rpickPage * RPICK_PER_PAGE + row);
-    if (i >= nreg) break;
-    if (y >= RPICK_Y(row) && y <= RPICK_Y(row) + RPICK_H) {
-      // Every mode, boss ladders included -- the draw path greys the row, so the tap path
-      // has to refuse it or the two disagree and a greyed row still works.
-      if (mode == RPICK_FOR_START ? !regionHatchable(i) : !regionAvailable(i)) {
-        sfxPlay(SFX_DENY);      // locked: say no out loud rather than do nothing
-        return -1;
-      }
-      return i;
-    }
-  }
-  return -1;
-}
-
 // ---------- level-up learn prompt ----------
 void renderLearn() {
   gfx->fillScreen(RGB565_BLACK);
   gfx->fillCircle(CX, CY, 231, UI_BG_DAY);
-  uint8_t mv = pet.learnOffer();
+  uint16_t mv = pet.learnOffer();
   char head[40];
-  const char *nm = pet.nick[0] ? pet.nick : DEX_TBL[pet.speciesId].name;
+  const char *nm = pet.nick[0] ? pet.nick : TS_DEX_TBL[pet.speciesId].name;
   snprintf(head, sizeof(head), T(S_LEARN_Q), nm);
   gfx->setTextColor(UI_INK);
   gfx->setTextSize(1);
   gfx->setCursor(CX - (int)strlen(head) * 3, 48);
   gfx->print(head);
-  gfx->setTextColor(DEX_TBL[pet.speciesId].accent);
+  gfx->setTextColor(dexAccent(pet.speciesId));
   const char *move = moveName(mv);
   int moveSize = strlen(move) <= 17 ? 3 : 2;
   gfx->setTextSize(moveSize);
@@ -5805,7 +5342,6 @@ void renderCardMedals() {
 // page 3: progress (level, evolution, neglect) - brings to light mechanics
 // that used to be invisible (how far to the next level/evolution and why)
 void renderCardProgress() {
-  const DexEntry &d = DEX_TBL[pet.speciesId];
   gfx->setTextColor(UI_INK);
   gfx->setTextSize(3);
   gfx->setCursor(CX - strlen(T(S_PROGRESS)) * 9, 44);
@@ -5838,26 +5374,18 @@ void renderCardProgress() {
   char evoBuf[28];
   const char *evo;
   uint16_t evoCol = UI_INK;
-  if (d.evolvesTo == 0) {
+  const uint8_t needed = pet.evoNextLevel();
+  if (!needed) {
     evo = T(S_FINAL_FORM);
+  } else if (pet.level() >= needed) {
+    // The clock is done. Either a branch is open, or its stat or age minimums are
+    // not met yet. routeMet() is what decides both, so this cannot promise a
+    // digivolution that then does not happen.
+    if (pet.digiTarget()) { evo = T(S_EVO_READY); evoCol = UI_BAR_OK; }
+    else { evo = T(S_EVO_BLOCKED); evoCol = UI_BAR_WARN; }
   } else {
-    // The SAME sum canEvolveNow() uses -- including the day owed for retiring
-    // the previous creature early. A card that left evoPenalty() out would
-    // promise an digivolution that then does not happen.
-    int needed = d.evolveLevel + pet.evoPenalty();
-    if (pet.level() >= needed) {
-      // The clock is done. Either a branch is open, or the one thing missing
-      // is battles won (Champion -> Ultimate), which is worth saying in numbers.
-      if (pet.digiTarget()) { evo = T(S_EVO_READY); evoCol = UI_BAR_OK; }
-      else {
-        snprintf(evoBuf, sizeof(evoBuf), T(S_EVO_BLOCKED), pet.wins, pet.winsNeeded());
-        evo = evoBuf;
-        evoCol = UI_BAR_WARN;
-      }
-    } else {
-      snprintf(evoBuf, sizeof(evoBuf), T(S_EVO_IN_FMT), needed - pet.level());
-      evo = evoBuf;
-    }
+    snprintf(evoBuf, sizeof(evoBuf), T(S_EVO_IN_FMT), needed - pet.level());
+    evo = evoBuf;
   }
   gfx->setTextColor(evoCol);
   gfx->setCursor(CX - strlen(evo) * 6, 256);
@@ -5873,18 +5401,28 @@ void renderCardProgress() {
     gfx->setTextSize(2);
   }
 
-  // care mistakes this stage: they pick the branch, so they are worth seeing
+  // care mistakes this stage
   char ms[28];
   snprintf(ms, sizeof(ms), T(S_MISTAKES_FMT), pet.careMistakes);
   gfx->setTextColor(pet.careMistakes > 0 ? UI_BAR_BAD : UI_INK);
   gfx->setCursor(CX - strlen(ms) * 6, 312);
   gfx->print(ms);
-  // ...and the training total, the other half of what picks the branch
+  // ...and the training total, which is what opens the later branches
   char tt[28];
   snprintf(tt, sizeof(tt), T(S_TRAIN_TOTAL_FMT), pet.trainingTotal());
   gfx->setTextColor(UI_INK);
   gfx->setCursor(CX - strlen(tt) * 6, 338);
   gfx->print(tt);
+  // De-digivolving into a form already in the Digidex. Declining moves this on to
+  // the next earlier form, so one button reaches them all.
+  if (devolveTarget()) {
+    gfx->fillRoundRect(DEVO_BTN_X, DEVO_BTN_Y, DEVO_BTN_W, DEVO_BTN_H, 11, UI_TRACK);
+    gfx->drawRoundRect(DEVO_BTN_X, DEVO_BTN_Y, DEVO_BTN_W, DEVO_BTN_H, 11, UI_INK);
+    gfx->setTextColor(UI_INK);
+    gfx->setTextSize(2);
+    gfx->setCursor(CX - (int)strlen(T(S_DEVOLVE)) * 6, DEVO_BTN_Y + 14);
+    gfx->print(T(S_DEVOLVE));
+  }
 }
 
 void renderCard() {
@@ -5988,7 +5526,7 @@ static bool bagUseOnPet(ItemKey k) {
   const ItemEntry &e = itemEntry(k);
   if (e.category != IC_TRAIN) return false;
   // The IV-bound ceiling applies here exactly as it does to the punching bag and
-  // to a boss reward. An item that could push past trMaxFor() would make the IV
+  // to a boss reward. An item that could push past trMaxFor() would make the ceiling
   // roll decorative, which is the one thing it must not be.
   uint8_t *cur;
   uint8_t cap;
@@ -6083,48 +5621,33 @@ void bagTap(int16_t x, int16_t y) {
 
 // ---------- wild encounters ----------
 
-// Rolls a whole wild individual and opens the fight.
-//
-// The Digimon, the level band, the tier and the variant roll are all decided
-// HERE and remembered, because a capture has to hand back the creature that was
-// actually fought. Re-rolling any of it at capture time would mean the thing
-// you caught was not the thing on screen.
-bool startWildBattle(uint8_t region, bool hard) {
+// Rolls a wild Digimon and opens the fight. The stand-in for phase 2's wild rules.
+bool startWildBattle(bool hard) {
   if (pet.isEgg() || pet.ceremony != CER_NONE) return false;
-  if (region >= REGION_COUNT || !regionAvailable(region)) return false;
+  if (!gArtPack) return false;
   // The level first: it decides which STAGE can turn up. A level-10 encounter
   // is a Rookie, never a Champion that has not had time to exist.
   uint8_t lo = wildLevelMin(pet.level(), hard);
   uint8_t hi = wildLevelMax(pet.level(), hard);
   uint8_t lvl = (uint8_t)(lo + random(hi - lo + 1));
   uint8_t stage = wildStageFor(lvl, (uint8_t)random(100));
-  int16_t dex = wildPickSpecies(region, stage, (uint32_t)random(65536) * 31u + random(31));
-  // A stage can be empty in a version (Ver.1 has no Mega): step down rather
-  // than refuse, since "nothing happened" reads as a broken button.
-  for (int st = (int)stage - 1; !dex && st >= ST_BABY2; st--)
-    dex = wildPickSpecies(region, (uint8_t)st, random(65536));
+  int16_t dex = wildPickSpecies(stage, (uint32_t)random(65536) * 31u + random(31));
+  // A stage can be empty (no Mega+ form has art): step down rather than refuse,
+  // since "nothing happened" reads as a broken button.
+  for (int st = (int)stage - 1; !dex && st >= TS_ST_IN_TRAINING_2; st--)
+    dex = wildPickSpecies((uint8_t)st, random(65536));
   if (!dex) return false;
   wildDex = dex;
   wildLvl = lvl;
-  for (int i = 0; i < 4; i++) wildIv[i] = (uint8_t)(8 + random(24));
   // Bonus 0: nothing in this build earns one yet, so every wild variant is the
   // flat 1/4096. The parameter stays because it is where a farewell reward
   // would land, and wild_test already pins the curve it would follow.
   wildVariant = wildVariantForRoll((uint32_t)random(WILD_VARIANT_SCALE), 0);
-  wildApplyVariant(wildVariant, wildIv[0], wildIv[1], wildIv[2], wildIv[3]);
   wildDropN = 0;
 
   if (!buildPartner(0)) return false;
 
-  // Built through Pet like every other opponent, so it uses the same stat
-  // formula and the same learnset-driven moveset the player's creature does.
-  Pet foe;
-  foe.dbgHatchAs(dex, wildVariant);
-  foe.ivAtk = wildIv[0]; foe.ivDef = wildIv[1];
-  foe.ivSpe = wildIv[2]; foe.ivHp = wildIv[3];
-  foe.ageMinutes = (uint32_t)(wildLvl ? wildLvl - 1 : 0) * MINUTES_PER_LEVEL;
-  foe.relearnFromLevel();
-  combatantFromPet(btlFoe, foe);
+  foeFromSpecies(btlFoe, dex, wildLvl, wildVariant);
   btlFoe.variant = wildVariant;
 
   btlWild = true;
@@ -6146,7 +5669,7 @@ bool startWildBattle(uint8_t region, bool hard) {
   btlLungeUntil[0] = btlLungeUntil[1] = 0;
   btlHitUntil[0] = btlHitUntil[1] = 0;
   battleOpen = true;
-  btlSay(T(S_WILD_MET), DEX_TBL[dex].name);
+  btlSay(T(S_WILD_MET), TS_DEX_TBL[dex].name);
   return true;
 }
 
@@ -6313,6 +5836,7 @@ void drawThumb(const uint8_t *b, int x, int y, int s, bool sil) {
 // places would put a tap on a different creature than the one drawn.
 
 bool galleryPass(int16_t dex) {
+  if (!speciesHasArt(dex)) return false;   // a form with no art has no entry yet
   switch (galleryFilter) {
     case GFILT_RAISED: return pet.isRegistered(dex);
     case GFILT_VARIANT:  return pet.isVariantRegistered(dex);
@@ -6322,7 +5846,7 @@ bool galleryPass(int16_t dex) {
 
 uint16_t galleryCount() {
   uint16_t n = 0;
-  for (int16_t d = GAL_LO; d <= GAL_HI && d <= DEX_COUNT; d++)
+  for (int16_t d = 1; d <= DEX_COUNT; d++)
     if (galleryPass(d)) n++;
   return n;
 }
@@ -6330,7 +5854,7 @@ uint16_t galleryCount() {
 // The dex number at a visual grid position, or 0 past the end.
 int16_t galleryAt(uint16_t visual) {
   uint16_t n = 0;
-  for (int16_t d = GAL_LO; d <= GAL_HI && d <= DEX_COUNT; d++) {
+  for (int16_t d = 1; d <= DEX_COUNT; d++) {
     if (!galleryPass(d)) continue;
     if (n == visual) return d;
     n++;
@@ -6366,12 +5890,12 @@ void renderGallery() {
   if (galleryDetail) {  // detail view: always redrawn (animated)
     gfx->fillScreen(RGB565_BLACK);
     gfx->fillCircle(CX, CY, 231, UI_BG_DAY);
-    const DexEntry &d = DEX_TBL[galleryDetail];
+    const TsDexEntry &d = TS_DEX_TBL[galleryDetail];
     bool reg = pet.isRegistered(galleryDetail);
     char head[24];
     snprintf(head, sizeof(head), "N.%03d %s%s", galleryDetail,
              pet.isVariantRegistered(galleryDetail) ? "*" : "", reg ? d.name : "???");
-    gfx->setTextColor(reg ? d.accent : UI_INK);
+    gfx->setTextColor(reg ? dexAccent(galleryDetail) : UI_INK);
     int glen = strlen(head);
     int gts = (glen <= 13) ? 3 : 2;  // auto-encoge nombres largos (no caben a t3)
     gfx->setTextSize(gts);
@@ -6398,12 +5922,8 @@ void renderGallery() {
 
   gfx->fillScreen(RGB565_BLACK);
   gfx->fillCircle(CX, CY, 231, UI_BG_DAY);
-  // the version's own name and its own tally: "how much of Ver.2 have I seen"
-  // is the question you are actually asking here
   char head[32];
-  const RegionInfo &grg = REGIONS[galleryRegion % GAL_REGIONS];
-  snprintf(head, sizeof(head), "%s %u/%u", grg.name,
-           pet.registeredCountIn(grg.lo, grg.hi), (unsigned)GAL_SPAN);
+  snprintf(head, sizeof(head), T(S_DIGIDEX_FMT), pet.registeredCount(), DEX_COUNT - NO_ART_COUNT);
   gfx->setTextColor(UI_INK);
   gfx->setTextSize(3);
   gfx->setCursor(CX - strlen(head) * 9, 36);
@@ -6673,8 +6193,16 @@ void drawChoiceDialog() {
   const char *sub1 = nullptr, *sub2 = nullptr;
   uint16_t c1, c2, t1, t2;
   if (choiceKind == 1) {  // evolution
+    // Named, because "keep form" is how a player passes over this branch for the next.
     q = T(S_EVO_Q); o1 = T(S_EVO_TAP); o2 = T(S_EVO_KEEP);
     c1 = UI_BAR_BAD; t1 = UI_WHITE; c2 = UI_TRACK; t2 = UI_INK;
+    int16_t to = pet.digiTarget();
+    if (to) sub1 = TS_DEX_TBL[to].name;
+  } else if (choiceKind == 4) {   // de-digivolution
+    q = T(S_DEVOLVE); o1 = T(S_YES); o2 = T(S_NO);
+    c1 = UI_BAR_WARN; t1 = UI_INK; c2 = UI_TRACK; t2 = UI_INK;
+    int16_t to = devolveTarget();
+    if (to) sub1 = TS_DEX_TBL[to].name;
   } else if (choiceKind == 3) {   // retirement on request
     q = T(S_RETIRE_Q); o1 = T(S_FAR_GO); o2 = T(S_FAR_STAY);
     c1 = UI_BAR_WARN; t1 = UI_INK; c2 = UI_BAR_OK; t2 = UI_WHITE;
@@ -6712,7 +6240,7 @@ void drawFarewellButton() {
   gfx->fillRoundRect(x, y, w, h, 16, UI_BAR_WARN);
   gfx->drawRoundRect(x, y, w, h, 16, UI_INK);
   char buf[52];
-  const char *nm = pet.nick[0] ? pet.nick : DEX_TBL[pet.speciesId].name;
+  const char *nm = pet.nick[0] ? pet.nick : TS_DEX_TBL[pet.speciesId].name;
   snprintf(buf, sizeof(buf), T(S_FAREWELL_BTN), nm);
   gfx->setTextColor(UI_INK);
   gfx->setTextSize(2);
@@ -6729,7 +6257,7 @@ void drawRunawayButton() {
   gfx->fillRoundRect(x, y, w, h, 16, C565(0x3a, 0x44, 0x5a));
   gfx->drawRoundRect(x, y, w, h, 16, C565(0x70, 0x80, 0x98));
   char buf[52];
-  const char *nm = pet.nick[0] ? pet.nick : DEX_TBL[pet.speciesId].name;
+  const char *nm = pet.nick[0] ? pet.nick : TS_DEX_TBL[pet.speciesId].name;
   snprintf(buf, sizeof(buf), T(S_RUNAWAY_BTN), nm);
   gfx->setTextColor(C565(0xc8, 0xd2, 0xe0));
   gfx->setTextSize(2);

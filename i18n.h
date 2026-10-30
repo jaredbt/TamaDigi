@@ -177,12 +177,14 @@ enum StrId : uint8_t {
   // Digimon: the progress card's branch inputs, and the attribute label
   S_TRAIN_TOTAL_FMT,  // "Training: %u" -- trAtk + trDef + trSpe
   S_ATTR,             // card label: Vaccine / Data / Virus / Free
-  S_STAGE_0, S_STAGE_1, S_STAGE_2, S_STAGE_3, S_STAGE_4, S_STAGE_5,
+  S_STAGE_0, S_STAGE_1, S_STAGE_2, S_STAGE_3, S_STAGE_4, S_STAGE_5, S_STAGE_6,
+  S_BASIC_ATK,      // the battle menu's basic attack, always there
+  S_OLD_SAVE, S_OLD_SAVE2,  // two lines: a v1.0.0 save was found and replaced
+  S_DEVOLVE,        // the card's button and the confirm's title
   STR_COUNT
 };
 
 const char *T(StrId id);       // text in the active language
-const char *moveName(uint8_t move);  // localized display name; move ID stays stable
 const char *medalName(int i);  // medal banner (MED_COUNT)
 const char *medalLabel(int i); // short medal label
 const char *medalDesc(int i);  // long medal description

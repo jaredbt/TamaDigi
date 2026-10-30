@@ -1,62 +1,23 @@
 #include "pet.h"
 #include "avatars.h"
-#include "dex.h"
-#include "moves.h"
 #include "noart.h"   // speciesHasArt(): the egg pool skips what cannot be drawn
 #include "audio.h"
 #include "ckpt.h"   // the alternating CRC-checked record format
 #include <stddef.h>
 
-// Reads a blob that may be LONGER than the array we are reading it into.
-//
-// Preferences::getBytes reads the stored length FIRST and, if it exceeds the
-// caller's buffer, logs and returns 0 WITHOUT COPYING ANYTHING:
-//
-//     if (len > maxLen) { log_e("not enough space in buffer"); return 0; }
-//
-// Growing the dex was always safe -- a short blob lands in the front of a bigger
-// array and the rest keeps its zero initialiser, which is what every migration
-// here relies on. SHRINKING was not: flashing a build with a smaller DEX_COUNT,
-// GYM_REGIONS or REGION_COUNT over a newer save left dexReg, dexVariantReg, the
-// badge arrays and eggByRegion entirely ZERO. The creature survived, being all
-// scalars, while the Digidex and every badge past Ver.1 quietly vanished --
-// which from the player's side is their game rolling back.
-//
-// The PREFIX is the right thing to keep: dex bit n means the same Digimon
-// whatever the table grew to afterwards, and version n is the same version.
-// Only the tail we have no room for is dropped, which is data about content
-// this build does not have anyway.
-//
-// The emulator's Preferences stub used to truncate rather than refuse, so no
-// test could see any of this -- see tools/emu/Preferences.h.
-static void loadBlob(Preferences &p, const char *key, void *dst, size_t n) {
-  size_t have = p.getBytesLength(key);
-  if (!have) return;                       // absent: keep the initialiser
-  if (have <= n) { p.getBytes(key, dst, n); return; }
-  uint8_t *tmp = (uint8_t *)malloc(have);
-  if (!tmp) return;                        // rather no read than a half one
-  if (p.getBytes(key, tmp, have) == have) memcpy(dst, tmp, n);
-  free(tmp);
-}
-
-
 // --- the creature ----------------------------------------------------------
-static constexpr uint32_t PET_CORE_MAGIC = 0x31504B54UL;  // "TKP1"
-// v2 appended the pending party handover; v3 retired it with the party (see
-// PET_TAIL_* below). v1 and v2 records still read: the tail is skipped.
-static constexpr uint16_t PET_CORE_VERSION = 3;
-// Generous enough to read a record from a later build; see ckptRead(). NEVER
-// lower it below a v2 record (PET_TAIL_V2_END + CKPT_CRC, 124 bytes): a record
-// too big for the buffer is rejected, and a rejected checkpoint falls back to
-// the legacy keys, which is the torn-write path the checkpoint replaced.
+// The Time Stranger cutover restarted this record: dex numbers and skill ids mean
+// something else now, so it has a new magic and a v1.0.0 record ("TKP1") is never
+// read as one. saveReplaceOld() in save.cpp is what deals with those.
+static constexpr uint32_t PET_CORE_MAGIC = 0x32504B54UL;  // "TKP2"
+static constexpr uint16_t PET_CORE_VERSION = 1;
+// Generous enough to read a record from a later build; see ckptRead().
 static constexpr size_t PET_CORE_CAP = PET_CKPT_CAP;
 
-// The fixed part of the record: byte-for-byte the v1 body, which is why a
-// checkpoint already on a device still validates. PetCoreSnapshot below is
-// exactly this prefix, and only PET_FIXED bytes of it are ever copied -- the
-// struct's own sizeof is rounded up by its 4-byte alignment and those trailing
-// bytes are not part of the format.
-static constexpr size_t PET_FIXED = 70;
+// The fixed part of the record. PetCoreSnapshot below is exactly this prefix, and
+// only PET_FIXED bytes of it are ever copied -- the struct's own sizeof may be
+// rounded up by its 4-byte alignment and those bytes are not part of the format.
+static constexpr size_t PET_FIXED = 96;
 
 struct PetCoreSnapshot {
   uint32_t magic;
@@ -65,45 +26,30 @@ struct PetCoreSnapshot {
   uint32_t generation;
   uint32_t ageMinutes;
   uint32_t lastSeenEpoch;
+  uint32_t formAgeMin;
   int16_t speciesId;
   int16_t eggTarget;
   uint16_t medals;
+  uint16_t moves[MOVE_SLOTS];
+  uint16_t learnQueue[8];
   uint8_t fullness, joy, energy, hygiene, poops, weight;
   uint8_t ivAtk, ivDef, ivSpe, ivHp;
   uint8_t trAtk, trDef, trSpe;
-  uint8_t moves[MOVE_SLOTS];
-  uint8_t lastLearnLevel;
+  uint8_t learnCursor, learnQCount;
   uint8_t berryKnown, variant, eggVariant, starterPick;
   uint8_t evoPen, sleepAuto, retirePending, eggTaps;
   uint8_t careMistakes, sleeping, lastEnd, frozen, bond;
+  uint8_t deDigiCount, evoHold;
   char nick[12];
-  // Battles won as the live Digimon since its last digivolution. This byte was
-  // v1's tail padding (always written 0), so taking it changes no offset and no
-  // size: an older record simply reads 0 wins.
-  uint8_t wins;
 };
 // EXACT, not "< 256". PET_FIXED is on-disk format -- it is what the crc covers
-// and what a v1 blob's `size` implies -- so a field added above changes what
-// every device already holds. Failing this assert is the reminder to read the
-// append-only rule at the top of this section, then move the number
-// deliberately and bump PET_CORE_VERSION.
-static_assert(offsetof(PetCoreSnapshot, wins) == PET_FIXED - 1,
+// and what a stored `size` implies -- so a field added above changes what every
+// device already holds. Failing this assert is the reminder to read the
+// append-only rule in ckpt.h, then append the field at the end and move the number.
+static_assert(offsetof(PetCoreSnapshot, nick) == PET_FIXED - sizeof(PetCoreSnapshot::nick),
               "pet checkpoint fixed layout changed");
-static_assert(sizeof(PetCoreSnapshot) >= PET_FIXED, "PET_FIXED overruns the struct");
-
-// The v2 tail, RETIRED. It held the creature a finished farewell or release
-// handed over while it waited for a party slot: a ceremony kind (u8), a reserved
-// byte, the stored record's length (u16) and the record itself, 48 bytes in its
-// last layout. The party and box were removed by design (one partner, no teams),
-// so nothing is handed over any more and a v2 tail is read past and ignored.
-//
-// The SPAN stays reserved, and is written as zeros, because of the append-only
-// rule: a field appended at PET_FIXED would be read out of the kind byte of
-// every v2 record still on a device. So the next field goes at PET_BODY.
-static constexpr size_t PET_TAIL_V2_LEN = 4 + 48;
-static constexpr size_t PET_TAIL_V2_END = PET_FIXED + PET_TAIL_V2_LEN;
-static constexpr size_t PET_BODY = PET_TAIL_V2_END;
-static_assert(PET_BODY + CKPT_CRC <= PET_CORE_CAP, "raise PET_CORE_CAP");
+static_assert(sizeof(PetCoreSnapshot) == PET_FIXED, "PET_FIXED overruns the struct");
+static_assert(PET_FIXED + CKPT_CRC <= PET_CORE_CAP, "raise PET_CORE_CAP");
 
 // Takes a validated blob and copies whatever body prefix the stored record and
 // this build have in common. Anything this build has that the record did not
@@ -135,42 +81,32 @@ static bool readPetCore(Preferences &prefs, const char *key,
 // one layer out, and it survived the first fix because that fix only covered
 // the creature.
 //
-// Unlike the creature's, this record CANNOT be a struct. dexReg is sized by
-// DEX_COUNT, eggByRegion by REGION_COUNT and the badge arrays by GYM_REGIONS,
-// and this project grows all three -- the dex has gone 151 -> 386 -> 1025. A
-// struct would move every field after whichever array grew, and that is the one
-// thing the append-only rule cannot absorb.
+// Unlike the creature's, this record CANNOT be a struct: dexReg is sized by
+// DEX_COUNT, and a struct would move every field after it whenever the roster grew.
+// So the DIMENSIONS TRAVEL IN THE HEADER and each array is copied by its own prefix
+// rule: a stored array shorter than this build's lands at the front and the tail
+// keeps its zero initialiser, a longer one is truncated.
 //
-// So the DIMENSIONS TRAVEL IN THE HEADER and each array is copied by its own
-// prefix rule: a stored array shorter than this build's lands at the front and
-// the tail keeps its zero initialiser, a longer one is truncated. That is
-// exactly what loadBlob() does per key -- dex bit n means the same Digimon
-// however big the table got -- applied inside one atomic blob instead of across
-// twenty-five separate writes.
-static constexpr uint32_t PLAYER_MAGIC = 0x31594B54UL;   // "TKY1"
-static constexpr uint16_t PLAYER_VERSION = 2;   // v2 appended memoHi; see below
+// Restarted at the Time Stranger cutover, for the same reason as the creature's: dex
+// bit n names a different Digimon now, and there is one ladder.
+static constexpr uint32_t PLAYER_MAGIC = 0x32594B54UL;   // "TKY2"
+static constexpr uint16_t PLAYER_VERSION = 1;
 // Header + every scalar, before the arrays begin.
 //
-// THIS LENGTH NOW TRAVELS IN THE RECORD, at buf[19], for exactly the reason the
-// array dimensions already do. Appending a scalar moves where the arrays start,
-// and loadPlayerSnapshot() validates `need` against the stored body length -- so
-// simply raising this number would make every EXISTING record fail that check and
-// fall back to the legacy keys, which is the torn-write path the checkpoint exists
-// to replace. A v1 record has a reserved ZERO there, which is the sentinel for
-// "the fixed block was 42", so nothing already on a device needs to know.
-//
+// THIS LENGTH TRAVELS IN THE RECORD, at buf[19], for exactly the reason the array
+// dimensions do. Appending a scalar moves where the arrays start, and
+// loadPlayerSnapshot() validates `need` against the stored body length -- so
+// simply raising this number would make every existing record fail that check.
 // So a future scalar goes at the end of the block, this number moves, and both
-// directions keep working. No magic bump, no version check.
-static constexpr size_t PLAYER_FIXED_V1 = 42;
-static constexpr size_t PLAYER_FIXED = 44;   // v2: + memoHi at offset 42
+// directions keep working.
+static constexpr size_t PLAYER_FIXED = 44;
 static constexpr size_t PLAYER_CAP = PLAYER_CKPT_CAP;
 static constexpr size_t PLAYER_DEX_BYTES = (DEX_COUNT + 7) / 8;
 // DERIVED from the tables, never restated: CLAUDE.md § "A record's size is
 // load-bearing" is what a literal here costs. Failing this is
 // the signal to raise PLAYER_CAP, not to trim the record.
 static constexpr size_t PLAYER_MAX =
-    PLAYER_FIXED + 2 * PLAYER_DEX_BYTES + 4 * (GYM_REGIONS - 1) +
-    2 * REGION_COUNT + 12 /* trainerName */ + CKPT_CRC;
+    PLAYER_FIXED + 2 * PLAYER_DEX_BYTES + 12 /* trainerName */ + CKPT_CRC;
 static_assert(PLAYER_MAX <= PLAYER_CAP, "raise PLAYER_CAP for the player record");
 
 // A bounds-checked cursor over the variable tail of a blob. Overrunning sets
@@ -181,15 +117,9 @@ bool Pet::savePlayerSnapshot() {
   uint8_t buf[PLAYER_CAP] = {};
 
   ckptWr16(buf + 12, (uint16_t)sizeof(dexReg));   // u16: a dex byte count outgrew 255 long ago
-  buf[14] = REGION_COUNT;
-  buf[15] = GYM_REGIONS - 1;                      // the length of badgesX / badgesHardX
   buf[16] = (uint8_t)sizeof(trainerName);
   buf[17] = avatar;
-  buf[18] = region;
-  // The length of the scalar block, i.e. where the arrays start. Was a reserved
-  // zero, which is precisely what makes it usable: every record already written
-  // reads 0 here and 0 means PLAYER_FIXED_V1.
-  buf[19] = (uint8_t)PLAYER_FIXED;
+  buf[19] = (uint8_t)PLAYER_FIXED;                // the scalar block: where the arrays start
   ckptWr16(buf + 20, badges);
   ckptWr16(buf + 22, badgesHard);
   ckptWr16(buf + 24, streak);
@@ -200,14 +130,11 @@ bool Pet::savePlayerSnapshot() {
   ckptWr16(buf + 36, gameHi);
   ckptWr16(buf + 38, strHi);
   ckptWr16(buf + 40, spdHi);
-  ckptWr16(buf + 42, memoHi);                     // v2
+  ckptWr16(buf + 42, memoHi);
 
   CkptCursor cur{ buf, PLAYER_FIXED, sizeof(buf) - CKPT_CRC };
   cur.put(dexReg, sizeof(dexReg));
   cur.put(dexVariantReg, sizeof(dexVariantReg));
-  cur.put(badgesX, sizeof(badgesX));
-  cur.put(badgesHardX, sizeof(badgesHardX));
-  cur.put(eggByRegion, sizeof(eggByRegion));
   cur.put(trainerName, sizeof(trainerName));
   if (cur.bad) {   // PLAYER_MAX static_asserts this cannot happen; say so if it does
     Serial.println("save: player record does not fit PLAYER_CAP");
@@ -237,32 +164,25 @@ bool Pet::loadPlayerSnapshot() {
   if (!n) return false;
 
   const size_t dexBytes = ckptRd16(buf + 12);
-  const size_t regionN = buf[14];
-  const size_t badgeN = buf[15];
   const size_t nameN = buf[16];
   // Check the dimensions BEFORE copying a single byte. A record that disagrees
-  // with its own length is rejected whole rather than half-applied over the
-  // legacy values already loaded -- half-applied is the very mixture this
-  // record exists to prevent. A body LONGER than the dimensions describe is
-  // fine and ignored: that is a later build's appended field.
+  // with its own length is rejected whole rather than half-applied. A body LONGER
+  // than the dimensions describe is fine and ignored: that is a later build's
+  // appended field.
   const size_t body = n - CKPT_CRC;
-  // Where the arrays start, according to the RECORD rather than this build. A
-  // reserved zero means v1's 42; see the note above PLAYER_FIXED. Clamped, so a
-  // corrupt byte here cannot walk the cursor off into the arrays.
-  size_t fixed = buf[19] ? (size_t)buf[19] : PLAYER_FIXED_V1;
-  if (fixed < PLAYER_FIXED_V1 || fixed > body) {
+  const size_t fixed = buf[19];
+  if (fixed < PLAYER_FIXED || fixed > body) {
     Serial.println("save: player checkpoint scalar block length is not believable");
     return false;
   }
-  const size_t need = fixed + 2 * dexBytes + 4 * badgeN + 2 * regionN + nameN;
-  if (!regionN || need > body) {
+  const size_t need = fixed + 2 * dexBytes + nameN;
+  if (need > body) {
     Serial.println("save: player checkpoint dimensions do not match its length");
     return false;
   }
 
   playerGeneration = ckptRd32(buf + 8);
   avatar = buf[17];
-  region = buf[18];
   badges = ckptRd16(buf + 20);
   badgesHard = ckptRd16(buf + 22);
   streak = ckptRd16(buf + 24);
@@ -273,28 +193,14 @@ bool Pet::loadPlayerSnapshot() {
   gameHi = ckptRd16(buf + 36);
   strHi = ckptRd16(buf + 38);
   spdHi = ckptRd16(buf + 40);
-  // Only if the record actually HAS it. A v1 record's offset 42 is the first byte
-  // of the Digidex bitmap, so reading it unconditionally would invent a memory
-  // record out of dex bits.
-  if (fixed >= PLAYER_FIXED) memoHi = ckptRd16(buf + 42);
+  memoHi = ckptRd16(buf + 42);
 
   CkptCursor cur{ buf, fixed, body };
   cur.take(dexReg, sizeof(dexReg), dexBytes);
   cur.take(dexVariantReg, sizeof(dexVariantReg), dexBytes);
-  cur.take(badgesX, sizeof(badgesX), badgeN * 2);
-  cur.take(badgesHardX, sizeof(badgesHardX), badgeN * 2);
-  cur.take(eggByRegion, sizeof(eggByRegion), regionN * 2);
   cur.take(trainerName, sizeof(trainerName), nameN);
   trainerName[sizeof(trainerName) - 1] = 0;
 
-  // REGION_ALL is the LAST entry of the table and is stored RAW, so a save from
-  // a build with fewer versions has a number that now means somebody else --
-  // with Pendulum and Pendulum appended, ALL moved 7 -> 9 and a stored 7 became a
-  // version with no sprite pack. The record carries the table size it was
-  // written with so that cannot happen; this is the same rule as the "regn"
-  // key, asked of the record that is actually being believed.
-  if (regionN != REGION_COUNT && region >= (uint8_t)(regionN - 1)) region = REGION_ALL;
-  if (region >= REGION_COUNT) region = REGION_ALL;
   if (avatar >= AVATAR_COUNT) avatar = 0;   // a save from when there were four
   return true;
 }
@@ -316,11 +222,8 @@ void Pet::begin() {
   // returns without ever calling load(). Without this a begin() after a factory
   // reset keeps the old Digidex alive in RAM -- the firmware reboots on WIPE so
   // it never showed there, but anything calling begin() twice would see it.
-  memset(badgesX, 0, sizeof(badgesX));
-  memset(badgesHardX, 0, sizeof(badgesHardX));
   memset(dexReg, 0, sizeof(dexReg));
   memset(dexVariantReg, 0, sizeof(dexVariantReg));
-  for (int i = 0; i < REGION_COUNT; i++) eggByRegion[i] = 0;
   if (!prefs.getBool("init", false)) {
     prefs.putBool("init", true);
     newEgg();
@@ -336,9 +239,7 @@ void Pet::newEgg() {
   weight = 0;
   speciesId = -1;
   prevSpeciesId = -1;
-  for (int i = 0; i < REGION_COUNT; i++) eggByRegion[i] = 0;
-  eggTarget = pickEggSpecies();  // hidden species by rarity and digidex
-  eggByRegion[region % REGION_COUNT] = eggTarget;
+  eggTarget = pickEggSpecies();  // hidden species, leaning toward incomplete lines
   starterPick = (registeredCount() == 0);  // first game: the player chooses a starter
   // variant roll: 1/48 base, better after a farewell and with a high streak/bond
   int variantBase = (lastEnd == CER_FAREWELL ? 24 : 48) - careBonus();
@@ -356,7 +257,6 @@ void Pet::newEgg() {
   poops = 0;
   ageMinutes = 0;
   careMistakes = 0;
-  wins = 0;
   mistakeCooldown = 0;
   sleeping = false;
   frozen = false;
@@ -576,248 +476,140 @@ void Pet::defTick(bool resting) {
 }
 
 // Does any Digimon reachable from this base (through every branch) remain
-// unregistered? Walks EVO_TBL breadth-first; the tree is small.
+// unregistered? Walks the routes breadth-first. All int16_t: the queue holds up to
+// the whole roster, and a form leads to dozens.
 bool Pet::lineHasUnregistered(int16_t base) const {
-  if (base < 1 || base > DEX_COUNT) return false;
+  if (!dexValid(base)) return false;
   int16_t q[DEX_COUNT + 1];
   bool seen[DEX_COUNT + 1] = { false };
-  uint8_t head = 0, tail = 0;
+  int16_t head = 0, tail = 0;
   q[tail++] = base;
   seen[base] = true;
   while (head < tail) {
     int16_t cur = q[head++];
     if (speciesHasArt(cur) && !isRegistered(cur)) return true;
-    for (uint8_t i = 0; i < EVO_COUNT; i++) {
-      if (EVO_TBL[i].from != cur) continue;
-      int16_t t = (int16_t)EVO_TBL[i].to;
-      if (t >= 1 && t <= DEX_COUNT && !seen[t] && tail <= DEX_COUNT) { seen[t] = true; q[tail++] = t; }
+    const TsDexEntry &d = TS_DEX_TBL[cur];
+    for (uint16_t i = d.evoFirst; i < (uint16_t)d.evoFirst + d.evoCount; i++) {
+      int16_t t = (int16_t)TS_EVO_TBL[i].to;
+      if (dexValid(t) && !seen[t]) { seen[t] = true; q[tail++] = t; }
     }
   }
   return false;
 }
 
-// The training a branch looks at: everything the three trainable stats have
-// gathered, capped to the byte the table compares against.
+// The training total the card shows: everything the three trainable stats have
+// gathered, capped to a byte.
 uint8_t Pet::trainingTotal() const {
   uint16_t t = (uint16_t)trAtk + trDef + trSpe;
   return t > 255 ? 255 : (uint8_t)t;
 }
 
-// THE digivolution answer: the first branch out of the current form whose
-// conditions hold and whose target this player can actually be shown. 0 means
-// none does -- a Champion that has not won enough stays a Champion.
+uint8_t Pet::routeClock(const TsEvo &e) const {
+  uint16_t at = TS_STAGE_ENTRY[TS_DEX_TBL[e.to].stage % STAGE_COUNT];
+  if (evoHold > at) at = evoHold;
+  at += evoPen;
+  return at > 255 ? 255 : (uint8_t)at;
+}
+
+uint16_t Pet::routeStat(uint8_t tsStat) const {
+  switch (tsStat) {
+    case TS_STAT_HP:   return vitStat();
+    case TS_STAT_ATK:  return atkStat();
+    case TS_STAT_DEF:  return defStat();
+    case TS_STAT_SPD:  return speStat();
+    case TS_STAT_MATK: return spaStat();
+    default:           return spdStat();
+  }
+}
+
+bool Pet::routeMet(const TsEvo &e) const {
+  if (level() < routeClock(e) || level() < e.minLevel) return false;
+  if (agentRank() < e.rank) return false;
+  for (uint8_t i = 0; i < TS_STAT_COUNT; i++)
+    if (e.min[i] && routeStat(i) < tsScaled(e.min[i])) return false;
+  return true;
+}
+
+uint8_t Pet::evoOptions(int16_t *out, uint8_t max) const {
+  if (isEgg() || !dexValid(speciesId)) return 0;
+  const TsDexEntry &d = TS_DEX_TBL[speciesId];
+  uint8_t n = 0;
+  for (uint16_t i = d.evoFirst; i < (uint16_t)d.evoFirst + d.evoCount && n < max; i++) {
+    const TsEvo &e = TS_EVO_TBL[i];
+    if (speciesShowable((int16_t)e.to) && routeMet(e)) out[n++] = (int16_t)e.to;
+  }
+  return n;
+}
+
+// THE digivolution answer. 0 means none is open -- a form whose branches ask for
+// more stays as it is until training or age opens one.
 int16_t Pet::digiTarget() const {
-  if (isEgg() || speciesId < 1 || speciesId > DEX_COUNT) return 0;
-  const uint8_t cm = careMistakes, tr = trainingTotal();
-  for (uint8_t i = 0; i < EVO_COUNT; i++) {
-    const DigiEvo &e = EVO_TBL[i];
-    if ((int16_t)e.from != speciesId) continue;
-    if (cm < e.minCare || (e.maxCare != EVO_ANY && cm > e.maxCare)) continue;
-    if (tr < e.minTrain || (e.maxTrain != EVO_ANY && tr > e.maxTrain)) continue;
-    if (wins < e.minWins) continue;
+  int16_t open[EVO_OPTIONS_MAX];
+  const uint8_t n = evoOptions(open, EVO_OPTIONS_MAX);
+  return n ? open[evoBranch % n] : 0;
+}
+
+uint8_t Pet::evoNextLevel() const {
+  if (isEgg() || !dexValid(speciesId)) return 0;
+  const TsDexEntry &d = TS_DEX_TBL[speciesId];
+  uint8_t best = 0;
+  for (uint16_t i = d.evoFirst; i < (uint16_t)d.evoFirst + d.evoCount; i++) {
+    const TsEvo &e = TS_EVO_TBL[i];
     if (!speciesShowable((int16_t)e.to)) continue;
-    return (int16_t)e.to;
+    uint8_t at = routeClock(e);
+    if (e.minLevel > at) at = e.minLevel;
+    if (!best || at < best) best = at;
   }
-  return 0;
+  return best;
 }
 
-// The battles a branch needs, for the card's hint: the smallest minWins among
-// this form's branches. 0 if no branch asks for any.
-uint8_t Pet::winsNeeded() const {
-  if (isEgg()) return 0;
-  uint8_t best = 255;
-  for (uint8_t i = 0; i < EVO_COUNT; i++)
-    if ((int16_t)EVO_TBL[i].from == speciesId && EVO_TBL[i].minWins < best)
-      best = EVO_TBL[i].minWins;
-  return best == 255 ? 0 : best;
-}
+bool gArtPack = true;   // everything, until the SD says otherwise
 
-void Pet::addWin() {
-  if (isEgg() || frozen) return;
-  if (wins < 255) wins++;
-  save();   // a win is rare and it decides a branch: commit it now
-}
-
-uint8_t Pet::eggRarity() const {
-  return (eggTarget >= 1 && eggTarget <= DEX_COUNT) ? DEX_TBL[eggTarget].rarity : R_COMUN;
-}
-
-// picks the egg's species: a rarity roll (improved by a completed farewell,
-// penalised by a runaway) and a bias toward incomplete lines
-// Room for the candidate list. A whole rarity tier of a 386-Digimon dex is far
-// more than the 80 the Ver.1-only build needed.
-#define CAND_MAX 260
-
-uint16_t gRegionArt = 0xFFFF;   // everything, until the SD narrows it
-
-bool regionAvailable(uint8_t r) {
-  if (r >= REGION_COUNT) return false;
-  if (r == REGION_ALL) {                       // the mixed pool: any pack will do
-    for (uint8_t i = 0; i < REGION_COUNT; i++)
-      if (i != REGION_ALL && (gRegionArt & (uint16_t)(1u << i))) return true;
-    return false;
-  }
-  return (gRegionArt & (uint16_t)(1u << r)) != 0;
-}
-
-// THE single answer to "can this player be shown this Digimon". The egg pool
-// and every digivolution ask it; having two opinions is how TENTOMON's branch was
+// THE single answer to "can this player be shown this Digimon". The egg pool and
+// every digivolution ask it; having two opinions is how TENTOMON's branch was
 // filtered for years while the linear path was not.
 bool speciesShowable(int16_t d) {
-  return d >= 1 && d <= DEX_COUNT && speciesHasArt(d) &&
-         regionAvailable(regionOfDex(d));
+  return dexValid(d) && speciesHasArt(d) && gArtPack;
 }
 
-uint8_t regionOfDex(int16_t d) {
-  for (uint8_t i = 0; i < REGION_COUNT; i++) {
-    if (i == REGION_ALL) continue;
-    if (d >= REGIONS[i].lo && d <= REGIONS[i].hi) return i;
-  }
-  return REGION_ALL;
-}
-
-int16_t regionArtProbe(uint8_t region, uint8_t slot) {
-  if (region >= REGION_COUNT || region == REGION_ALL || slot > 2) return 0;
-  const RegionInfo &info = REGIONS[region];
-  int16_t target = slot == 0 ? info.lo : slot == 1 ? (int16_t)((info.lo + info.hi) / 2)
-                                                   : info.hi;
-  int16_t span = info.hi - info.lo;
-  for (int16_t distance = 0; distance <= span; distance++) {
-    int16_t lower = target - distance;
-    if (lower >= info.lo && speciesHasArt(lower)) return lower;
-    int16_t upper = target + distance;
-    if (distance && upper <= info.hi && speciesHasArt(upper)) return upper;
+int16_t artProbe(uint8_t slot) {
+  if (slot > 2) return 0;
+  uint8_t seen = 0;
+  for (int16_t d = 1; d <= DEX_COUNT; d++) {
+    if (!speciesHasArt(d)) continue;
+    const int16_t want = slot == 0 ? 0 : (slot == 1 ? NO_ART_DRAWABLE / 2 : NO_ART_DRAWABLE - 1);
+    if (seen++ == want) return d;
   }
   return 0;
 }
 
-// Can an egg come from this version? Its pack must be on the card AND its
-// Baby I must have art -- Ver.3 ships without Poyomon, so its Digimon appear in
-// the wild and in the ladders while its egg stays locked.
-bool regionHatchable(uint8_t r) {
-  if (!regionAvailable(r)) return false;
-  const RegionInfo &rg = REGIONS[r];
-  for (uint8_t i = 0; i < rg.starterCount; i++)
-    if (speciesShowable(rg.starters[i])) return true;
-  return false;
-}
-
-uint8_t nextHatchableRegion(uint8_t from) {
-  for (uint8_t i = 1; i <= REGION_COUNT; i++) {
-    uint8_t r = (uint8_t)((from + i) % REGION_COUNT);
-    if (regionHatchable(r)) return r;
+uint8_t starterForms(int16_t *out, uint8_t max) {
+  uint8_t n = 0;
+  for (int16_t d = 1; d <= DEX_COUNT; d++) {
+    if (TS_DEX_TBL[d].stage != TS_ST_IN_TRAINING_1 || !speciesShowable(d)) continue;
+    if (n < max) out[n] = d;
+    n++;
   }
-  return from;
+  return n;
 }
 
-uint8_t nextAvailableRegion(uint8_t from) {
-  for (uint8_t i = 1; i <= REGION_COUNT; i++) {
-    uint8_t r = (uint8_t)((from + i) % REGION_COUNT);
-    if (regionAvailable(r)) return r;
-  }
-  return from;                      // nothing available anywhere: stay put
-}
-
-// The version to actually hatch from. Normally the player's own, but a card can
-// be swapped under a save: rather than rewrite their choice (which would lose
-// it silently the moment they put the right card back), the CHOICE is kept and
-// only the roll falls through to somewhere playable.
-static uint8_t eggRegionFallback(uint8_t want) {
-  if (regionHatchable(want)) return want;
-  for (uint8_t i = 0; i < REGION_COUNT; i++)
-    if (i != REGION_ALL && regionHatchable(i)) return i;
-  return want;                      // no art anywhere: behave as we always did
-}
-
+// The egg: a random In-Training I, leaning toward lines with Digimon not raised yet.
+// A stand-in for phase 2's egg rules, which keep this lean and drop what is left of
+// the old tiers. With no pack on the card the table is still the answer: it is what
+// the first egg of a board with no SD has always been.
 int16_t Pet::pickEggSpecies() {
-  const uint8_t use = eggRegionFallback(region % REGION_COUNT);
-  const RegionInfo &rg = REGIONS[use];
-  // first game: a classic starter -- from the chosen version, so a Ver.2 run
-  // starts with a Ver.2 starter rather than a Ver.1 one
-  if (registeredCount() == 0) {
-    int16_t ok[8]; uint8_t n = 0;
-    for (uint8_t i = 0; i < rg.starterCount && n < 8; i++)
-      if (speciesShowable(rg.starters[i])) ok[n++] = rg.starters[i];
-    return n ? ok[random(n)] : rg.starters[random(rg.starterCount)];
+  int16_t pool[TS_DEX_COUNT];
+  const uint8_t n = starterForms(pool, sizeof(pool) / sizeof(pool[0]));
+  if (!n) {
+    for (int16_t d = 1; d <= DEX_COUNT; d++)
+      if (TS_DEX_TBL[d].stage == TS_ST_IN_TRAINING_1 && speciesHasArt(d)) return d;
+    return 1;
   }
-
-  uint8_t tier = R_COMUN;
-  if (lastEnd != CER_RUNAWAY) {
-    bool blessed = (lastEnd == CER_FAREWELL);
-    int rare = (blessed ? 45 : 27) + careBonus();
-    int leg = (registeredCount() >= 25) ? (blessed ? 10 : 3) + careBonus() / 3 : 0;
-    int r = random(100);
-    if (r < leg) tier = R_LEGENDARIO;
-    else if (r < leg + rare) tier = R_RARO;
-  }
-
-  // candidates in the tier with an incomplete line; if there are none, drop a tier;
-  // if the tier's digidex is complete, any of the tier will do
-  for (int pass = 0; pass < 2; pass++) {
-    for (int t = tier; t >= R_COMUN; t--) {
-      int16_t cand[CAND_MAX];
-      int n = 0;
-      for (int16_t d = rg.lo; d <= rg.hi && n < CAND_MAX; d++) {
-        if (DEX_TBL[d].rarity != t) continue;
-        if (pass == 0 && !lineHasUnregistered(d)) continue;
-        // ALL spans every version, so filter per Digimon: a missing Pendulum pack
-        // must not put a Pendulum creature in a mixed egg.
-        if (!regionAvailable(regionOfDex(d))) continue;
-        // And a Digimon with no art ANYWHERE never hatches, pack or no pack --
-        // it would be a creature that can only ever draw as a number. It keeps
-        // its dex slot; it is simply not something an egg can contain.
-        if (!speciesHasArt(d)) continue;
-        cand[n++] = d;
-      }
-      if (n > 0) return cand[random(n)];
-    }
-  }
-  return rg.starters[random(rg.starterCount)];  // unreachable, just in case
-}
-
-// Rolls a Digimon of a GIVEN tier inside a version. Used when the player changes
-// version while an egg is waiting: the rarity they were granted is kept and only
-// the version changes, so switching cannot be farmed for a Mega.
-int16_t Pet::rollInRegion(uint8_t r, uint8_t tier) {
-  const RegionInfo &rg = REGIONS[eggRegionFallback(r % REGION_COUNT)];
-  for (int t = tier; t >= R_COMUN; t--) {
-    int16_t cand[CAND_MAX];
-    int n = 0;
-    for (int16_t d = rg.lo; d <= rg.hi && n < CAND_MAX; d++)
-      if (DEX_TBL[d].rarity == t && regionAvailable(regionOfDex(d)) &&
-          speciesHasArt(d)) cand[n++] = d;
-    if (n) return cand[random(n)];
-  }
-  return rg.starters[0];      // a version with nothing in it cannot happen
-}
-
-// Changing version swaps the WAITING egg to that version's creature.
-//
-// Without this the setting would look broken: you would pick Ver.2 and still
-// hatch a Rattata, because the Digimon is rolled when the egg appears and not
-// when it cracks. Two rules stop it becoming a re-roll button:
-//
-//   1. The rarity tier is kept. Only which Digimon of that tier changes, so
-//      toggling can never be farmed for a Mega.
-//   2. Each version's answer is REMEMBERED for this egg. Switching back shows
-//      the same creature again, so there is nothing to gain by flipping.
-//
-// A hatched creature is untouched -- this only ever moves an egg.
-void Pet::setRegion(uint8_t r) {
-  r %= REGION_COUNT;
-  // The sprite pack is a real gate, not a hint: without it the version is not
-  // selectable at all. The chooser still SHOWS it, greyed and with a reason.
-  if (!regionHatchable(r)) return;
-  if (r == region) return;
-  uint8_t old = region;
-  region = r;
-  if (isEgg() && eggTarget >= 1) {
-    if (old < REGION_COUNT) eggByRegion[old] = eggTarget;
-    int16_t known = eggByRegion[r];
-    eggTarget = known >= 1 ? known : rollInRegion(r, eggRarity());
-    eggByRegion[r] = eggTarget;
-  }
-  save();
+  int16_t fresh[TS_DEX_COUNT];
+  uint8_t f = 0;
+  for (uint8_t i = 0; i < n; i++)
+    if (lineHasUnregistered(pool[i])) fresh[f++] = pool[i];
+  return f ? fresh[random(f)] : pool[random(n)];
 }
 
 void Pet::registerSpecies(int16_t dex) {
@@ -872,7 +664,7 @@ void Pet::checkMedals() {
   if (berryKnown) medals |= MED_BERRY;
   if (streak >= 7) medals |= MED_STREAK7;
   if (bond >= 100) medals |= MED_BOND;
-  if (DEX_TBL[speciesId].evolvesTo == 0) medals |= MED_FINAL;
+  if (TS_DEX_TBL[speciesId].evoCount == 0) medals |= MED_FINAL;
   if (weight == 0 && level() >= 5 && careMistakes == 0) medals |= MED_FIT;
   uint16_t gained = medals & ~before;
   if (gained) {
@@ -890,40 +682,48 @@ void Pet::rename(const char *name) {
   save();
 }
 
-// The IV's contribution (IV x level / 100) is exactly that of the games from
-// gen 3 onward: a perfect IV is worth +31 at level 100. The rest of
-// the formula is TamaDigi's (flat base + level), not the games': with
-// the canonical x level/100 on the base, a newly hatched creature would show
-// single-digit stats, which on a pet screen looks like a bug.
-uint16_t petCalcStat(uint8_t base, uint8_t iv, uint8_t lvl, uint8_t tr) {
-  return (uint16_t)base + lvl + (uint16_t)iv * lvl / 100 + tr;
+// Approach B: Time Stranger's own growth, scaled, plus training. A level-1 Digimon
+// with no training is exactly its table value over ten, so a stat always reads as
+// Time Stranger's number at the same level, plus what the partner has earned.
+uint16_t petCalcStat(int16_t dex, uint8_t stat, uint8_t lvl, uint8_t tr) {
+  return (uint16_t)(tsScaled(tsGrowth(dex, stat, lvl)) + tr);
+}
+
+uint16_t petCalcHp(int16_t dex, uint8_t lvl, uint8_t deDigiCount) {
+  uint32_t pct = 100 + (uint32_t)deDigiCount * DEDIGI_HP_STEP_PCT;
+  if (pct > DEDIGI_HP_MAX_PCT) pct = DEDIGI_HP_MAX_PCT;
+  uint32_t hp = tsScaled(tsGrowth(dex, TS_STAT_HP, lvl)) * pct / 100;
+  return hp ? (uint16_t)hp : 1;
+}
+
+uint8_t trainGainFor(uint8_t raw, uint8_t iv) {
+  const uint16_t pct = 70 + (60 * (uint16_t)iv + 15) / 31;
+  return (uint8_t)(((uint16_t)raw * pct + 50) / 100);
 }
 
 uint16_t Pet::atkStat() const {
-  return isEgg() ? 0 : petCalcStat(DEX_TBL[speciesId].bAtk, ivAtk, level(), trAtk);
+  return isEgg() ? 0 : petCalcStat(speciesId, TS_STAT_ATK, level(), trAtk);
 }
 uint16_t Pet::defStat() const {
-  return isEgg() ? 0 : petCalcStat(DEX_TBL[speciesId].bDef, ivDef, level(), trDef);
+  return isEgg() ? 0 : petCalcStat(speciesId, TS_STAT_DEF, level(), trDef);
 }
 uint16_t Pet::speStat() const {
-  return isEgg() ? 0 : petCalcStat(DEX_TBL[speciesId].bSpe, ivSpe, level(), trSpe);
+  return isEgg() ? 0 : petCalcStat(speciesId, TS_STAT_SPD, level(), trSpe);
 }
-// vitality is not trained (nothing raises it), so it carries a fixed +10
-// in place of training, like the HP's +Level+10 in the games
+// HP is not trained: it grows with age, and the de-digivolve boost multiplies it.
 uint16_t Pet::vitStat() const {
-  return isEgg() ? 0 : petCalcStat(DEX_TBL[speciesId].bHp, ivHp, level(), 10);
+  return isEgg() ? 0 : petCalcHp(speciesId, level(), deDigiCount);
 }
-// Special reuses the physical IV and training against the Digimon' special base
-// stat, which is what keeps DEVIMON (50 Atk / 135 SpA) a real attacker without
-// adding IVs or migrating saves.
+// Magic reuses the physical training, which is what keeps ATK and DEF training
+// worth doing for a Digimon that fights with magic.
 uint16_t Pet::spaStat() const {
-  return isEgg() ? 0 : petCalcStat(DEX_TBL[speciesId].bSpA, ivAtk, level(), trAtk);
+  return isEgg() ? 0 : petCalcStat(speciesId, TS_STAT_MATK, level(), trAtk);
 }
 uint16_t Pet::spdStat() const {
-  return isEgg() ? 0 : petCalcStat(DEX_TBL[speciesId].bSpD, ivDef, level(), trDef);
+  return isEgg() ? 0 : petCalcStat(speciesId, TS_STAT_MDEF, level(), trDef);
 }
 
-// ---------- moves ----------
+// ---------- skills ----------
 
 uint8_t Pet::moveCount() const {
   uint8_t n = 0;
@@ -932,160 +732,65 @@ uint8_t Pet::moveCount() const {
   return n;
 }
 
-bool Pet::knowsMove(uint8_t mv) const {
+bool Pet::knowsMove(uint16_t mv) const {
   if (!mv) return false;
   for (int i = 0; i < MOVE_SLOTS; i++)
     if (moves[i] == mv) return true;
   return false;
 }
 
-// Picks a sensible default set, best first.
-//
-// NOT "the newest four": 1907 of the 2281 learnset entries sit at level 0 and
-// another 237 at level 1, so for most Digimon level orders nothing and taking
-// the last four in table order is arbitrary -- it handed a level 100 GREYMON
-// GROWL and LEER. So score instead: attacks over status, stronger over weaker,
-// STAB ahead of equal power, and a bonus for the handful of moves that really
-// are gated behind a level, since those are meant to be upgrades.
-// TMs unlock at one level, for everything.
-//
-// This replaced a power/2 curve, which was impossible for a player to predict
-// (SURF at 45, ROCK SLIDE at 37) and dribbled unlocks out one at a time so none
-// of them felt like anything. A single number is explainable in one sentence and
-// lands on a seam the game already has: the first five bosses sit at 14-43, so
-// you fight the early ladder on what your Digimon actually learns, and TMs
-// arrive as you enter the back half. A creature retires at 73 and caps at 100.
-//
-// It only works because dex_moves.py now carries the cheap early attacks --
-// SCRATCH, PECK, POISON STING, BUBBLE and the rest. Without those, gating TMs
-// this hard would leave young creatures with nothing at all, which is exactly
-// what the power/2 version was papering over.
-#define TM_LEVEL 40
-
-static uint8_t tmLevelFor(const MoveEntry &m) {
-  (void)m;
-  return TM_LEVEL;
+uint8_t Pet::formHours() const {
+  uint32_t h = ageMinutes > formAgeMin ? (ageMinutes - formAgeMin) / MINUTES_PER_LEVEL : 0;
+  return h > 255 ? 255 : (uint8_t)h;
 }
 
-// THE single answer, used by relearnFromLevel(), by the STAB fallback and by
-// the move picker in the sketch. Three call sites once had three opinions.
-uint8_t moveUnlockLevel(int16_t dex, uint8_t idx) {
-  uint8_t at = learnLevel(dex, idx);
-  if (at > 0) return at;                 // a real level-up move
-  uint8_t mv = learnMove(dex, idx);
-  if (!mv || mv >= MOVE_COUNT) return 255;
-  return tmLevelFor(MOVE_TBL[mv]);       // a TM: no natural level, so the gate
+// A skill arriving: a free slot fills silently, a full set makes an offer. Already
+// in a slot is skipped; an offer that no longer fits the queue is skipped too, and
+// a skipped skill is gone, as one the player declined would be.
+void Pet::skillGranted(uint16_t mv) {
+  if (!skillValid(mv) || knowsMove(mv)) return;
+  for (int s = 0; s < MOVE_SLOTS; s++)
+    if (!moves[s]) { moves[s] = mv; return; }
+  if (learnQCount >= sizeof(learnQueue) / sizeof(learnQueue[0])) return;
+  for (uint8_t q = 0; q < learnQCount; q++)
+    if (learnQueue[q] == mv) return;
+  learnQueue[learnQCount++] = mv;
+}
+
+// Walks this form's learnset up to its clock. The cursor is why a skill is offered
+// once: it never goes back, except on becoming a form again.
+void Pet::checkLearnGates() {
+  if (isEgg() || ceremony != CER_NONE || !dexValid(speciesId)) return;
+  const TsDexEntry &d = TS_DEX_TBL[speciesId];
+  const uint8_t hours = formHours();
+  bool moved = false;
+  while (learnCursor < d.learnCount &&
+         TS_LEARN_TBL[d.learnFirst + learnCursor].hours <= hours) {
+    skillGranted(TS_LEARN_TBL[d.learnFirst + learnCursor].skill);
+    learnCursor++;
+    moved = true;
+  }
+  if (moved) pendingSave = true;
 }
 
 void Pet::relearnFromLevel() {
   for (int i = 0; i < MOVE_SLOTS; i++) moves[i] = 0;
-  if (isEgg()) return;
-  const DexEntry &d = DEX_TBL[speciesId];
-  uint8_t lvl = level(), n = learnCount(speciesId);
-  int16_t score[MOVE_SLOTS] = { 0, 0, 0, 0 };
-  // Two passes. Level-up moves (level >= 1) are what a creature grows into, so
-  // they fill the set first; TMs (level 0, no gate) only top up the slots left
-  // over. Without this a just-hatched pet opens with FIRE BLAST and SOLAR BEAM,
-  // because every TM is legal at level 1.
-  for (int pass = 0; pass < 2; pass++) {
-  bool tmPass = (pass == 1);
-  for (uint8_t i = 0; i < n; i++) {
-    uint8_t at = learnLevel(speciesId, i);
-    if (at > lvl) continue;
-    if (tmPass != (at == 0)) continue;
-    uint8_t mv = learnMove(speciesId, i);
-    if (!mv || mv >= MOVE_COUNT || knowsMove(mv)) continue;
-    const MoveEntry &m = MOVE_TBL[mv];
-    // A TM carries no level requirement in the data, which is true of the games
-    // but wrong here: with only one or two level-up moves early on, the spare
-    // slots were filled with the strongest TMs in the table and a NEWBORN opened
-    // with SURF, BLIZZARD and OUTRAGE. That, not the damage formula, is why a
-    // level 1 BETAMON could beat the first boss.
-    //
-    // So a TM is gated by its own power: roughly power/2, which puts the 40s
-    // around level 20 and the 110s out past 50 where a creature is genuinely
-    // built. Level-up moves are untouched -- they already have real gates.
-    if (tmPass && lvl < tmLevelFor(m)) continue;
-    int16_t sc = (m.cat == MC_STATUS) ? 10 : (int16_t)m.power + 20;
-    // STAB outweighs raw power, or every Digimon defaults to the same two
-    // generic sledgehammers and the roster loses its identity.
-    if (m.cat != MC_STATUS && (m.type == d.type1 || m.type == d.type2)) sc += 40;
-    if (m.effect == EF_RECHARGE) sc -= 35;   // a free turn for the opponent
-    if (m.effect == EF_RECOIL) sc -= 20;
-    sc += at;
-    if (sc < 1) sc = 1;
-    int slot = -1;
-    for (int s = 0; s < MOVE_SLOTS; s++)
-      if (sc > score[s]) { slot = s; break; }
-    if (slot < 0) continue;
-    for (int s = MOVE_SLOTS - 1; s > slot; s--) {
-      score[s] = score[s - 1];
-      moves[s] = moves[s - 1];
-    }
-    score[slot] = sc;
-    moves[slot] = mv;
-  }
-  if (moveCount() >= MOVE_SLOTS) break;   // level-up moves already filled it
-  }
-  // Guarantee one same-type move. OGREMON's only Fighting options are weak or
-  // recoil-laden, so pure scoring left it with four generic attacks and nothing
-  // that reads as a OGREMON. If the set came out with no STAB, the weakest slot
-  // gives way to the best same-type attack the Digimon can actually learn.
-  for (int i = 0; i < MOVE_SLOTS; i++) {
-    if (!moves[i]) continue;
-    const MoveEntry &m = MOVE_TBL[moves[i]];
-    if (m.cat != MC_STATUS && (m.type == d.type1 || m.type == d.type2)) return;
-  }
-  uint8_t best = 0;
-  int16_t bestSc = 0;
-  for (uint8_t i = 0; i < n; i++) {
-    uint8_t at = learnLevel(speciesId, i);
-    if (at > lvl) continue;
-    uint8_t mv = learnMove(speciesId, i);
-    if (!mv || mv >= MOVE_COUNT) continue;
-    const MoveEntry &m = MOVE_TBL[mv];
-    if (m.cat == MC_STATUS || (m.type != d.type1 && m.type != d.type2)) continue;
-    // The same TM gate as above. This fallback used to ignore it, which is how
-    // a level 1 BETAMON ended up holding SURF: it had no Water move, so the
-    // guarantee reached past every check and handed it the best one in the
-    // table. A creature with no STAB it can legally use simply has none yet.
-    if (at == 0 && lvl < tmLevelFor(m)) continue;
-    int16_t sc = (int16_t)m.power;
-    if (m.effect == EF_RECHARGE) sc -= 35;
-    if (m.effect == EF_RECOIL) sc -= 20;
-    if (sc > bestSc) { bestSc = sc; best = mv; }
-  }
-  if (best) moves[MOVE_SLOTS - 1] = best;
+  learnQCount = 0;
+  learnCursor = 0;
+  if (isEgg() || !dexValid(speciesId)) return;
+  const TsDexEntry &d = TS_DEX_TBL[speciesId];
+  const uint8_t hours = formHours();
+  while (learnCursor < d.learnCount && TS_LEARN_TBL[d.learnFirst + learnCursor].hours <= hours)
+    learnCursor++;
+  // Specials first, in order; then the newest attachment skills, from the back.
+  uint8_t n = 0;
+  for (uint8_t i = 0; i < learnCursor && n < MOVE_SLOTS; i++)
+    if (!TS_LEARN_TBL[d.learnFirst + i].hours) moves[n++] = TS_LEARN_TBL[d.learnFirst + i].skill;
+  for (int i = (int)learnCursor - 1; i >= 0 && n < MOVE_SLOTS; i--)
+    if (TS_LEARN_TBL[d.learnFirst + i].hours) moves[n++] = TS_LEARN_TBL[d.learnFirst + i].skill;
 }
 
-// Queues every level-up move unlocked since the last check. A free slot is
-// filled silently -- the games do not ask when there is room either -- and only
-// a full moveset produces an offer the player has to answer.
-void Pet::checkLearnGates() {
-  if (isEgg() || ceremony != CER_NONE) return;
-  uint8_t lvl = level();
-  if (lvl <= lastLearnLevel) return;
-  uint8_t n = learnCount(speciesId);
-  for (uint8_t i = 0; i < n; i++) {
-    uint8_t at = learnLevel(speciesId, i);
-    if (at == 0 || at <= lastLearnLevel || at > lvl) continue;  // 0 = TM, no gate
-    uint8_t mv = learnMove(speciesId, i);
-    if (!mv || mv >= MOVE_COUNT || knowsMove(mv)) continue;
-    int freeSlot = -1;
-    for (int s = 0; s < MOVE_SLOTS; s++)
-      if (!moves[s]) { freeSlot = s; break; }
-    if (freeSlot >= 0) { moves[freeSlot] = mv; continue; }
-    if (learnQCount >= sizeof(learnQueue)) continue;
-    bool dup = false;
-    for (uint8_t q = 0; q < learnQCount; q++)
-      if (learnQueue[q] == mv) dup = true;
-    if (!dup) learnQueue[learnQCount++] = mv;
-  }
-  lastLearnLevel = lvl;
-  pendingSave = true;
-}
-
-static void popLearn(uint8_t *q, uint8_t &n) {
+static void popLearn(uint16_t *q, uint8_t &n) {
   if (!n) return;
   for (uint8_t i = 0; i + 1 < n; i++) q[i] = q[i + 1];
   q[--n] = 0;
@@ -1103,38 +808,25 @@ void Pet::declineLearn() {
   save();
 }
 
-uint8_t Pet::pendingLearnables(uint8_t *out, uint8_t max) const {
-  if (isEgg() || !out || !max) return 0;
-  uint8_t lvl = level(), n = learnCount(speciesId), w = 0;
-  for (uint8_t i = 0; i < n && w < max; i++) {
-    if (learnLevel(speciesId, i) > lvl) break;
-    uint8_t mv = learnMove(speciesId, i);
-    if (knowsMove(mv)) continue;
-    bool dup = false;                     // do not offer the same move twice
-    for (uint8_t j = 0; j < w; j++)
-      if (out[j] == mv) { dup = true; break; }
-    if (!dup) out[w++] = mv;
+uint8_t Pet::pendingLearnables(uint16_t *out, uint8_t max) const {
+  if (isEgg() || !out || !max || !dexValid(speciesId)) return 0;
+  const TsDexEntry &d = TS_DEX_TBL[speciesId];
+  const uint8_t hours = formHours();
+  uint8_t w = 0;
+  for (uint8_t i = 0; i < d.learnCount && w < max; i++) {
+    const TsLearn &l = TS_LEARN_TBL[d.learnFirst + i];
+    if (l.hours > hours) break;
+    if (!knowsMove(l.skill)) out[w++] = l.skill;
   }
   return w;
 }
 
-// An IV roll: 8-31. The floor at 8 is deliberate - in the games a 0 is
-// possible because you can breed hundreds of eggs; here each raising lasts 3 days
-// and a throwaway individual would be a disproportionate punishment. The streak and
-// bond of the PREVIOUS creature push the roll: good care improves the brood.
+// An IV roll: 8-31. The floor at 8 is deliberate: each raising lasts 3 days and a
+// throwaway individual would be a disproportionate punishment. The streak and bond
+// of the PREVIOUS creature push the roll: good care improves the brood.
 uint8_t Pet::rollIV(int bonus) const {
   int v = 8 + (int)random(24) + bonus / 2;  // bonus 0..14 -> +0..7
   return (uint8_t)(v > 31 ? 31 : v);
-}
-
-// Saves from the old gene system (90-110%): converted to the IV range
-// rolled today (8-31) so nobody loses out from the
-// update. gene 0 = a pet from before genes existed.
-uint8_t Pet::ivFromGene(uint8_t gene) const {
-  if (gene == 0) return rollIV(0);
-  if (gene < 90) gene = 90;
-  if (gene > 110) gene = 110;
-  return 8 + (uint8_t)(((uint16_t)(gene - 90) * 23) / 20);
 }
 
 void Pet::rollIVs() {
@@ -1143,15 +835,6 @@ void Pet::rollIVs() {
   ivDef = rollIV(bonus);
   ivSpe = rollIV(bonus);
   ivHp = rollIV(bonus);
-  // legendaries are born with 3 of 4 IVs perfect, as in the games
-  if (speciesId >= 1 && speciesId <= DEX_COUNT && DEX_TBL[speciesId].rarity == R_LEGENDARIO) {
-    uint8_t *p[4] = { &ivAtk, &ivDef, &ivSpe, &ivHp };
-    for (int k = 3; k > 0; k--) {  // shuffle to pick which 3
-      int j = random(k + 1);
-      uint8_t *t = p[k]; p[k] = p[j]; p[j] = t;
-    }
-    for (int k = 0; k < 3; k++) *p[k] = 31;
-  }
   // in gen 2 the variant WAS a specific DV pattern: a variant was never
   // mediocre. Here it translates into a floor of 20 on every IV.
   if (variant) {
@@ -1177,7 +860,7 @@ bool Pet::canFarewellNow() const {
   // V-Pet a Champion that never won its battles still reaches the end of its
   // life, it just never becomes an Ultimate.
   return !isEgg() && !sleeping && ceremony == CER_NONE &&
-         DEX_TBL[speciesId].stage >= ST_CHAMPION && ageMinutes >= FAREWELL_AGE_MIN;
+         TS_DEX_TBL[speciesId].stage >= TS_ST_CHAMPION && ageMinutes >= FAREWELL_AGE_MIN;
 }
 
 // total abandonment for 1h: ready to run away. The user triggers it with the
@@ -1258,6 +941,8 @@ void Pet::hatch() {
   // bond on purpose: the careBonus that pushes them is the previous creature's.
   rollIVs();
   trAtk = trDef = trSpe = 0;
+  deDigiCount = 0;
+  evoHold = 0;
   goodTicks = 0;
   berryKnown = false;
   bond = 0;          // bond, medals and name belong to the individual
@@ -1266,54 +951,90 @@ void Pet::hatch() {
   newMedal = 0;
   nick[0] = 0;
   registerSpecies(speciesId);  // raised = registered in the digidex
-  // Start empty: checkLearnGates() fills the level-1 moves. Seeding from TMs
-  // instead would hand a newborn FIRE BLAST, which no level 1 creature knows.
+  // Start empty: becoming the form is what hands over its specials.
   for (int i = 0; i < MOVE_SLOTS; i++) moves[i] = 0;
+  memset(learnQueue, 0, sizeof(learnQueue));
   learnQCount = 0;
-  lastLearnLevel = 0;
+  learnCursor = 0;
+  formAgeMin = ageMinutes;
   checkLearnGates();
-  checkMedals();     // in case it is born already in a final form (legendary)
+  checkMedals();     // in case it is born with no branch ahead of it
   sfxPlay(SFX_HATCH);
   save();
 }
 
-// Is a digivolution ready to be offered? The STAGE CLOCK decides when (the
-// next stage's entry level, plus a day owed for an early retire), and
-// digiTarget() decides into what. Care mistakes no longer delay anything: they
-// choose the branch, which is the V-Pet's whole idea. It does NOT happen on its
-// own: the player taps to watch it (digivolve()).
+// Is a digivolution ready to be offered? Each route's conditions decide, stage
+// timers included: a timer is a minimum, and nothing here happens on its own. The
+// player taps to watch it (evolve()), and "keep form" re-offers next level.
 bool Pet::canEvolveNow() const {
   if (frozen) return false;     // frozen at the form it was banked in
   if (isEgg() || sleeping || ceremony != CER_NONE) return false;
-  const DexEntry &d = DEX_TBL[speciesId];
-  if (d.evolvesTo == 0 || d.evolveLevel == 0) return false;
-  if (level() < (uint16_t)(d.evolveLevel + evoPen)) return false;
   return digiTarget() != 0;
 }
 
 bool Pet::evoTargetShowable() const { return digiTarget() != 0; }
 
-void Pet::evolve() {
-  if (!canEvolveNow()) return;
-  int16_t next = digiTarget();
-  if (!next) return;
+// What digivolving and de-digivolving share: the form changes, its specials arrive
+// at once, and its attachment skills start counting from now. Skills in the slots
+// carry over; care mistakes count again from zero, as on the V-Pet.
+void Pet::becomeForm(int16_t dex) {
   prevSpeciesId = speciesId;
-  speciesId = next;
+  speciesId = dex;
   registerSpecies(speciesId);
-  // A new stage is a fresh start, as on the V-Pet: mistakes and wins count
-  // again from zero towards the NEXT branch.
   careMistakes = 0;
-  wins = 0;
-  // The new form's signature attacks sit at its stage's entry level, which the
-  // creature may already be past (the player can postpone). Rewind the learn
-  // gate to just below that entry so they are offered rather than skipped.
-  uint8_t entry = STAGE_ENTRY[DEX_TBL[speciesId].stage % STAGE_COUNT];
-  if (entry > 0 && lastLearnLevel >= entry) lastLearnLevel = entry - 1;
+  evoBranch = 0;
+  evoDeclinedLv = 0;
+  formAgeMin = ageMinutes;
+  learnCursor = 0;
   checkLearnGates();
   checkMedals();
   sfxPlay(SFX_EVOLVE);
   evolveUntil = millis() + EVOLVE_ANIM_MS;
   save();
+}
+
+void Pet::evolve() {
+  if (!canEvolveNow()) return;
+  int16_t next = digiTarget();
+  if (!next) return;
+  evoHold = 0;
+  becomeForm(next);
+}
+
+// A route read backwards. Routes are grouped by their source, so finding the ones
+// that END here means walking all of them; this runs on a tap, not in a frame.
+uint8_t Pet::devolveOptions(int16_t *out, uint8_t max) const {
+  if (frozen || isEgg() || sleeping || ceremony != CER_NONE || !dexValid(speciesId)) return 0;
+  uint8_t n = 0;
+  for (uint16_t i = 0; i < TS_EVO_COUNT && n < max; i++) {
+    const TsEvo &e = TS_EVO_TBL[i];
+    if ((int16_t)e.to != speciesId || !isRegistered((int16_t)e.from)) continue;
+    if (!speciesShowable((int16_t)e.from)) continue;
+    bool dup = false;
+    for (uint8_t j = 0; j < n; j++)
+      if (out[j] == (int16_t)e.from) dup = true;
+    if (!dup) out[n++] = (int16_t)e.from;
+  }
+  return n;
+}
+
+bool Pet::devolve(int16_t to) {
+  int16_t open[EVO_OPTIONS_MAX];
+  const uint8_t n = devolveOptions(open, EVO_OPTIONS_MAX);
+  bool known = false;
+  for (uint8_t i = 0; i < n; i++)
+    if (open[i] == to) known = true;
+  if (!known) return false;
+  // The earlier form waits out its stage: as long as that stage lasts on the
+  // clock, from now. Mega+ has no stage after it, so it borrows the last gap.
+  const uint8_t st = TS_DEX_TBL[to].stage % STAGE_COUNT;
+  const uint8_t gap = st + 1 < STAGE_COUNT ? TS_STAGE_ENTRY[st + 1] - TS_STAGE_ENTRY[st]
+                                           : TS_STAGE_ENTRY[st] - TS_STAGE_ENTRY[st - 1];
+  const uint16_t hold = (uint16_t)level() + gap;
+  evoHold = hold > 255 ? 255 : (uint8_t)hold;
+  if (deDigiCount < DEDIGI_COUNT_MAX) deDigiCount++;
+  becomeForm(to);
+  return true;
 }
 
 void Pet::feed() {
@@ -1358,6 +1079,7 @@ uint8_t Pet::playResult(uint8_t score) {
   uint8_t before = trDef;
   uint8_t gain = score / 2;
   if (gain > 18) gain = 18;          // the same per-session ceiling as the bag
+  gain = trainGainFor(gain, ivDef);
   uint16_t v = (uint16_t)trDef + gain;
   trDef = v > trMaxDef() ? trMaxDef() : (uint8_t)v;
   gain = trDef - before;
@@ -1395,8 +1117,6 @@ uint8_t Pet::rewardTraining(uint8_t amount, uint8_t &which) {
     case 1: before = trDef; capped = trMaxDef(); trDef = (uint8_t)min<uint16_t>(before + amount, capped); amount = trDef - before; break;
     default: before = trSpe; capped = trMaxSpe(); trSpe = (uint8_t)min<uint16_t>(before + amount, capped); amount = trSpe - before; break;
   }
-  // The IV-bound ceiling is never crossed: a mediocre individual not reaching
-  // as far is the whole point of trMaxFor().
   save();
   return amount;
 }
@@ -1405,9 +1125,10 @@ uint8_t Pet::trainSpeed(uint16_t hits) {
   if (ceremony != CER_NONE || isEgg()) return 0;
   uint8_t gain = hits / 2;          // ~2 reactions = 1 point
   if (gain > 18) gain = 18;         // same per-session ceiling as the bag
+  gain = trainGainFor(gain, ivSpe);
   uint8_t before = trSpe;
-  uint8_t v = trSpe + gain;
-  trSpe = v > trMaxSpe() ? trMaxSpe() : v;   // the IV sets the ceiling
+  uint16_t v = (uint16_t)trSpe + gain;
+  trSpe = v > trMaxSpe() ? trMaxSpe() : (uint8_t)v;
   gain = trSpe - before;
   energy = dropTo(energy, 10, 5);
   fullness = dropTo(fullness, 4, 5);
@@ -1429,9 +1150,10 @@ uint8_t Pet::trainStrength(uint16_t hits) {
   if (ceremony != CER_NONE || isEgg()) return 0;
   uint8_t gain = hits / 4;          // ~4 hits = 1 training point
   if (gain > 18) gain = 18;         // per-session cap: STR is forged slowly
+  gain = trainGainFor(gain, ivAtk);
   uint8_t before = trAtk;
-  uint8_t v = trAtk + gain;
-  trAtk = v > trMaxAtk() ? trMaxAtk() : v;  // the IV sets the ceiling
+  uint16_t v = (uint16_t)trAtk + gain;
+  trAtk = v > trMaxAtk() ? trMaxAtk() : (uint8_t)v;
   gain = trAtk - before;            // what actually went up (it may hit the cap)
   energy = dropTo(energy, 12, 5);   // cansa
   fullness = dropTo(fullness, 5, 5);
@@ -1586,6 +1308,7 @@ bool Pet::saveCoreSnapshot() {
   PetCoreSnapshot snapshot = {};
   snapshot.ageMinutes = ageMinutes;
   snapshot.lastSeenEpoch = lastSeenEpoch;
+  snapshot.formAgeMin = formAgeMin;
   snapshot.speciesId = speciesId;
   snapshot.eggTarget = eggTarget;
   snapshot.medals = medals;
@@ -1596,20 +1319,21 @@ bool Pet::saveCoreSnapshot() {
   snapshot.ivSpe = ivSpe; snapshot.ivHp = ivHp;
   snapshot.trAtk = trAtk; snapshot.trDef = trDef; snapshot.trSpe = trSpe;
   memcpy(snapshot.moves, moves, sizeof(moves));
-  snapshot.lastLearnLevel = lastLearnLevel;
+  memcpy(snapshot.learnQueue, learnQueue, sizeof(learnQueue));
+  snapshot.learnCursor = learnCursor; snapshot.learnQCount = learnQCount;
   snapshot.berryKnown = berryKnown; snapshot.variant = variant;
   snapshot.eggVariant = eggVariant; snapshot.starterPick = starterPick;
   snapshot.evoPen = evoPen; snapshot.sleepAuto = sleepAuto;
   snapshot.retirePending = retirePending; snapshot.eggTaps = eggTaps;
   snapshot.careMistakes = careMistakes; snapshot.sleeping = sleeping;
   snapshot.lastEnd = lastEnd; snapshot.frozen = frozen; snapshot.bond = bond;
-  snapshot.wins = wins;
+  snapshot.deDigiCount = deDigiCount; snapshot.evoHold = evoHold;
   strncpy(snapshot.nick, nick, sizeof(snapshot.nick) - 1);
 
-  uint8_t buf[PET_CORE_CAP] = {};   // the retired v2 tail stays zero
+  uint8_t buf[PET_CORE_CAP] = {};
   memcpy(buf, &snapshot, PET_FIXED);
 
-  uint16_t total = ckptSeal(buf, PET_BODY, PET_CORE_MAGIC, PET_CORE_VERSION, nextGen);
+  uint16_t total = ckptSeal(buf, PET_FIXED, PET_CORE_MAGIC, PET_CORE_VERSION, nextGen);
   const char *key = ckptSlot(nextGen, "petA", "petB");
   const size_t writtenBytes = prefs.putBytes(key, buf, total);
   if (writtenBytes != total) {
@@ -1636,13 +1360,10 @@ bool Pet::loadCoreSnapshot() {
   PetCoreSnapshot snapshot;
   petCoreFromBytes(buf, n, snapshot);
 
-  // A v2 record's handover tail is ignored: petCoreFromBytes() copied only the
-  // PET_FIXED prefix. A creature that was still waiting for a party slot when
-  // the save was made is let go, as declining the slot always did.
-
   saveGeneration = snapshot.generation;
   ageMinutes = snapshot.ageMinutes;
   lastSeenEpoch = snapshot.lastSeenEpoch;
+  formAgeMin = snapshot.formAgeMin;
   speciesId = snapshot.speciesId;
   eggTarget = snapshot.eggTarget;
   medals = snapshot.medals;
@@ -1653,22 +1374,20 @@ bool Pet::loadCoreSnapshot() {
   ivSpe = snapshot.ivSpe; ivHp = snapshot.ivHp;
   trAtk = snapshot.trAtk; trDef = snapshot.trDef; trSpe = snapshot.trSpe;
   memcpy(moves, snapshot.moves, sizeof(moves));
-  lastLearnLevel = snapshot.lastLearnLevel;
+  memcpy(learnQueue, snapshot.learnQueue, sizeof(learnQueue));
+  learnCursor = snapshot.learnCursor; learnQCount = snapshot.learnQCount;
   berryKnown = snapshot.berryKnown != 0; variant = snapshot.variant != 0;
   eggVariant = snapshot.eggVariant != 0; starterPick = snapshot.starterPick != 0;
   evoPen = snapshot.evoPen; sleepAuto = snapshot.sleepAuto;
   retirePending = snapshot.retirePending != 0; eggTaps = snapshot.eggTaps;
   careMistakes = snapshot.careMistakes; sleeping = snapshot.sleeping != 0;
   lastEnd = snapshot.lastEnd; frozen = snapshot.frozen != 0; bond = snapshot.bond;
-  wins = snapshot.wins;
+  deDigiCount = snapshot.deDigiCount; evoHold = snapshot.evoHold;
   memcpy(nick, snapshot.nick, sizeof(nick));
   nick[sizeof(nick) - 1] = 0;
   return true;
 }
 
-// LEGACY_SYNC_MS used to throttle a second write pass over ~40 scalar keys
-// here; that pass is gone entirely now (see the comment beside lastTick in
-// pet.h) rather than merely throttled. save() writes the checkpoint only.
 void Pet::save() {
   if (!opened) return;
   // A failure returns before anything else runs, so a rejected write leaves
@@ -1691,149 +1410,30 @@ void Pet::save() {
 }
 
 void Pet::load() {
-  fullness = prefs.getUChar("full", 80);
-  joy = prefs.getUChar("joy", 80);
-  energy = prefs.getUChar("ene", 80);
-  hygiene = prefs.getUChar("hyg", 100);
-  poops = prefs.getUChar("poop", 0);
-  weight = prefs.getUChar("wgt", 0);
-  if (prefs.isKey("ivat")) {
-    ivAtk = prefs.getUChar("ivat", 16);
-    ivDef = prefs.getUChar("ivdf", 16);
-    ivSpe = prefs.getUChar("ivsp", 16);
-    ivHp = prefs.getUChar("ivhp", 16);
-  } else {
-    // migration from genes (90-110%) to IVs (8-31) keeping the relative
-    // quality: whoever had a top gene keeps a top IV. The vitality IV
-    // did not exist; it is rolled now.
-    ivAtk = ivFromGene(prefs.getUChar("gatk", 0));
-    ivDef = ivFromGene(prefs.getUChar("gdef", 0));
-    ivSpe = ivFromGene(prefs.getUChar("gspe", 0));
-    ivHp = rollIV(0);
-  }
-  trAtk = prefs.getUChar("tatk", 0);
-  trDef = prefs.getUChar("tdef", 0);
-  trSpe = prefs.getUChar("tspe", 0);
-  // an old save may carry training above the new cap
-  if (trAtk > trMaxAtk()) trAtk = trMaxAtk();
-  if (trDef > trMaxDef()) trDef = trMaxDef();
-  if (trSpe > trMaxSpe()) trSpe = trMaxSpe();
-  berryKnown = prefs.getBool("bk", false);
-  variant = prefs.getBool("shy", false);
-  eggVariant = prefs.getBool("eshy", false);
-  starterPick = prefs.getBool("stpk", false);
-  evoPen = prefs.getUChar("evop", 0);
-  sleepAuto = prefs.getUChar("slpa", SLEEP_NONE);
-  retirePending = prefs.getBool("rtpn", false);
-  loadBlob(prefs, "dexsh", dexVariantReg, sizeof(dexVariantReg));
-  lastSeenEpoch = prefs.getUInt("seen", 0);
-  ageMinutes = prefs.getUInt("age", 0);
-  if (prefs.isKey("dexn")) {
-    speciesId = prefs.getShort("dexn", -1);
-    eggTarget = prefs.getShort("eggT2", 4);
-  } else {
-    // migration from the version with flash indices (0-8)
-    static const uint8_t OLD2DEX[9] = { 4, 5, 6, 1, 2, 3, 7, 8, 9 };
-    int8_t old = prefs.getChar("spec", -1);
-    speciesId = (old >= 0 && old < 9) ? OLD2DEX[old] : -1;
-    int8_t oldT = prefs.getChar("eggT", 0);
-    eggTarget = (oldT >= 0 && oldT < 9) ? OLD2DEX[oldT] : 4;
-  }
-  eggTaps = prefs.getUChar("crack", 0);
-  careMistakes = prefs.getUChar("mist", 0);
-  sleeping = prefs.getBool("sleep", false);
-  lastEnd = prefs.getUChar("lend", CER_NONE);
-  loadBlob(prefs, "dexreg", dexReg, sizeof(dexReg));
-  streak = prefs.getUShort("strk", 0);
-  bestStreak = prefs.getUShort("bstrk", 0);
-  lastCareDay = prefs.getUInt("cday", 0);
-  bond = prefs.getUChar("bond", 0);
-  medals = prefs.getUShort("medal", 0);
-  totalMedals = prefs.getUShort("tmedal", 0);
-  lastMilestone = prefs.getUShort("mstone", 0);
-  gameHi = prefs.getUShort("ghi", 0);
-  strHi = prefs.getUShort("shi", 0);
-  spdHi = prefs.getUShort("qhi", 0);
-  memoHi = prefs.getUShort("mhi", 0);   // absent on an older save: no record yet
-  prefs.getString("nick", nick, sizeof(nick));
-  // Moves load last: relearnFromLevel() needs speciesId and ageMinutes, both of
-  // which are read above. A save from before moves existed has no "mvs" key and
-  // leaves the array zeroed, so an established pet is handed the moveset it
-  // should already have rather than walking into a battle knowing nothing.
-  loadBlob(prefs, "mvs", moves, sizeof(moves));
-  for (int i = 0; i < MOVE_SLOTS; i++)
-    if (moves[i] >= MOVE_COUNT) moves[i] = 0;   // never index MOVE_TBL with junk
-  lastLearnLevel = prefs.getUChar("mvlv", 0);
-  frozen = prefs.getBool("froz", false);
-  avatar = prefs.getUChar("avtr", 0);
-  // Absent on a Ver.1-only save, which leaves both arrays zeroed -- exactly
-  // "no Ver.2 or Ver.3 badges yet".
-  loadBlob(prefs, "badgX", badgesX, sizeof(badgesX));
-  loadBlob(prefs, "badhX", badgesHardX, sizeof(badgesHardX));
-  region = prefs.getUChar("reg", REGION_ALL);
-  if (region >= REGION_COUNT) region = REGION_ALL;
-  // REGION_ALL is the LAST entry of the table and is persisted RAW, so growing
-  // the table silently renames whatever the player had chosen: with Pendulum and
-  // Pendulum appended, ALL moved 7 -> 9 and a stored 7 became PENDULUM -- a version
-  // with no sprite pack, which would have emptied the egg pool of every save
-  // still on the default. "regn" records the table size the save was written
-  // with so that cannot happen again; its absence means the last build that
-  // had none, which had 8 entries and ALL at 7.
-  uint8_t storedRegions = prefs.getUChar("regn", 0);
-  if (storedRegions != REGION_COUNT) {
-    if (!storedRegions) storedRegions = 8;
-    if (region >= (uint8_t)(storedRegions - 1)) region = REGION_ALL;
-  }
-  // A save from the Ver.1-only build has neither key; getBytes leaves the
-  // array at its zeroed initialiser, which is exactly "nothing remembered".
-  loadBlob(prefs, "eggR", eggByRegion, sizeof(eggByRegion));
-  prefs.getString("tnam", trainerName, sizeof(trainerName));
-  if (avatar >= AVATAR_COUNT) avatar = 0;   // a save from when there were four
-  badges = prefs.getUShort("badg", 0);
-  badgesHard = prefs.getUShort("badh", 0);
-  // The player's progress, on the same terms as the creature's below: if the
-  // record is there it is what the firmware believes, and the legacy keys read
-  // above were only the migration path.
+  // The checkpoints are the whole save. A save from before the Time Stranger cutover
+  // never gets here: saveReplaceOld() replaced it before this ran.
   const bool playerCkptLoaded = loadPlayerSnapshot();
   if (!playerCkptLoaded && (prefs.isKey("plyA") || prefs.isKey("plyB")))
-    Serial.println("save: BOTH player checkpoints failed; using legacy keys");
-
-  // The checkpoint is the truth about the creature; the legacy reads above are
-  // what a save from before it existed has, and what a backup restores. Both
-  // clamps have to be re-applied, because the checkpoint bypassed the ones the
-  // legacy path already did.
+    Serial.println("save: BOTH player checkpoints failed; starting the player over");
   const bool petCkptLoaded = loadCoreSnapshot();
-  if (petCkptLoaded) {
-    if (trAtk > trMaxAtk()) trAtk = trMaxAtk();
-    if (trDef > trMaxDef()) trDef = trMaxDef();
-    if (trSpe > trMaxSpe()) trSpe = trMaxSpe();
-    for (int i = 0; i < MOVE_SLOTS; i++)
-      if (moves[i] >= MOVE_COUNT) moves[i] = 0;
-  } else if (prefs.isKey("petA") || prefs.isKey("petB")) {
-    // There ARE checkpoints and neither one could be read. Louder than the
-    // upgrade case below, because it means both slots were lost at once and the
-    // creature now standing on the panel came from the legacy keys instead --
-    // which is the torn-write path, so it may be a mixture of two lives.
-    Serial.println("save: BOTH pet checkpoints failed; using legacy keys");
-  } else if (prefs.isKey("dexn")) {
-    // Normal exactly once per device: a save written by a build from before the
-    // checkpoints existed.
-    Serial.println("save: no pet checkpoint yet, migrating from legacy keys");
+  // Nothing readable, or a creature no table can draw. There is no other copy to fall
+  // back on, so it is a new egg, which is never a misread creature.
+  if (!petCkptLoaded || (speciesId != -1 && !dexValid(speciesId))) {
+    Serial.println("save: no readable pet checkpoint; starting a new egg");
+    speciesId = -1;
+    newEgg();
+    return;
   }
-  if (!isEgg() && moveCount() == 0 && lastLearnLevel == 0) {
-    // save from before moves existed: hand it the set it should already have
-    // rather than a queue of every gate it ever passed
-    relearnFromLevel();
-    lastLearnLevel = level();
-  }
-  learnQCount = 0;      // rebuilt from lastLearnLevel by the next tick
+  // Never index a table with junk.
+  for (int i = 0; i < MOVE_SLOTS; i++)
+    if (!skillValid(moves[i])) moves[i] = 0;
+  const uint8_t queueCap = sizeof(learnQueue) / sizeof(learnQueue[0]);
+  if (learnQCount > queueCap) learnQCount = queueCap;
+  if (!dexValid(eggTarget)) eggTarget = pickEggSpecies();
   checkLearnGates();
-  // seed: the current pet counts as raised (old saves)
+  // seed: the current pet counts as raised
   if (speciesId >= 1) registerSpecies(speciesId);
-  // Now that the legacy keys are the ONLY migration path and are never
-  // rewritten, a checkpoint missing here would otherwise wait for "the next
-  // save" to exist at all -- and EXPORT, or a crash, between boot and whatever
-  // incidentally triggers one would see an incomplete record. Create it now,
-  // once, so the checkpoint is authoritative the moment begin() returns.
-  if (!petCkptLoaded || !playerCkptLoaded) save();
+  // Create the missing record now, once, so the checkpoints are authoritative the
+  // moment begin() returns: EXPORT, or a crash, should not see half a save.
+  if (!playerCkptLoaded) save();
 }

@@ -109,14 +109,10 @@ extern Combatant btlYou, btlFoe;
 extern uint32_t btlLungeUntil[2], btlHitUntil[2];
 extern uint8_t btlMenu;
 void startTrainerBattle(uint8_t idx, bool hard);
-uint8_t currentExploreRegion();
-bool startWildBattle(uint8_t region, bool hard);
+bool startWildBattle(bool hard);
 void onTap(int16_t x, int16_t y);   // the first-boot shots tap their way in
 extern bool exploreOpen, gymOpen, playerOpen;
 extern bool galleryDirty;
-extern uint8_t galleryRegion;
-extern uint8_t gymRegion;
-extern bool gymPick, galleryPick;
 int wavMain(const char *path, const char *demo);
 extern bool lanOpen;
 extern uint8_t btlMyAct;
@@ -163,15 +159,19 @@ static void writePPM(const char *path) {
   printf("wrote %s\n", path);
 }
 
+// A starter for the shots that are past the first boot.
+static int16_t starterForDemo() {
+  int16_t forms[8];
+  return starterForms(forms, 8) ? forms[1] : 6;
+}
+
 static int shotMode(const char *screen, const char *out, int lvl, int iv, int dex) {
   setup();
   for (int i = 0; i < 4; i++) loop();          // let the sketch settle
-  bool firstBoot = !strcmp(screen, "starter") || !strcmp(screen, "starterj") ||
-                   !strcmp(screen, "region");
-  if (pet.awaitingStarter() && !firstBoot) pet.chooseStarter(4);
+  bool firstBoot = !strcmp(screen, "starter");
+  if (pet.awaitingStarter() && !firstBoot) pet.chooseStarter(starterForDemo());
   if (!strcmp(screen, "egg")) {
-    // a few Digimon registered, so the lottery is past the starter case and the
-    // version pill has something to switch between
+    // a few Digimon registered, so the lottery is past the starter case
     for (int d = 1; d <= 40; d++) pet.dbgHatchAs(d, false);
     pet.newEgg();
   }
@@ -184,13 +184,7 @@ static int shotMode(const char *screen, const char *out, int lvl, int iv, int de
     pet.trAtk = pet.trMaxAtk(); pet.trDef = pet.trMaxDef(); pet.trSpe = pet.trMaxSpe();
   }
   // The learn prompt is modal and would cover whatever screen was asked for.
-  // It started firing for every shot once digimon_data.py gained the cheap early
-  // attacks, because a creature now genuinely has moves waiting.
   while (pet.hasLearnOffer()) pet.declineLearn();
-  // "version" is step one of the first boot and "starter" is step two, so the
-  // second one gets there the way a player does: by tapping a version.
-  if (!strcmp(screen, "starter")) onTap(233, 108 + 30);        // VER.1
-  if (!strcmp(screen, "starterj")) onTap(233, 108 + 72 + 30);  // VER.2
   for (int i = 0; i < 2; i++) loop();          // pick up the sprite for the new Digimon
   cardOpen = galleryOpen = clockOpen = kbOpen = false;
   menuOpen = trainOpen = movePickOpen = false;
@@ -203,38 +197,25 @@ static int shotMode(const char *screen, const char *out, int lvl, int iv, int de
     // alone leaves the screenshot black -- the real UI sets both.
     galleryOpen = true;
     galleryDirty = true;
-    for (int d = 1; d <= 200; d++) pet.dbgHatchAs(d, false);
-  }
-  else if (!strcmp(screen, "gallery2")) {   // the second version
-    galleryOpen = true;
-    galleryDirty = true;
-    galleryRegion = 1;
-    for (int d = 1; d <= 200; d++) pet.dbgHatchAs(d, false);
+    for (int d = 1; d <= DEX_COUNT; d++) pet.dbgHatchAs(d, false);
   }
   else if (!strcmp(screen, "clock"))   clockOpen = true;
   else if (!strcmp(screen, "menu"))    menuOpen = true;
   else if (!strcmp(screen, "train"))   trainOpen = true;
   else if (!strcmp(screen, "moves"))   { cardOpen = true; cardPage = 2; }
   else if (!strcmp(screen, "movepick")) { movePickOpen = true; }
-  else if (!strcmp(screen, "battle2")) { startBattle(9, 50); }
-  else if (!strcmp(screen, "wild")) { startWildBattle(currentExploreRegion(), false); }
+  else if (!strcmp(screen, "battle2")) { startBattle(89, 50); }
+  else if (!strcmp(screen, "wild")) { startWildBattle(false); }
   else if (!strcmp(screen, "btlmenu")) { startTrainerBattle(3, false); }
   else if (!strcmp(screen, "btlmoves")) { startTrainerBattle(3, false); btlMenu = 1; }
   else if (!strcmp(screen, "battleanim")) {
-    startBattle(9, 50);
+    startBattle(89, 50);
     btlFoe.hp = btlFoe.maxHp / 3;      // bar mid-drain
     btlLungeUntil[0] = millis() + 130; // you mid-lunge
     btlHitUntil[1] = millis() + 300;   // foe flinching
   }
   else if (!strcmp(screen, "explore")) exploreOpen = true;
   else if (!strcmp(screen, "gyms")) { gymOpen = true; }
-  else if (!strcmp(screen, "gympick")) { gymOpen = true; gymPick = true; }
-  else if (!strcmp(screen, "dexpick")) {
-    for (int d = 1; d <= 200; d++) pet.dbgHatchAs(d, false);
-    galleryOpen = true; galleryPick = true;
-  }
-  else if (!strcmp(screen, "gymsj")) { gymOpen = true; gymRegion = 1; }
-  else if (!strcmp(screen, "gymsh")) { gymOpen = true; gymRegion = 2; }
   else if (!strcmp(screen, "lan")) { lanOpen = true; lan.state = LINK_OFF; }
   else if (!strcmp(screen, "lanlost")) { lanOpen = true; lan.begin(true,"D"); lan.state = LINK_LOST; }
   else if (!strcmp(screen, "lanready") || !strcmp(screen, "lanbattle") ||
@@ -245,12 +226,12 @@ static int shotMode(const char *screen, const char *out, int lvl, int iv, int de
     pet.renameTrainer("DYLAN");
     lan.begin(true, "DYLAN");
     snprintf(lan.peerName, sizeof(lan.peerName), "%s", "RIVAL");
-    pet.dbgHatchAs(10, false);
+    pet.dbgHatchAs(89, false);
     pet.ivAtk = pet.ivDef = pet.ivSpe = pet.ivHp = 25;
     pet.ageMinutes = 49UL * MINUTES_PER_LEVEL; pet.relearnFromLevel();
     Combatant mc; combatantFromPet(mc, pet);
     LinkMon mine; linkMonFrom(mine, mc); lan.addMon(mine);
-    Pet u; u.dbgHatchAs(6, false);
+    Pet u; u.dbgHatchAs(86, false);
     u.ivAtk = u.ivDef = u.ivSpe = u.ivHp = 25;
     u.ageMinutes = 49UL * MINUTES_PER_LEVEL; u.relearnFromLevel();
     Combatant c; combatantFromPet(c, u);
@@ -278,17 +259,13 @@ static int shotMode(const char *screen, const char *out, int lvl, int iv, int de
     gShowAllAvatars = true;
   }
   else if (!strcmp(screen, "player")) { pet.renameTrainer("DYLAN"); pet.badges = 0xBF; pet.badgesHard = 0x0A; pet.streak = 5; playerOpen = true; }
-  else if (!strcmp(screen, "player2")) {
-    pet.renameTrainer("DYLAN");
-    pet.badgesX[0] = 0x3F; pet.badgesHardX[0] = 0x05;   // Ver.2
-    playerOpen = true; playerPage = 1;
-  }
   else if (!strcmp(screen, "medals2")) { pet.medals = 0x5B; pet.totalMedals = 12; playerOpen = true; playerPage = 1; }
   else if (!strcmp(screen, "gymfight")) { startTrainerBattle(0, false); }
   else if (!strcmp(screen, "learn")) {
-    // fill the four slots, then cross a gate so the offer has to be answered
+    // fill the four slots, then walk the learnset again so an offer has to be answered
+    pet.ageMinutes = 60UL * MINUTES_PER_LEVEL;
     pet.relearnFromLevel();
-    pet.lastLearnLevel = 0;
+    pet.learnCursor = 0;
     pet.checkLearnGates();
   }
   render();

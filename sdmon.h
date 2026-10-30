@@ -62,19 +62,19 @@ extern SdThumbs thumbs;
 // is formatted ONLY when asked: the console's SD MOUNT FORMAT, which the web
 // installer sends after the player confirms. It used to format any such card.
 bool sdBegin(bool formatIfUnreadable = false);
-// Narrows gRegionArt to the packs actually present. `verbose` logs one line per
-// version, which is what the boot report wants; the runtime rescan passes false so
-// its output cannot interleave with the PUT transfer protocol the host is parsing.
-void sdScanRegionArt(bool verbose = true);
+// Narrows gArtPack to what is actually on the card. `verbose` logs a line, which is
+// what the boot report wants; the runtime rescan passes false so its output cannot
+// interleave with the PUT transfer protocol the host is parsing.
+void sdScanArtPack(bool verbose = true);
 bool sdSerialCommand(const String &line);  // Handles USB PUT/SUM/LS/PACK/SD commands.
 extern bool sdReady;
 extern bool sdDirty;  // true after receiving files: reload the sprite
 // thumbs.bin is read once at boot, so a new copy over PUT waits on this for loop().
 extern bool sdThumbsDirty;
-// A version's pack can arrive AFTER the card was mounted -- the web installer
-// streams it over PUT into the running firmware -- and gRegionArt was computed
-// once in sdBegin(). Without this the version stayed locked reading NEEDS PACK
-// until the board was rebooted, which looked exactly like the download failing.
+// The pack can arrive AFTER the card was mounted -- the web installer streams it
+// over PUT into the running firmware -- and gArtPack was computed once in sdBegin().
+// Without this the game stayed spriteless until the board was rebooted, which
+// looked exactly like the download failing.
 // The main loop rescans when this is set; the transfer itself is never delayed.
 extern bool sdArtDirty;
 // millis() when the last PUT finished, 0 once its pack commits. While recent, the

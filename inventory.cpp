@@ -46,8 +46,8 @@ void Inventory::clear() {
 }
 
 void Inventory::grantStarterKit() {
-  counts[IT_SCANCHIP] = 5;
-  counts[IT_SMRECOVERY] = 3;
+  counts[IT_SMRECOVERY] = 5;
+  counts[IT_ALLCURE] = 1;
   save();
 }
 
