@@ -101,6 +101,7 @@ void setup() {
     Serial0.println("MILESTONE native-real-nvs-legacy-migration");
     pet.dbgHatchAs(PARTNER_DEX, false);
     pet.ageMinutes = 30 * MINUTES_PER_LEVEL;
+    pet.formAgeMin = pet.ageMinutes;   // nothing left to learn, so a reload has nothing to save
     pet.ivAtk = 31; pet.ivDef = 20; pet.ivSpe = 25; pet.ivHp = 28;
     pet.moves[0] = PARTNER_SKILL;
     pet.rename("NATIVE");
