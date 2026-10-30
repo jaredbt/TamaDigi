@@ -1,6 +1,6 @@
 # Handoff: custom TamaDigi (Time Stranger roster)
 
-Status as of 2026-10-28. Supersedes the original notes on the `claude/handoff`
+Status as of 2026-10-30. Supersedes the original notes on the `claude/handoff`
 branch of `jaredbt/Esp-J` (archived).
 
 ## What this is
@@ -46,16 +46,17 @@ credits all four authors.
   the skills ("TamaDigi: Time Stranger skills") is in the owner's Google Drive.
 - **Every design and data decision for v1 is made** (2026-10-28): the design
   table below. What is left is presentation and balance tuning (see "Still open").
+- **The cutover is half done** (2026-10-30). Phase 1 put the firmware on the Time
+  Stranger tables: roster, stats, routes, skills, battle, items and saves. Phase 2 is
+  listed under "Firmware change list", and "Stubs phase 2 replaces" says what is
+  standing in for it.
 
 ### Next, in order
 
-1. The firmware cutover **on a branch with a PR** (CI is the only test run, and
-   `main` deploys Pages): switch the firmware from `dex.h`/`moves.h` to the
-   generated `ts_dex.h`/`ts_skills.h` (`tools/gen_ts_data.py`, PR #3, done) and
-   make the firmware changes listed below. The party and box are already gone
-   (PR #4). The PR
-   must include v1.0.0 save detection and the rewritten `upgrade_test` section.
-   Jogress is a stretch goal.
+1. Phase 2 of the firmware cutover, **on a branch with a PR** (CI is the only test run,
+   and `main` deploys Pages): Agent Rank, the 13-boss ladder and Hard mode, wild
+   encounter rules, eggs, the Digidex stage picker and states, partner history, and
+   Jogress as a stretch goal.
 2. Before the board arrives: pull the hardware bring-up notes back from upstream's
    CLAUDE.md (`git show f7f02f8:CLAUDE.md`: "Hardware bring-up order", "First
    bring-up, actually done", "Found by hand on the board, not by any test").
@@ -108,6 +109,24 @@ stale test comments saying Ver.3 has no Baby I art (it has, now).
 | HP (Q12c, Q16) | **Not trainable**: grows with age only (stats still reach Time Stranger's maximum at level 99), so HP requirements act as timing gates (e.g. Agumon -> Greymon at ~hour 37). **De-digivolve HP boost (Q16, 2026-10-28)**: each de-digivolution multiplies the partner's calculated HP by a further 10% (x1.1 after one, x1.2 after two ...), **capped at x2.0**, kept through later evolutions and reset with a new partner; the save stores the count. This is TamaDigi's stand-in for Time Stranger's level-reset loops (which carry stats over and which its requirements assume); training already covers the other stats. It makes all 66 HP requirements that exceed the source form's level-99 HP reachable: 45 need one loop, 11 two, 7 three, 2 four, Belphemon SM -> RM eight (x1.8). Example: Greymon de-digivolves at 40, is Greymon again at 58 with x1.1, and Greymon -> Kimeramon (2030 HP) opens at level 68 instead of 81. Known pacing: without loops, HP gates make typical Mega evolutions open around level 88 |
 | Training (Q12d) | **Training is the bridge to late stages**: untrained growth reaches nearly all In-Training/Rookie evolutions, ~31% of Champion->Ultimate and ~6% of Ultimate->Mega. Per-session payout unchanged (up to +18). ATK training also raises Special Attack, DEF training also raises Special Defense (separate INT/SPI mini-games: next version). Examples: MetalGreymon needs ~41 ATK points (3-5 sessions), WarGreymon ~91 (6-10). **No evolution may be unreachable because of IV** (bad IV = train more): today's 70-100 IV-based cap blocked 74 of 308 Mega paths and gated WarGreymon on an ATK IV >= ~22, so the cap is now **255 for every Digimon** (the save field is a byte; the hardest Mega path needs ~192) |
 | IV and training | IV scales each session's gain **70% (IV 0) to 130% (IV 31)**, so an average IV (~15) trains exactly as today. WarGreymon (~91 ATK points): ~13 typical sessions at the worst IV, 10 average, 7 best; MetalGreymon (~41): 6 / 5 / 4. Low IV also means more XP, so more battles. Idea: show it to the player ("trains fast" / "slow learner") on the status card |
+
+### Resolved while building phase 1
+
+| Question | Resolution |
+|---|---|
+| Same-element bonus | **x1.5 when the skill's element is the form's home element**: the element of its first attacking signature skill, or for the 18 forms with none, the element it resists best (ties to the first). The resistance rule alone was the other candidate: only 272 of the 451 forms with an attacking signature resist that signature's element best (Tentomon's Super Shocker would get no bonus), and 402 forms tie for their best resistance, which would make Devimon a Fire form. The UI needs one element per form anyway, so the card, the accent colour, the biome and the bonus share this one answer (`homeElement()`) |
+| Stat changes in battle | Time Stranger's percentages, stacked and lasting the fight, capped at -60%..+90%. It uses 3-turn durations; TamaDigi's fights are shorter |
+| Attribute triangle multipliers | The existing x1.3 / x0.8 kept: the design table gives no numbers |
+| A resistance of 0 | A real immunity: 0 damage, narrated as such (74 cells). The old chart had none |
+| Heal by power | power x magic defence / 20, about half of max HP at power 30 across the roster. Time Stranger's formula is not in the data |
+| Charge Physical / Magic | The next attack of that kind hits twice as hard, once. The data gives no number |
+| A support-only partner | **The basic attack**: Time Stranger's Attack command. Null physical, power 30, in no slot, on the battle menu's free cell. Punimon and Botamon hatch with only a support skill; without it a fight could not end |
+| Skill names | English in every language, like Digimon names |
+| IVs | No longer add to a stat. They scale mini-game sessions, and name the personality. Boss rewards, chips and the passive DEF tick are not scaled: they are not sessions |
+| Replacing a v1.0.0 save | The settings (language, sound, volume, brightness) are kept |
+| Learn offers | Saved with the creature. They used to live in RAM, which would have made a reboot a silent "skip" and dropped is gone |
+| Care mistakes, wins | Mistakes no longer pick a branch; they stay on the card and in a medal. `wins` is gone |
+| `TS_STAT_SCALE_PCT` on HP minimums | The same one constant as every other minimum |
 
 ## Art: pre-rendered Time Stranger frames (private builds only)
 
@@ -162,36 +181,74 @@ is a candidate).
 
 From the design table (each row has the detail):
 
-- **Species table** (`dex.h` from `tools/digimon_data.py`): the 469 forms in Time
-  Stranger's dex order; raw 16-bit level-1 and level-99 stats; attribute; the
-  11-element resistance row; stage (seven stages plus Armor/Hybrid wild tiers);
-  flags for wild-only and never-raised forms; short display names for the 29
-  over 15 characters.
-- **Stat formula** (Approach B): linear growth from level-1 to level-99 values,
-  times one scale constant, plus training; the de-digivolve HP multiplier
-  (x1.1 per de-digivolve, cap x2.0; one count in the save).
-- **Evolution table**: stat minimums, Agent Rank (applied from Ultimate on), and
-  SP minimums turned into age minimums; offered, never forced; de-digivolution
-  into any known earlier form.
-- **Skills**: 44 learnable skills (power by level band) plus the simplified
-  signatures; learn timing (specials at once, attachment skills at learn level / 5
-  hours); 16-bit skill IDs in the save; fixed hit counts; percent-HP damage gone.
-- **Battle**: Time Stranger element and attribute multipliers replace the type
-  chart; six statuses (Injury from Burn, Crystallization from Freeze, element
-  immunities removed); 1-on-1 only.
-- **Progress**: Agent Rank from badges, the 13-boss single-Digimon ladder with
-  Hard mode, wild encounters by stage (65/25/10), eggs, Digidex states with scan
-  progress (no scan chips), partner history, Jogress (stretch goal).
+**Done in phase 1 (2026-10-30):**
 
-- **Detect and replace v1.0.0 saves** (decided: not carried forward). The Digidex
-  and the move (now skill) IDs are positional in saved data, so the new firmware must
-  recognise a v1.0.0 save and start fresh rather than misread it. Rewrite
-  `upgrade_test`'s v1.0.0 section to check exactly that, with the decision in its
-  comment; never regenerate its frozen save to make it pass.
-- **Done (PR #4, 2026-10-29):** the party and box are removed; battles are 1-on-1, each
-  boss fights with its old team's strongest member until the 13-boss ladder lands, LAN
-  sends only the partner, and old `pbA`/`pbB` records are ignored but left in NVS.
-  Scan chips no longer catch but stay in the bag until the cutover removes them.
+- **Species table**: `ts_dex.h` and `ts_skills.h` replace `dex.h`, `moves.h` and
+  `move_names.h`; `roster.h` is the layer the firmware reads them through. Seven
+  raisable stages. "Versions" are gone: the version pickers, the egg's version pill,
+  Explore's version selector, the per-version ladders and packs.
+- **Art stand-in**: the 73 Digimon Color sheets that match a form by name
+  (`tools/data/art/digimon_color.tsv`), one pack, `noart.h` as a bitmap.
+- **Stat formula** (Approach B), training to 255, IV scaling each session 70-130%, and
+  the de-digivolve HP multiplier with its count in the save.
+- **Evolution**: `routeMet()`, branches offered and never forced, de-digivolution with
+  the form waiting out its stage.
+- **Skills**: four 16-bit slots, power by level band, specials on becoming a form,
+  attachment skills at their hour offset, offers kept in the save, fixed hit counts.
+- **Battle**: Time Stranger's element rows and the triangle, the same-element bonus,
+  six statuses, every skill effect, no element immunity to a status.
+- **Items**: scan chips and catching are gone; the bag keeps the recovery disks, the
+  stat chips and ALL CURE.
+- **Saves**: new record formats, and v1.0.0 saves recognised and replaced
+  (`saveReplaceOld()`), with `upgrade_test` rewritten around the frozen save.
+
+**Done earlier (PR #4, 2026-10-29):** the party and box are removed; battles are 1-on-1,
+LAN sends only the partner.
+
+**Still to do, phase 2:**
+
+- **Progress**: Agent Rank from badges, the 13-boss single-Digimon ladder with Hard
+  mode, wild encounters by stage (65/25/10), eggs, Digidex states with scan progress
+  (no scan chips), partner history, Jogress (stretch goal).
+
+**Stubs phase 2 replaces:**
+
+| Stub | Where | What it does now |
+|---|---|---|
+| Agent Rank | `AGENT_RANK_STUB`, `Pet::agentRank()` | 255: every rank check passes. `digivolve_test` pins this and has to flip |
+| Boss ladder | `tools/gen_ladders.py`, `TRAINERS` in `trainers.h` | `TS_BOSS_TBL`'s 13 slots and levels, each boss swapped for a form with art of its stage where it has none. Only 4 of the 13 real bosses have art |
+| Hard mode | `startTrainerBattle()` | A smarter AI and a double reward. IVs no longer touch a stat, so `HARD_IV`/`EASY_IV` do nothing. Both difficulties cap your level |
+| Wild encounters | `startWildBattle()`, `wildPickSpecies()` | The old band (level ±5) and 75/25 stage roll, on `tier`, stepping down when a stage has no art. Mega+ has none |
+| Eggs | `Pet::pickEggSpecies()`, the starter screen | The first egg is a choice of the In-Training I forms with art, not a random one. Later eggs lean toward unraised lines |
+| Digidex | `galleryPass()`, `renderGallery()` | One flat grid of the forms with art, "registered" meaning raised. No stage picker, no seen/scanned states |
+| Evolution offer | `drawChoiceDialog()`, `declineEvolve()` | The old two-button dialog names the branch on offer; "keep form" moves to the next one next level. Choosing properly is "Still open" |
+| Partner history | nothing yet | `Pet::frozen` also survives from the removed box, and nothing sets it |
+
+**Findings from phase 1, for the balance pass:**
+
+- The stat scale of 0.1 works as a first pass: fights between same-level Digimon run
+  about 10 turns at level 10, 5 at level 30, and 3 from level 70 on, shortest 1 turn.
+  They are short, as `battle_test` prints. Level-1 fights take ~27 turns on the basic
+  attack.
+- Training dwarfs growth: the cap adds up to 255 to a stat that is about 200 at the
+  top of the roster, and ATK training feeds two stats. A fully trained partner hits
+  about twice as hard as the same form untrained.
+- The stand-in ladder can be beaten. `gym_test` prints a GREYMON's win rate against each
+  boss, which falls to 0% from DIGITAMAMON (level 54) on, untrained or trained: that
+  is a Champion against Ultimates and Megas with the wrong matchup, and it is why the
+  partner has to digivolve. A form with art of the right stage (or one below), played
+  by the smart AI against the random one, beats all 13 at 80-100% untrained. The hardest
+  is OGREMON at level 22.
+- `battleDamage()`'s +2 floor is per hit, so below about level 10 a 7-hit skill does
+  several times what a 1-hit skill of the same family does. From level 25 the families
+  are within about 25% of each other. Multi-hit skills are not learned that early in
+  practice, so it is left alone.
+- `TS_SKF_WAS_AOE` signatures have no boost yet (Mega Flame is power 40). That is
+  still the balance pass's.
+- On public art only 37 forms can be reached from the three hatchlings using forms with
+  art alone: In-Training II 3, Rookie 5, Champion 13, Ultimate 10, Mega 3.
+
+**Later:**
 
 - Raise the 24-frames-per-action cap (`PmdAct.ms[24]`) and the 3 MB sprite file
   cap (Greymon is already 2.8 MB).
@@ -217,8 +274,8 @@ From the design table (each row has the detail):
 - `tools/data/time-stranger/`: stats and evolution requirements (see its README).
 - `tools/gen_ts_data.py`: the Time Stranger data pipeline. Applies the design table to
   `tools/data/time-stranger/`, asserts its counts and rules, and writes `ts_dex.h` and
-  `ts_skills.h` (not included by the firmware yet; `--check` fails if they are stale).
-  Format, and how the open cases were resolved: `docs/ts-data-format.md`.
+  `ts_skills.h` (`--check` fails if they are stale). Format, and how the open cases were
+  resolved: `docs/ts-data-format.md`.
 - Emulator: `EMU_EPOCH=<unix secs>` sets the start time (`tools/emu/host_impl.cpp`).
 - The full test suite (`tools/emu/tests/run.sh`) needs `arduino-cli` with the ESP32
   core and the `esp-emu` native emulator; neither is installed on this machine yet,
@@ -239,6 +296,6 @@ From the design table (each row has the detail):
   Agent Skills and Talent, boss rewards for items); personality skills (passives);
   separate INT/SPI training mini-games.
 - Public-build art: only 73 of the 87 Digimon Color sprites map onto Time Stranger
-  forms; the Vital Bracelet sprites (kongtaehun/digimon-assets-VB, no licence,
+  forms, and they are what the game runs on today; the Vital Bracelet sprites (kongtaehun/digimon-assets-VB, no licence,
   Bandai's art) cover at least 188 forms by name.
 - Model check for the 13 bosses (needs the game files in `tools/prerender/models/`).

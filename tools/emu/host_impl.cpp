@@ -22,7 +22,7 @@ bool sdDirty = false;
 // here and no PUT path, so the flag never sets and the scan is a no-op -- but both
 // symbols are referenced from loop(), so they have to exist to link.
 bool sdArtDirty = false;
-void sdScanRegionArt(bool) {}
+void sdScanArtPack(bool) {}
 // Nothing sets it here, as there is no PUT; transfer_test sets it by hand.
 bool sdThumbsDirty = false;
 // No PUT path here either; transfer_test sets sdTransferAt to stand in for one.

@@ -216,7 +216,7 @@ static void audioTask(void *) {
     // simpler and the right priority.
     if (xQueueReceive(gQ, &req, wantAudio ? 0 : pdMS_TO_TICKS(40)) == pdTRUE) {
       if (gOn && gReady && req.kind == AUD_CRY) {
-        // A Digimon chirp, built on the spot from DEX_TBL. Nothing is stored and
+        // A Digimon chirp, built on the spot from TS_DEX_TBL. Nothing is stored and
         // nothing is looked up: see cry.h.
         CryNote cn[CRY_NOTES];
         const uint8_t n = crySynth(req.dex, cn);

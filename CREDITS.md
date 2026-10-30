@@ -23,8 +23,7 @@ not affiliated with or endorsed by Bandai or Toei.
 
 | Resource | Source | Use |
 |---|---|---|
-| Digimon sprites (Ver.1–5, from *Digimon Color*) | [furudbat/wayland-vpets](https://github.com/furudbat/wayland-vpets) (`assets/dmc/`) | Downloaded by `tools/pack_sprites.py`, cut into frames, animated and packed into `web/sprites-*.pak`. The repository's code is MIT; the sprites are © Bandai/Digimon. |
-| Digivolution trees (Ver.1–5) | [furudbat/wayland-vpets](https://github.com/furudbat/wayland-vpets) (Digimon Color data) | The shape of the trees in `tools/digimon_data.py`. The branch *conditions*, stats and attack data are this project's own design. |
+| Digimon sprites (from *Digimon Color*) | [furudbat/wayland-vpets](https://github.com/furudbat/wayland-vpets) (`assets/dmc/`) | Downloaded by `tools/pack_sprites.py`, cut into frames, animated and packed into `web/sprites-*.pak`. The repository's code is MIT; the sprites are © Bandai/Digimon. |
 | *Time Stranger* evolution requirements | [MelbearX123/digivolve-target](https://github.com/MelbearX123/digivolve-target), MIT | `tools/data/time-stranger/evolutions.json`, with its licence, for the planned roster rework. |
 | *Time Stranger* 3D models (private builds only) | [DSTS Model Viewer](https://tangled.org/nuffle.me/dsts-viewer) by Nuffle, MIT | `tools/prerender/` drives a locally run copy of the viewer to capture sprites. The models and every frame rendered from them are © Bandai Namco and are never committed. |
 

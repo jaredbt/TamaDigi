@@ -17,7 +17,7 @@
     "moves_test",
     "palette_test",
     "persist_test",
-    "region_test",
+    "art_test",
     "retire_test",
     "revive_test",
     "reward_test",

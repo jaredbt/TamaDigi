@@ -97,13 +97,13 @@ int main(){
   ck(sizeof(LinkResult) <= LINK_MAX_PAYLOAD, "a result fits in one packet");
   LinkResult r{};
   r.hostHp=111; r.guestHp=222; r.hostMove=33; r.guestMove=44;
-  r.hostDmg=9; r.guestDmg=8; r.guestAil=AIL_BURN;
+  r.hostDmg=9; r.guestDmg=8; r.guestAil=TS_AIL_INJURY;
   B.resultNew=false;
   A.pendingAct = LINK_ACT_MOVE(0);
   A.sendResult((const uint8_t*)&r,(uint8_t)sizeof(r));
   LinkResult got{}; memcpy(&got,B.result,sizeof(got));
   ck(B.resultNew && B.resultN==sizeof(r), "a full result arrives whole");
-  ck(got.hostHp==111 && got.guestHp==222 && got.guestAil==AIL_BURN,
+  ck(got.hostHp==111 && got.guestHp==222 && got.guestAil==TS_AIL_INJURY,
      "health and ailments survive the wire");
   ck(got.hostDmg==9 && got.guestDmg==8, "so does the damage each side took");
   ck(!A.pendingAct, "resolving clears the action, so it cannot be spent twice");
@@ -201,11 +201,11 @@ int main(){
   // --- NOTHING off the wire may be trusted to index a table
   {
     LinkMon junk{};
-    junk.dex=56; junk.level=250; junk.maxHp=0; junk.moves[0]=250;
+    junk.dex=56; junk.level=250; junk.maxHp=0; junk.moves[0]=60000;
     Combatant c; linkMonTo(c,junk);
     ck(c.dex>=1 && c.dex<=DEX_COUNT, "a nonsense dex is clamped into the table");
     ck(c.level>=1 && c.level<=MAX_LEVEL, "so is a nonsense level");
-    ck(c.moves[0]<MOVE_COUNT, "and a nonsense move index");
+    ck(c.moves[0]<MOVE_COUNT, "and a nonsense skill id");
     ck(c.maxHp>=1 && c.hp==c.maxHp, "a creature always has at least 1 HP");
 
     LinkMon neg{}; neg.dex=-5; neg.level=0; neg.maxHp=10;
@@ -218,7 +218,7 @@ int main(){
     for (int i=0;i<LINK_NAME_LEN;i++) nm.name[i]='X';
     linkMonTo(c,nm);
     ck(strlen(c.name)<sizeof(c.name), "an unterminated wire name is terminated");
-    ck(linkSafeMove(255)==0 && linkSafeMove(1)==1, "linkSafeMove bounds a move index");
+    ck(linkSafeMove(60000)==0 && linkSafeMove(MOVE_COUNT - 1)==MOVE_COUNT - 1 && linkSafeMove(SKILL_BASIC)==SKILL_BASIC, "linkSafeMove bounds a skill id, and keeps every real one");
   }
 
   printf("%s\n", bad?"FAILURES":"all good");

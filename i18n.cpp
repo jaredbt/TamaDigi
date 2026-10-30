@@ -1,10 +1,8 @@
 #include "i18n.h"
 #include "pet.h"        // MED_COUNT
-#include "move_names.h"
 #include <Preferences.h>
 
 Lang gLang = LANG_DEFAULT;
-static_assert(LANG_COUNT == MOVE_NAME_LANG_COUNT, "move-name language order must match Lang");
 
 // String table [language][id]. No accents and no n-tildes: the firmware's bitmap
 // font does not have them (which is why the Spanish already read "Esta", "bano", etc.).
@@ -30,7 +28,7 @@ static const char *const STRINGS[LANG_COUNT][STR_COUNT] = {
     "COM", "FEL", "ENE", "LIM",
     "REC %u",
     "PROGRESO", "Nv.%u", "%u min para Nv.%u", "DIGIEVOLUCION", "Forma final",
-    "Listo para digievolucionar!", "Victorias: %u/%u",
+    "Listo para digievolucionar!", "Falta entrenar",
     "Digievoluciona en %u h", "Descuidos: %u",
     "SON ON", "SON OFF",
     "DIGIEVOLUCIONAR", "%s quiere decirte algo...", "%s se siente abandonado...",
@@ -40,17 +38,17 @@ static const char *const STRINGS[LANG_COUNT][STR_COUNT] = {
     "PV", "IV %u",
     "MENU", "AJUSTES", "CERRAR", "EQUIPO %u/6", "EQUIPO", "- vacio -", "%s se une al equipo!", "Equipo lleno: elige a quien sustituir", "Dejarlo ir",
     "STATS", "ENTRENAR", "FUERZA", "VELOCIDAD", "DEFENSA", "Sube sola si esta a gusto",
-    "MOVIMIENTOS", "- vacio -", "Elige movimiento", "Toca para cambiar", "POT %u", "ESTADO",
+    "HABILIDADES", "- vacio -", "Elige habilidad", "Toca para cambiar", "POT %u", "APOYO",
     "%s quiere aprender", "No aprender",
     "%s usa %s", "Es muy eficaz!", "No es muy eficaz...", "No le afecta...",
     "%s ha fallado!", "Golpe critico!", "%s se debilita!", "Se ha herido!",
-    "%s: %s", "PARALISIS", "QUEMADURA", "VENENO", "DORMIDO", "CONGELADO", "CONFUSION",
+    "%s: %s", "PARALISIS", "HERIDO", "VENENO", "DORMIDO", "CRISTALIZADO", "CONFUSION",
     "Has ganado!", "Has perdido...",
     "%s saca a %s", "Adelante, %s!", "JEFES", "MEDALLAS %u/8", "DOMADOR", "VELOCIDAD +%u", "toca: cambiar avatar", "%u en total", "NORMAL", "DIFICIL",
  "ELEGIDOS %u/%u", "LUCHAR", "BLOQUEADO", "DIGIMON", "%s derrotado!", "MEDALLA NUEVA!", "VOL %u", "CAJA %u/%u", "cambiar con %s: elige hueco", "CAJA", "TRAER", "solo con un huevo", "COMBATE LAN", "CREAR", "UNIRSE", "buscando...", "listo!", "version distinta", "crear o unirse", "rival: %u mons", "el rival se fue", "esperando al rival...", "OTRA VEZ", "HUIR", "de que version es el huevo", "%s +%u", "ya no puede entrenar mas", "ELIGE TU VERSION", "RETIRAR", "Retirarla ya?", "la siguiente digievoluciona un dia mas tarde", "digievoluciona un dia mas tarde",   "SIN SPRITES", "SOLTAR", "se va para siempre", "AL EQUIPO", "no se unira a tu equipo",
     "MOCHILA", "MOCHILA VACIA", "EXPLORAR", "Aparece un %s salvaje!", "%s ha huido!",
     "Has escapado!", "No has podido escapar!", "Usas un %s", "%s escaneado!", "Escaneo fallido!",
-    "Usas %s", "No ha hecho nada", "Encuentras %s!", "ACTIVAR", "CRIANDO", "LUZ %u", "REINICIAR", "Borrar todo?", "cada digimon, medalla y record se pierde", "TODOS", "CRIADOS", "EN MANO", "VARIANTE", "nada con este filtro", "HUECO", "NUMERO", "NIVEL", "AUDAZ", "FIRME", "VIVAZ", "RECIO", "ANIMOSO", "SERENO", "HOY", "%u/%u hoy", "cuidado hoy", "bien comido", "limpio", "contento", "descansado", "MEMORIA", "SECUENCIA %u", "MIRA", "TU TURNO", "ANIMO +%u", "A LA CAJA", "RECIBIENDO SPRITES", "%u archivos", "el juego vuelve al terminar", "Entreno: %u", "ATRIBUTO", "BEBE I", "BEBE II", "NOVATO", "CAMPEON", "ULTRA", "MEGA", },
+    "Usas %s", "No ha hecho nada", "Encuentras %s!", "ACTIVAR", "CRIANDO", "LUZ %u", "REINICIAR", "Borrar todo?", "cada digimon, medalla y record se pierde", "TODOS", "CRIADOS", "EN MANO", "VARIANTE", "nada con este filtro", "HUECO", "NUMERO", "NIVEL", "AUDAZ", "FIRME", "VIVAZ", "RECIO", "ANIMOSO", "SERENO", "HOY", "%u/%u hoy", "cuidado hoy", "bien comido", "limpio", "contento", "descansado", "MEMORIA", "SECUENCIA %u", "MIRA", "TU TURNO", "ANIMO +%u", "A LA CAJA", "RECIBIENDO SPRITES", "%u archivos", "el juego vuelve al terminar", "Entreno: %u", "ATRIBUTO", "BEBE I", "BEBE II", "NOVATO", "CAMPEON", "ULTRA", "MEGA", "MEGA+", "ATACAR", "partida antigua v1.0.0", "empieza una nueva", "REGRESAR", },
   // ---------------- EN ----------------
   {
     "Digivolving!", "Yum yum!", "It likes it!", "It's hungry!", "Needs a bath!",
@@ -72,7 +70,7 @@ static const char *const STRINGS[LANG_COUNT][STR_COUNT] = {
     "FOOD", "JOY", "ENE", "HYG",
     "BEST %u",
     "PROGRESS", "Lv.%u", "%u min to Lv.%u", "DIGIVOLUTION", "Final form",
-    "Ready to digivolve!", "Wins: %u/%u",
+    "Ready to digivolve!", "Needs more training",
     "Digivolves in %u h", "Care mistakes: %u",
     "SND ON", "SND OFF",
     "DIGIVOLVE!", "%s wants to tell you...", "%s feels abandoned...",
@@ -82,18 +80,18 @@ static const char *const STRINGS[LANG_COUNT][STR_COUNT] = {
     "HP", "IV %u",
     "MENU", "SETTINGS", "CLOSE", "PARTY %u/6", "PARTY", "- empty -", "%s joined the party!", "Party full: pick who to replace", "Let it go",
     "STATS", "TRAINING", "STRENGTH", "SPEED", "DEFENCE", "Grows on its own when happy",
-    "MOVES", "- empty -", "Choose a move", "Tap a slot to change", "PWR %u", "STATUS",
+    "SKILLS", "- empty -", "Choose a skill", "Tap a slot to change", "PWR %u", "SUPPORT",
     "%s wants to learn", "Do not learn",
     "%s used %s", "Super effective!", "Not very effective...", "It had no effect...",
     "%s missed!", "Critical hit!", "%s fainted!", "It hurt itself!",
-    "%s: %s", "PARALYSED", "BURNED", "POISONED", "ASLEEP", "FROZEN", "CONFUSED",
+    "%s: %s", "PARALYSED", "INJURED", "POISONED", "ASLEEP", "CRYSTALLIZED", "CONFUSED",
     "You win!", "You lost...",
     "%s sends out %s", "Go, %s!", "BOSSES", "BADGES %u/8", "TAMER",
  "SPEED +%u", "tap: change avatar", "%u earned in all", "EASY", "HARD", "CHOSEN %u/%u", "FIGHT", "LOCKED", "DIGIMON", "%s defeated!", "NEW BADGE!", "VOL %u", "BOX %u/%u", "swap with %s: pick a slot", "BOX", "BRING BACK", "only while an egg waits", "LAN BATTLE", "HOST", "JOIN", "searching...", "ready!", "different version", "host or join", "rival: %u mons", "the rival left", "waiting for the rival...", "AGAIN", "RUN", "which version this egg is", "%s +%u", "trained as far as it can go", "CHOOSE A VERSION", "RETIRE", "Retire it early?", "the next one digivolves a day later", "digivolves a day later",
    "NO SPRITES", "RELEASE", "gone for good", "TO PARTY", "it will not join your party",
     "BAG", "BAG EMPTY", "EXPLORE", "A wild %s appeared!", "%s fled!",
     "You got away!", "You could not get away!", "You used a %s", "%s was scanned!", "The scan failed!",
-    "Used %s", "It had no effect", "Found %s!", "MAKE ACTIVE", "RAISING", "LIGHT %u", "RESET GAME", "Erase everything?", "every Digimon, badge and record is gone", "ALL", "RAISED", "CAUGHT", "VARIANTE", "nothing matches this filter", "SLOT", "NUMBER", "LEVEL", "BOLD", "STURDY", "BRISK", "HARDY", "EAGER", "CALM", "TODAY", "%u/%u today", "cared for today", "well fed", "clean", "happy", "rested", "MEMORY", "SEQUENCE %u", "WATCH", "YOUR TURN", "JOY +%u", "TO BOX", "RECEIVING SPRITES", "%u files", "the game resumes when done", "Training: %u", "ATTRIBUTE", "BABY I", "BABY II", "ROOKIE", "CHAMPION", "ULTIMATE", "MEGA", },
+    "Used %s", "It had no effect", "Found %s!", "MAKE ACTIVE", "RAISING", "LIGHT %u", "RESET GAME", "Erase everything?", "every Digimon, badge and record is gone", "ALL", "RAISED", "CAUGHT", "VARIANTE", "nothing matches this filter", "SLOT", "NUMBER", "LEVEL", "BOLD", "STURDY", "BRISK", "HARDY", "EAGER", "CALM", "TODAY", "%u/%u today", "cared for today", "well fed", "clean", "happy", "rested", "MEMORY", "SEQUENCE %u", "WATCH", "YOUR TURN", "JOY +%u", "TO BOX", "RECEIVING SPRITES", "%u files", "the game resumes when done", "Training: %u", "ATTRIBUTE", "IN-TRAINING I", "IN-TRAINING II", "ROOKIE", "CHAMPION", "ULTIMATE", "MEGA", "MEGA+", "ATTACK", "old v1.0.0 save found", "starting a new game", "DE-DIGIVOLVE", },
   // ---------------- FR ----------------
   {
     "Il digivolue!", "Miam miam!", "Il aime ca!", "Il a faim!", "Besoin d'un bain!",
@@ -115,7 +113,7 @@ static const char *const STRINGS[LANG_COUNT][STR_COUNT] = {
     "NOUR", "JOIE", "ENE", "HYG",
     "REC %u",
     "PROGRES", "Niv.%u", "%u min pour Niv.%u", "DIGIVOLUTION", "Forme finale",
-    "Pret a digivoluer!", "Victoires: %u/%u",
+    "Pret a digivoluer!", "Entrainement requis",
     "Digivolue dans %u h", "Negligences: %u",
     "SON ON", "SON OFF",
     "DIGIVOLUER", "%s veut te parler...", "%s se sent abandonne...",
@@ -125,17 +123,17 @@ static const char *const STRINGS[LANG_COUNT][STR_COUNT] = {
     "PV", "IV %u",
     "MENU", "REGLAGES", "FERMER", "EQUIPE %u/6", "EQUIPE", "- vide -", "%s rejoint l'equipe!", "Equipe pleine: qui remplacer?", "Le laisser partir",
     "STATS", "ENTRAINEMENT", "FORCE", "VITESSE", "DEFENSE", "Monte seule s'il est heureux",
-    "CAPACITES", "- vide -", "Choisis une capacite", "Touche pour changer", "PUI %u", "STATUT",
+    "CAPACITES", "- vide -", "Choisis une capacite", "Touche pour changer", "PUI %u", "SOUTIEN",
     "%s veut apprendre", "Ne pas apprendre",
     "%s utilise %s", "Tres efficace!", "Peu efficace...", "Aucun effet...",
     "%s a rate!", "Coup critique!", "%s est K.O.!", "Il se blesse!",
-    "%s: %s", "PARALYSIE", "BRULURE", "POISON", "ENDORMI", "GELE", "CONFUSION",
+    "%s: %s", "PARALYSIE", "BLESSE", "POISON", "ENDORMI", "CRISTALLISE", "CONFUSION",
     "Gagne!", "Perdu...",
     "%s envoie %s", "Vas-y, %s!", "BOSS", "BADGES %u/8", "DOMPTEUR", "VITESSE +%u", "touche: changer d'avatar", "%u au total", "NORMAL", "DIFFICILE", "CHOISIS %u/%u", "COMBATTRE", "VERROUILLE", "DIGIMON", "%s vaincu!", "NOUVEAU BADGE!", "VOL %u", "BOITE %u/%u", "echanger avec %s: choisis", "BOITE", "RAMENER", "seulement avec un oeuf", "COMBAT LAN", "CREER", "REJOINDRE", "recherche...", "pret!", "version differente", "creer ou rejoindre", "rival: %u mons", "le rival est parti", "en attente du rival...", "ENCORE", "FUIR", "de quelle version est l oeuf", "%s +%u", "ne peut plus progresser", "CHOISIS TA VERSION", "RETIRER", "Retirer maintenant?", "le suivant digivolue un jour plus tard", "digivolue un jour plus tard",
    "SANS SPRITES", "RELACHER", "parti pour de bon", "A L EQUIPE", "ne rejoindra pas l equipe",
     "SAC", "SAC VIDE", "EXPLORER", "Un %s sauvage apparait!", "%s a fui!",
     "Tu as pris la fuite!", "Impossible de fuir!", "Tu utilises un %s", "%s est scanne!", "Scan rate!",
-    "Tu utilises %s", "Aucun effet", "Tu trouves %s!", "RENDRE ACTIF", "EN ELEVAGE", "LUMIERE %u", "REINITIALISER", "Tout effacer?", "chaque digimon, badge et record est perdu", "TOUS", "ELEVES", "EN MAIN", "VARIANTE", "rien avec ce filtre", "CASE", "NUMERO", "NIVEAU", "AUDACE", "SOLIDE", "VIF", "ROBUSTE", "ARDENT", "CALME", "AUJOURD HUI", "%u/%u aujourd hui", "soigne aujourd hui", "bien nourri", "propre", "content", "repose", "MEMOIRE", "SEQUENCE %u", "REGARDE", "A TOI", "JOIE +%u", "A LA BOITE", "RECEPTION DES SPRITES", "%u fichiers", "le jeu reprend a la fin", "Entrainement: %u", "ATTRIBUT", "BEBE I", "BEBE II", "DISCIPLE", "CHAMPION", "ULTIME", "MEGA", },
+    "Tu utilises %s", "Aucun effet", "Tu trouves %s!", "RENDRE ACTIF", "EN ELEVAGE", "LUMIERE %u", "REINITIALISER", "Tout effacer?", "chaque digimon, badge et record est perdu", "TOUS", "ELEVES", "EN MAIN", "VARIANTE", "rien avec ce filtre", "CASE", "NUMERO", "NIVEAU", "AUDACE", "SOLIDE", "VIF", "ROBUSTE", "ARDENT", "CALME", "AUJOURD HUI", "%u/%u aujourd hui", "soigne aujourd hui", "bien nourri", "propre", "content", "repose", "MEMOIRE", "SEQUENCE %u", "REGARDE", "A TOI", "JOIE +%u", "A LA BOITE", "RECEPTION DES SPRITES", "%u fichiers", "le jeu reprend a la fin", "Entrainement: %u", "ATTRIBUT", "BEBE I", "BEBE II", "DISCIPLE", "CHAMPION", "ULTIME", "MEGA", "MEGA+", "ATTAQUER", "ancienne sauvegarde v1.0.0", "nouvelle partie", "DE-DIGIVOLUER", },
   // ---------------- DE ----------------
   {
     "Digitiert!", "Mampf mampf!", "Gefaellt ihm!", "Hat Hunger!", "Braucht ein Bad!",
@@ -157,7 +155,7 @@ static const char *const STRINGS[LANG_COUNT][STR_COUNT] = {
     "ESS", "FRO", "ENE", "HYG",
     "REK %u",
     "FORTSCHRITT", "Lv.%u", "%u min bis Lv.%u", "DIGITATION", "Endform",
-    "Bereit zur Digitation!", "Siege: %u/%u",
+    "Bereit zur Digitation!", "Mehr Training noetig",
     "Digitiert in %u Std.", "Pflegefehler: %u",
     "TON AN", "TON AUS",
     "DIGITIEREN", "%s will dir etwas sagen...", "%s fuehlt sich verlassen...",
@@ -167,17 +165,17 @@ static const char *const STRINGS[LANG_COUNT][STR_COUNT] = {
     "LP", "IV %u",
     "MENU", "EINSTELLUNGEN", "SCHLIESSEN", "TEAM %u/6", "TEAM", "- leer -", "%s kommt ins Team!", "Team voll: wen ersetzen?", "Ziehen lassen",
     "WERTE", "TRAINING", "STAERKE", "TEMPO", "ABWEHR", "Steigt von selbst bei guter Laune",
-    "ATTACKEN", "- leer -", "Attacke waehlen", "Tippen zum Aendern", "STK %u", "STATUS",
+    "FAEHIGKEITEN", "- leer -", "Faehigkeit waehlen", "Tippen zum Aendern", "STK %u", "SUPPORT",
     "%s will lernen", "Nicht lernen",
     "%s setzt %s ein", "Sehr effektiv!", "Nicht sehr effektiv...", "Keine Wirkung...",
     "%s hat verfehlt!", "Volltreffer!", "%s wurde besiegt!", "Es verletzt sich!",
-    "%s: %s", "PARALYSE", "VERBRANNT", "VERGIFTET", "SCHLAEFT", "GEFROREN", "VERWIRRT",
+    "%s: %s", "PARALYSE", "VERLETZT", "VERGIFTET", "SCHLAEFT", "KRISTALLISIERT", "VERWIRRT",
     "Gewonnen!", "Verloren...",
     "%s schickt %s", "Los, %s!", "BOSSE", "ORDEN %u/8", "TAMER", "TEMPO +%u", "tippen: Avatar wechseln", "%u insgesamt", "NORMAL", "SCHWER", "GEWAEHLT %u/%u", "KAEMPFEN", "GESPERRT", "DIGIMON", "%s besiegt!", "NEUER ORDEN!", "LAUT %u", "BOX %u/%u", "mit %s tauschen: waehle", "BOX", "ZURUECK", "nur mit einem Ei", "LAN KAMPF", "HOSTEN", "BEITRETEN", "suche...", "bereit!", "andere Version", "hosten oder beitreten", "Gegner: %u", "der Gegner ist weg", "warte auf den Gegner...", "NOCHMAL", "FLUCHT", "aus welcher Version das Ei ist", "%s +%u", "kann nicht weiter trainieren", "WAEHLE DEINE VERSION", "VERABSCHIEDEN", "Jetzt verabschieden?", "das naechste digitiert einen Tag spaeter", "digitiert einen Tag spaeter",
    "SPRITES FEHLEN", "FREILASSEN", "fuer immer weg", "INS TEAM", "kommt nicht ins team",
     "BEUTEL", "BEUTEL LEER", "ERKUNDEN", "Ein wildes %s erscheint!", "%s ist geflohen!",
     "Du bist entkommen!", "Flucht gescheitert!", "Du nutzt einen %s", "%s gescannt!", "Scan fehlgeschlagen!",
-    "%s benutzt", "Keine Wirkung", "%s gefunden!", "AKTIV MACHEN", "WIRD AUFGEZOGEN", "LICHT %u", "ZURUCKSETZEN", "Alles loschen?", "jedes Digimon, Orden und Rekord ist weg", "ALLE", "AUFGEZOGEN", "DABEI", "VARIANTE", "nichts mit diesem Filter", "PLATZ", "NUMMER", "LEVEL", "KUEHN", "ROBUST", "FLINK", "ZAEH", "EIFRIG", "RUHIG", "HEUTE", "%u/%u heute", "heute gepflegt", "gut genaehrt", "sauber", "gluecklich", "ausgeruht", "MERKEN", "FOLGE %u", "SCHAU", "DU BIST DRAN", "FREUDE +%u", "IN DIE BOX", "EMPFANGE SPRITES", "%u Dateien", "danach geht es weiter", "Training: %u", "ATTRIBUT", "BABY I", "BABY II", "ROOKIE", "CHAMPION", "ULTRA", "MEGA", },
+    "%s benutzt", "Keine Wirkung", "%s gefunden!", "AKTIV MACHEN", "WIRD AUFGEZOGEN", "LICHT %u", "ZURUCKSETZEN", "Alles loschen?", "jedes Digimon, Orden und Rekord ist weg", "ALLE", "AUFGEZOGEN", "DABEI", "VARIANTE", "nichts mit diesem Filter", "PLATZ", "NUMMER", "LEVEL", "KUEHN", "ROBUST", "FLINK", "ZAEH", "EIFRIG", "RUHIG", "HEUTE", "%u/%u heute", "heute gepflegt", "gut genaehrt", "sauber", "gluecklich", "ausgeruht", "MERKEN", "FOLGE %u", "SCHAU", "DU BIST DRAN", "FREUDE +%u", "IN DIE BOX", "EMPFANGE SPRITES", "%u Dateien", "danach geht es weiter", "Training: %u", "ATTRIBUT", "BABY I", "BABY II", "ROOKIE", "CHAMPION", "ULTRA", "MEGA", "MEGA+", "ANGREIFEN", "alter v1.0.0 Spielstand", "neues Spiel beginnt", "ZURUECK-DIGITIEREN", },
   // ---------------- IT ----------------
   {
     "Digievolve!", "Gnam gnam!", "Gli piace!", "Ha fame!", "Vuole un bagno!",
@@ -199,7 +197,7 @@ static const char *const STRINGS[LANG_COUNT][STR_COUNT] = {
     "CIB", "GIO", "ENE", "IGI",
     "REC %u",
     "PROGRESSI", "Lv.%u", "%u min per Lv.%u", "DIGIEVOLUZIONE", "Forma finale",
-    "Pronto a digievolvere!", "Vittorie: %u/%u",
+    "Pronto a digievolvere!", "Serve allenamento",
     "Digievolve tra %u h", "Disattenzioni: %u",
     "AUD ON", "AUD OFF",
     "DIGIEVOLVI", "%s vuole dirti qualcosa...", "%s si sente abbandonato...",
@@ -209,17 +207,17 @@ static const char *const STRINGS[LANG_COUNT][STR_COUNT] = {
     "PS", "IV %u",
     "MENU", "IMPOSTAZIONI", "CHIUDI", "SQUADRA %u/6", "SQUADRA", "- vuoto -", "%s entra in squadra!", "Squadra piena: chi sostituire?", "Lasciarlo andare",
     "STATS", "ALLENAMENTO", "FORZA", "VELOCITA", "DIFESA", "Sale da sola se sta bene",
-    "MOSSE", "- vuoto -", "Scegli una mossa", "Tocca per cambiare", "POT %u", "STATO",
+    "ABILITA", "- vuoto -", "Scegli abilita", "Tocca per cambiare", "POT %u", "SUPPORTO",
     "%s vuole imparare", "Non imparare",
     "%s usa %s", "Superefficace!", "Non molto efficace...", "Nessun effetto...",
     "%s ha mancato!", "Brutto colpo!", "%s e\' esausto!", "Si e ferito!",
-    "%s: %s", "PARALISI", "SCOTTATURA", "VELENO", "ADDORMENTATO", "CONGELATO", "CONFUSIONE",
+    "%s: %s", "PARALISI", "FERITO", "VELENO", "ADDORMENTATO", "CRISTALLIZZATO", "CONFUSIONE",
     "Hai vinto!", "Hai perso...",
     "%s manda %s", "Vai, %s!", "BOSS", "MEDAGLIE %u/8", "DOMATORE", "VELOCITA +%u", "tocca: cambia avatar", "%u in totale", "NORMALE", "DIFFICILE", "SCELTI %u/%u", "LOTTA", "BLOCCATO", "DIGIMON", "%s sconfitto!", "NUOVA MEDAGLIA!", "VOL %u", "BOX %u/%u", "scambia con %s: scegli", "BOX", "RIPORTA", "solo con un uovo", "LOTTA LAN", "CREA", "ENTRA", "ricerca...", "pronto!", "versione diversa", "crea o entra", "rivale: %u mons", "il rivale se n' e andato", "in attesa del rivale...", "ANCORA", "FUGGI", "da quale versione viene l uovo", "%s +%u", "non puo allenarsi oltre", "SCEGLI LA VERSIONE", "RITIRARE", "Ritirarla adesso?", "il prossimo digievolve un giorno dopo", "digievolve un giorno dopo",
    "SENZA SPRITE", "LIBERA", "via per sempre", "AL GRUPPO", "non entrera nel gruppo",
     "ZAINO", "ZAINO VUOTO", "ESPLORA", "Appare un %s selvatico!", "%s e fuggito!",
     "Sei riuscito a fuggire!", "Non sei riuscito a fuggire!", "Usi un %s", "%s scansionato!", "Scansione fallita!",
-    "Usi %s", "Nessun effetto", "Trovi %s!", "RENDI ATTIVO", "IN ALLEVAMENTO", "LUCE %u", "AZZERA", "Cancellare tutto?", "ogni digimon, medaglia e record va perso", "TUTTI", "ALLEVATI", "CON TE", "VARIANTE", "nulla con questo filtro", "POSTO", "NUMERO", "LIVELLO", "AUDACE", "SOLIDO", "LESTO", "TENACE", "ARDITO", "CALMO", "OGGI", "%u/%u oggi", "curato oggi", "ben nutrito", "pulito", "contento", "riposato", "MEMORIA", "SEQUENZA %u", "GUARDA", "TOCCA A TE", "GIOIA +%u", "NEL BOX", "RICEZIONE SPRITE", "%u file", "il gioco riprende alla fine", "Allenamento: %u", "ATTRIBUTO", "BEBE I", "BEBE II", "PRINCIPIANTE", "CAMPIONE", "EVOLUTO", "MEGA", },
+    "Usi %s", "Nessun effetto", "Trovi %s!", "RENDI ATTIVO", "IN ALLEVAMENTO", "LUCE %u", "AZZERA", "Cancellare tutto?", "ogni digimon, medaglia e record va perso", "TUTTI", "ALLEVATI", "CON TE", "VARIANTE", "nulla con questo filtro", "POSTO", "NUMERO", "LIVELLO", "AUDACE", "SOLIDO", "LESTO", "TENACE", "ARDITO", "CALMO", "OGGI", "%u/%u oggi", "curato oggi", "ben nutrito", "pulito", "contento", "riposato", "MEMORIA", "SEQUENZA %u", "GUARDA", "TOCCA A TE", "GIOIA +%u", "NEL BOX", "RICEZIONE SPRITE", "%u file", "il gioco riprende alla fine", "Allenamento: %u", "ATTRIBUTO", "BEBE I", "BEBE II", "PRINCIPIANTE", "CAMPIONE", "EVOLUTO", "MEGA", "MEGA+", "ATTACCA", "vecchio salvataggio v1.0.0", "inizia una nuova partita", "DE-DIGIEVOLVERE", },
   // ---------------- PT ----------------
   {
     "Digievoluindo!", "Nham nham!", "Ele gosta!", "Esta com fome!", "Precisa de banho!",
@@ -241,7 +239,7 @@ static const char *const STRINGS[LANG_COUNT][STR_COUNT] = {
     "COM", "ALE", "ENE", "HIG",
     "REC %u",
     "PROGRESSO", "Niv.%u", "%u min para Niv.%u", "DIGIEVOLUCAO", "Forma final",
-    "Pronto a digievoluir!", "Vitorias: %u/%u",
+    "Pronto a digievoluir!", "Falta treino",
     "Digievolui em %u h", "Descuidos: %u",
     "SOM ON", "SOM OFF",
     "DIGIEVOLUIR", "%s quer dizer-te algo...", "%s sente-se abandonado...",
@@ -251,17 +249,17 @@ static const char *const STRINGS[LANG_COUNT][STR_COUNT] = {
     "PS", "IV %u",
     "MENU", "AJUSTES", "FECHAR", "EQUIPA %u/6", "EQUIPA", "- vazio -", "%s junta-se a equipa!", "Equipa cheia: quem substituir?", "Deixa-lo ir",
     "STATS", "TREINO", "FORCA", "VELOCIDADE", "DEFESA", "Sobe sozinha se estiver bem",
-    "GOLPES", "- vazio -", "Escolhe um golpe", "Toca para mudar", "POT %u", "ESTADO",
+    "HABILIDADES", "- vazio -", "Escolhe habilidade", "Toca para mudar", "POT %u", "APOIO",
     "%s quer aprender", "Nao aprender",
     "%s usa %s", "Super eficaz!", "Pouco eficaz...", "Nao teve efeito...",
     "%s falhou!", "Acerto critico!", "%s desmaiou!", "Feriu-se!",
-    "%s: %s", "PARALISIA", "QUEIMADURA", "VENENO", "A DORMIR", "CONGELADO", "CONFUSAO",
+    "%s: %s", "PARALISIA", "FERIDO", "VENENO", "A DORMIR", "CRISTALIZADO", "CONFUSAO",
     "Ganhaste!", "Perdeste...",
     "%s envia %s", "Vai, %s!", "CHEFES", "MEDALHAS %u/8", "DOMADOR", "VELOCIDADE +%u", "toca: mudar avatar", "%u no total", "NORMAL", "DIFICIL", "ESCOLHIDOS %u/%u", "LUTAR", "BLOQUEADO", "DIGIMON", "%s derrotado!", "NOVA MEDALHA!", "VOL %u", "CAIXA %u/%u", "trocar com %s: escolhe", "CAIXA", "TRAZER", "so com um ovo", "COMBATE LAN", "CRIAR", "ENTRAR", "a procurar...", "pronto!", "versao diferente", "criar ou entrar", "rival: %u mons", "o rival saiu", "a esperar pelo rival...", "OUTRA VEZ", "FUGIR", "de que versao e o ovo", "%s +%u", "ja nao pode treinar mais", "ESCOLHE A VERSAO", "REFORMAR", "Reformar agora?", "o proximo digievolui um dia depois", "digievolui um dia depois",
    "SEM SPRITES", "SOLTAR", "vai para sempre", "A EQUIPA", "nao entrara na equipa",
     "MOCHILA", "MOCHILA VAZIA", "EXPLORAR", "Um %s selvagem aparece!", "%s fugiu!",
     "Conseguiste fugir!", "Nao conseguiste fugir!", "Usas um %s", "%s digitalizado!", "Falhou o scan!",
-    "Usas %s", "Sem efeito", "Encontras %s!", "TORNAR ATIVO", "A CRIAR", "LUZ %u", "REINICIAR", "Apagar tudo?", "cada digimon, medalha e record perde-se", "TODOS", "CRIADOS", "NA MAO", "VARIANTE", "nada com este filtro", "LUGAR", "NUMERO", "NIVEL", "AUDAZ", "FIRME", "AGIL", "RIJO", "ANIMADO", "CALMO", "HOJE", "%u/%u hoje", "cuidado hoje", "bem alimentado", "limpo", "contente", "descansado", "MEMORIA", "SEQUENCIA %u", "OLHA", "E A TUA VEZ", "ANIMO +%u", "PARA A CAIXA", "A RECEBER SPRITES", "%u ficheiros", "o jogo volta no fim", "Treino: %u", "ATRIBUTO", "BEBE I", "BEBE II", "NOVATO", "CAMPEAO", "ULTIMATE", "MEGA", },
+    "Usas %s", "Sem efeito", "Encontras %s!", "TORNAR ATIVO", "A CRIAR", "LUZ %u", "REINICIAR", "Apagar tudo?", "cada digimon, medalha e record perde-se", "TODOS", "CRIADOS", "NA MAO", "VARIANTE", "nada com este filtro", "LUGAR", "NUMERO", "NIVEL", "AUDAZ", "FIRME", "AGIL", "RIJO", "ANIMADO", "CALMO", "HOJE", "%u/%u hoje", "cuidado hoje", "bem alimentado", "limpo", "contente", "descansado", "MEMORIA", "SEQUENCIA %u", "OLHA", "E A TUA VEZ", "ANIMO +%u", "PARA A CAIXA", "A RECEBER SPRITES", "%u ficheiros", "o jogo volta no fim", "Treino: %u", "ATRIBUTO", "BEBE I", "BEBE II", "NOVATO", "CAMPEAO", "ULTIMATE", "MEGA", "MEGA+", "ATACAR", "jogo antigo v1.0.0", "novo jogo a comecar", "DE-DIGIEVOLUIR", },
 };
 
 // Medal names in their three lengths [language][medal].
@@ -295,11 +293,6 @@ static const char *const MED_DSC[LANG_COUNT][MED_COUNT] = {
   { "NIVEL 10", "NIVEL 25", "NIVEL 50", "COMIDA FAVORITA",
     "SEQ 7 DIAS", "LACO MAX", "FORMA FINAL", "EM FORMA" },
 };
-
-const char *moveName(uint8_t move) {
-  if (move >= MOVE_COUNT) move = MV_NONE;
-  return MOVE_NAME_TBL[gLang][move];
-}
 
 const char *T(StrId id) { return STRINGS[gLang][id]; }
 const char *medalName(int i)  { return MED_NAME[gLang][i]; }

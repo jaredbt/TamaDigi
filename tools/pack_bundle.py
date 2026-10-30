@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
-"""Packs the SD sprites (tools/sdcard/mons/*.bin) into one .pak PER
-REGION so the web installer can upload them in one click.
+"""Packs the SD sprites (tools/sdcard/mons/*.bin) into web/sprites-digimon.pak so
+the web installer can upload them in one click.
 
-ONE FILE PER REGION, not one big one, and that is forced rather than chosen:
-Ver.1 alone is already ~40 MB, so all three would be ~100 MB -- exactly GitHub's
-hard per-file limit, which would make the bundle uncommittable. Splitting also
-means a player can install Ver.1 and stop, which is the whole 40 MB most people
-want, and add a region later without re-sending what they already have.
+One pack: there is one roster. The installer and the board still speak of packs by
+index, and paks.json keeps its "regions" key, so a second pack (a private build's
+Time Stranger renders, say) is one more row in PACKS.
 
 TPAK format (little-endian):
   char[4]  "TPAK"
@@ -27,15 +25,12 @@ HERE = os.path.dirname(__file__)
 MONS = os.path.join(HERE, 'sdcard', 'mons')
 WEB = os.path.join(HERE, '..', 'web')
 
-# DERIVED from digimon_data.py, never a second copy of it. The old line here said
-# "Must match REGIONS in digimon_data.py" and then silently did not: Ver.4 landed
-# in the dex and this still stopped at Ver.3, so no sinnoh pack was ever built
-# and the installer could not offer one. Same trap as gen_moves.py keeping its
-# own DEX_COUNT = 151 while dex.h had grown.
+# Sprite files are named by dex id, and a pack claims a range of them.
 import sys as _sys
 _sys.path.insert(0, HERE)
-from digimon_data import VERSIONS as _DEX_REGIONS
-REGIONS = [(name.lower().replace('.', ''), lo, hi) for name, lo, hi, _starters in _DEX_REGIONS]
+from ts_roster import COUNT as _DEX_COUNT
+PACKS = [('digimon', 1, _DEX_COUNT)]
+REGIONS = PACKS
 
 GITHUB_LIMIT = 100 * 1024 * 1024
 INDEX = os.path.join(WEB, 'paks.json')
@@ -181,15 +176,8 @@ def main():
     if not files:
         raise SystemExit('no sprites in ' + MONS)
     # Files with no dex number in the name -- thumbs.bin -- are SHARED, not part
-    # of any region. Splitting by dex range alone dropped thumbs.bin on the
-    # floor and the board says so at boot: "no thumbs.bin (gallery without
-    # thumbnails)".
-    #
-    # They go in EVERY pack, not just the first. Riding only with Ver.1 meant
-    # anyone who installed Ver.2 or Ver.3 WITHOUT Ver.1 -- which nothing stops
-    # them doing -- got no thumbnails at all: bare dex numbers in place of every
-    # sprite in the gallery, and no silhouettes. It costs 415 KB against a 27-40
-    # MB pack, so there is nothing to weigh up.
+    # of any range. Splitting by dex range alone dropped thumbs.bin on the floor
+    # and the board says so at boot: "no thumbs.bin (gallery without thumbnails)".
     shared = [f for f in files if dex_of(f) == 0]
     previous = read_index()
     equivalent = {}
@@ -214,7 +202,7 @@ def main():
     if not made:
         raise SystemExit('nothing packed')
     packed = sum(1 for _ in glob.glob(os.path.join(MONS, '*.bin')))
-    print(f'{len(shared)} shared file(s) went into EVERY pack, so any single region works alone')
+    print(f'{len(shared)} shared file(s) went into every pack')
     write_index(equivalent)
 
 

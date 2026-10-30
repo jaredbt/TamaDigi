@@ -16,7 +16,7 @@ static int bad=0;
 static void ck(bool ok,const char*w){printf("%s  %s\n",ok?"PASS":"FAIL",w); if(!ok)bad++;}
 int main(){
   Pet p; p.begin();
-  if (p.awaitingStarter()) p.chooseStarter(4);
+  if (p.awaitingStarter()) p.chooseStarter(6);
   if (p.isEgg()) p.dbgHatchAs(4,false);
   p.renameTrainer("DYLAN");
   p.rename("EMBER");

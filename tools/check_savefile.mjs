@@ -62,16 +62,24 @@ ckThrows(() => hexToBytes('ZZ'), 'non-hex', 'non-hex digits are refused');
 
 // ---- the golden fixture, produced by the firmware itself
 const parsed = verifyBackup(golden);
-ck(parsed.blob.length === 2128, `the firmware's own export verifies (${parsed.blob.length} bytes)`);
+ck(parsed.blob.length === 614, `the firmware's own export verifies (${parsed.blob.length} bytes)`);
 ck(parsed.declared === parsed.blob.length,
    'and the declared byte count matches the hex that arrived');
 ck(parsed.commands.at(-1) === 'IMPORT', 'the commit line is last');
 ck(parsed.commands.filter((c) => c === 'IMPORT').length === 1, 'and appears exactly once');
-ck(parsed.fields > 40, `the field count reads back sensibly (${parsed.fields})`);
+ck(parsed.fields === 6, `the field count reads back sensibly (${parsed.fields})`);
 
 const described = describeBackup(parsed.blob);
 console.log(`      label from the blob: dex=${described.dex} age=${described.ageMinutes}`);
-ck(described.dex === 6, 'the label reads the species the fixture was built with (TYRANNOMON)');
+ck(described.dex === 6, 'the label reads the species the fixture was built with (BOTAMON)');
+ck(described.ageMinutes === 29 * 60, 'and its age, from the newer of the two pet records');
+{
+  // A v1.0.0 backup's dex numbers mean other Digimon: no label beats a wrong one.
+  const old = Uint8Array.from(parsed.blob);
+  for (let i = 0; i + 4 <= old.length; i++)
+    if (old[i] === 0x54 && old[i + 1] === 0x4b && old[i + 2] === 0x50 && old[i + 3] === 0x32) old[i + 3] = 0x31;
+  ck(describeBackup(old).dex === undefined, 'a record in the old format is left unlabelled, not misnamed');
+}
 
 // ---- truncation: the case that used to pass
 // A capture that stops early still ends with a plausible commit line. Dropping a
@@ -177,7 +185,7 @@ ckThrows(() => verifyBackup('hello\nIMPORT'), 'unrecognised',
 {
   const dex = JSON.parse(readFileSync(join(root, 'web/dex.json'), 'utf8'));
   const summary = saveSummary(described, dex);
-  ck(summary.includes('TYRANNOMON Lv.30'),
+  ck(summary.includes('BOTAMON Lv.30'),
      `the fixture (EGG 6, LVL 30 on the firmware) is labelled with its species and level: "${summary}"`);
   ck(saveSummary(described, null).includes('dex 6'), 'and without the table it is still a number');
   ck(saveSummary({ dex: -1 }, dex) === 'an egg', 'an egg says so');

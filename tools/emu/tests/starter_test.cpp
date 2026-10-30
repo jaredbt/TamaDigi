@@ -1,9 +1,6 @@
-// First boot: pick a V-Pet version, and its Digi-Egg appears.
-//
-// A version hatches exactly one Baby I, so there is nothing left to choose
-// after the version: the tap on the version finishes the first boot. The mixed
-// pool (ALL) is the one case with a real choice, and it only offers Baby Is
-// that can be drawn -- Ver.3's POYOMON has no sprite yet.
+// First boot: pick one of the In-Training I forms that can be drawn. On public art
+// that is PUNIMON, BOTAMON and POYOMON. A stand-in until phase 2's first egg, which
+// hatches a random one.
 #include "Arduino.h"
 #include "Arduino_GFX_Library.h"
 #include "Preferences.h"
@@ -16,40 +13,44 @@ int FakeSerial::available(){return 0;} String FakeSerial::readStringUntil(char){
 void FakeESP::restart(){exit(0);}
 
 void setup(); void render(); void onTap(int16_t x, int16_t y);
-int16_t starterOf(uint8_t region, uint8_t i);
-uint8_t starterCountShown(uint8_t region);
+int16_t starterOf(uint8_t i);
+uint8_t starterCountShown();
+extern bool gOldSaveReplaced;
 extern Pet pet;
 
 static int bad=0;
 static void ck(bool ok,const char*w){printf("%s  %s\n",ok?"PASS":"FAIL",w); if(!ok)bad++;}
 
-// where renderRegionPick draws row i, and where renderStarterSelect draws row i
-static int regionRowY(int i){ return 108 + i*72 + 30; }
+// where renderStarterSelect draws row i
+static int starterRowY(int i){ return 110 + i*78 + 35; }
 
 int main(){
   setup();
   render();
   ck(pet.awaitingStarter(), "a brand new save asks for a starter");
 
-  // --- each version's single Baby I, pinned
-  const int16_t want[5] = { 1, 18, 35, 54, 71 };
-  for (uint8_t r = 0; r < 5; r++) {
-    char m[64]; snprintf(m,sizeof(m),"%s hatches its Baby I", REGIONS[r].name);
-    ck(REGIONS[r].starterCount == 1 && REGIONS[r].starters[0] == want[r] && regionHatchable(r), m);
+  // --- the three hatchlings with art, pinned
+  const int16_t want[3] = { 5, 6, 7 };
+  ck(starterCountShown() == 3, "three starters are offered");
+  for (uint8_t i = 0; i < 3; i++) {
+    char m[64]; snprintf(m,sizeof(m),"row %u is %s", i, TS_DEX_TBL[want[i]].name);
+    ck(starterOf(i) == want[i], m);
   }
-  ck(REGIONS[REGION_ALL].starterCount == 5, "the mixed pool holds all five Baby Is");
+  ck(starterOf(3) == 0, "and nothing past them");
 
-  // --- drive the real flow through onTap: VER.2, and its egg is there at once
-  onTap(233, regionRowY(1));                  // VER.2
-  ck(pet.region == 1, "tapping a version on the first screen sets the egg version");
-  ck(!pet.awaitingStarter(), "and its single Baby I is chosen without a second screen");
-  ck(pet.eggPeek() == 18, "the waiting Digi-Egg is PUNIMON's");
+  // --- drive the real flow through onTap
+  onTap(233, 60);
+  ck(pet.awaitingStarter(), "a tap above the rows chooses nothing");
+  gOldSaveReplaced = true;
+  onTap(233, starterRowY(1));                 // BOTAMON
+  ck(!pet.awaitingStarter(), "tapping a row chooses it");
+  ck(pet.eggPeek() == 6, "the waiting Digi-Egg is BOTAMON's");
+  ck(!gOldSaveReplaced, "and the old-save notice has done its job");
 
-  // --- and it survives a reload: version is persisted, the flow is not repeated
+  // --- the flow is not repeated on a reload
   {
     Pet again; again.begin();
-    ck(again.region == 1, "the region choice is saved");
-    ck(!again.awaitingStarter(), "and the first boot does not run a second time");
+    ck(!again.awaitingStarter(), "the first boot does not run a second time");
   }
 
   // --- a tap that misses every row must do nothing rather than pick row 0.

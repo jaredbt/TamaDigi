@@ -30,14 +30,10 @@ void checkMemory() {
   Serial0.println("MILESTONE native-psram-allocation-verified");
 }
 
-// The "dexreg" key a pre-checkpoint build wrote was a 151-entry bitmap, 19
-// bytes. Today's dex may be smaller (87 Digimon: the blob is longer than
-// dexReg and only its prefix fits) or larger (the blob is the short one), so
-// the bit that must survive is the highest dex BOTH can name -- derived, never
-// a literal from whichever roster was current when this was written.
+// A save from before the Time Stranger cutover, on real NVS: the legacy keys, a 151-entry
+// Digidex bitmap, and a party and box beside them. saveReplaceOld() has to recognise it
+// and clear all of it, keeping only the settings, before anything reads the namespace.
 constexpr size_t LEGACY_DEX_BYTES = 19;
-constexpr int16_t LEGACY_TOP_DEX =
-    DEX_COUNT < int(LEGACY_DEX_BYTES * 8) ? DEX_COUNT : int16_t(LEGACY_DEX_BYTES * 8);
 
 void seedLegacy() {
   Preferences seed;
@@ -52,14 +48,12 @@ void seedLegacy() {
   require(seed.putUChar("ivhp", 28) > 0, "legacy IV failed");
   require(seed.putString("nick", "NATIVE") > 0, "legacy nickname failed");
   require(seed.putUShort("badg", 5) > 0, "legacy badges failed");
-  uint8_t oldDex[LEGACY_DEX_BYTES] = {0};
-  oldDex[(LEGACY_TOP_DEX - 1) >> 3] |= 1 << ((LEGACY_TOP_DEX - 1) & 7);
-  oldDex[LEGACY_DEX_BYTES - 1] |= 1;
+  uint8_t oldDex[LEGACY_DEX_BYTES];
+  memset(oldDex, 0xFF, sizeof(oldDex));
   require(seed.putBytes("dexreg", oldDex, sizeof(oldDex)) == sizeof(oldDex), "legacy dex failed");
-  // A legacy party (six 30-byte records) and an 18-slot box (48-byte records),
-  // as old builds stored them. The party and box were removed by design (one
-  // partner), so these are keys the loader must step over without touching the
-  // partner; their bytes are deliberately dex-number-shaped.
+  require(seed.putUChar("vol", 3) > 0, "legacy setting failed");
+  // A legacy party (six 30-byte records) and an 18-slot box (48-byte records), as old
+  // builds stored them, with deliberately dex-number-shaped bytes.
   uint8_t oldParty[6 * 30];
   memset(oldParty, 25, sizeof(oldParty));
   require(seed.putBytes("party", oldParty, sizeof(oldParty)) == sizeof(oldParty), "legacy party failed");
@@ -69,13 +63,18 @@ void seedLegacy() {
   seed.end();
 }
 
+// What the probe raises after the old save is gone, and expects to find on every boot.
+constexpr int16_t PARTNER_DEX = 400;   // past 255, on purpose
+constexpr uint16_t PARTNER_SKILL = MOVE_COUNT - 1;
+
 void checkCollection() {
-  require(pet.speciesId == 4 && pet.ageMinutes == 30 * MINUTES_PER_LEVEL,
-          "legacy live creature changed");
+  require(pet.speciesId == PARTNER_DEX && pet.ageMinutes == 30 * MINUTES_PER_LEVEL,
+          "live creature changed");
   require(pet.ivAtk == 31 && pet.ivDef == 20 && pet.ivSpe == 25 && pet.ivHp == 28,
           "live IVs changed");
+  require(pet.moves[0] == PARTNER_SKILL, "16-bit skill id changed");
   require(strcmp(pet.nick, "NATIVE") == 0 && pet.badges == 5, "player or nickname changed");
-  require(pet.isRegistered(LEGACY_TOP_DEX) && pet.isRegistered(4), "legacy dex bits lost");
+  require(pet.isRegistered(PARTNER_DEX), "Digidex bit lost");
   require(pet.saveHealthy() && !pet.savePending(), "native saving unhealthy");
 }
 
@@ -86,25 +85,39 @@ void setup() {
   checkMemory();
   const uint8_t phase = control.getUChar("phase", 0);
   if (phase == 0) seedLegacy();
+  const bool replaced = saveReplaceOld();
+  require(replaced == (phase == 0), "only the seeded old save is replaced");
   pet.begin();
   bag.begin();
+  if (phase == 0) {
+    // Nothing of the old save may have been read into the new game.
+    require(pet.isEgg() && !pet.nick[0] && !pet.badges, "the old save was misread");
+    require(!pet.isRegistered(1) && !pet.isRegistered(100), "the old Digidex was misread");
+    Preferences look;
+    require(look.begin("tamadigi", true), "namespace unavailable");
+    require(!look.isKey("party") && !look.isKey("box") && !look.isKey("dexn"), "the old save was left in NVS");
+    require(look.getUChar("vol", 0) == 3, "a setting did not survive the replacement");
+    look.end();
+    Serial0.println("MILESTONE native-real-nvs-legacy-migration");
+    pet.dbgHatchAs(PARTNER_DEX, false);
+    pet.ageMinutes = 30 * MINUTES_PER_LEVEL;
+    pet.ivAtk = 31; pet.ivDef = 20; pet.ivSpe = 25; pet.ivHp = 28;
+    pet.moves[0] = PARTNER_SKILL;
+    pet.rename("NATIVE");
+    pet.badges = 5;
+    pet.saveNow();
+  }
   checkCollection();
   if (phase == 0) {
-    Serial0.println("MILESTONE native-real-nvs-legacy-migration");
-    pet.winBadge(1, 2, true);
-    require(bag.add(IT_MASTERSCAN, 2) == 2, "inventory reward failed");
+    pet.winBadge(9, true);
+    require(bag.add(IT_LGRECOVERY, 2) == 2, "inventory reward failed");
     pet.saveNow();
-    Preferences poison;
-    require(poison.begin("tamadigi", false), "poison namespace failed");
-    require(poison.putShort("dexn", 1) > 0 && poison.putString("nick", "POISON") > 0 &&
-            poison.putUShort("badg", 0) > 0, "legacy poisoning failed");
-    poison.end();
     require(control.putUChar("phase", 1) > 0, "reboot marker failed");
     Serial0.println("MILESTONE native-checkpoints-written-rebooting");
     Serial0.flush();
     ESP.restart();
   }
-  require(pet.badgeMask(1, true) == (1 << 2) && bag.count(IT_MASTERSCAN) == 2,
+  require(pet.badgeMask(true) == (1 << 9) && bag.count(IT_LGRECOVERY) == 2,
           "native rewards lost across reboot");
     static uint8_t backup[SAVE_TRANSFER_MAX];
   require(saveExport(backup, sizeof(backup)) > 0, "native checkpoint backup unavailable");

@@ -1,10 +1,10 @@
 # TamaDigi: Time Stranger fork
 
-![Firmware](https://img.shields.io/badge/firmware-v1.0.0-8A2BE2) ![Board](https://img.shields.io/badge/board-ESP32--S3%20round%20AMOLED-E7352C) ![Code](https://img.shields.io/badge/code-MIT-blue)
+![Firmware](https://img.shields.io/badge/firmware-v2.0.0-8A2BE2) ![Board](https://img.shields.io/badge/board-ESP32--S3%20round%20AMOLED-E7352C) ![Code](https://img.shields.io/badge/code-MIT-blue)
 
 A custom fork of **TamaDigi**, the **Digimon V-Pet** for the **Waveshare ESP32-S3-Touch-AMOLED-1.75** (a round 466×466 AMOLED with touch, battery and speaker). The goal is to rebuild it around the roster and evolution tree of ***Digimon Story: Time Stranger***.
 
-> **Status (October 2026):** the firmware still plays exactly like TamaDigi 1.0.0: 87 Digimon from the V-Pet versions Ver.1–5, described under [The current firmware](#the-current-firmware-tamadigi-100). The Time Stranger rework is fully designed and its data is collected; building it is next, and no gameplay change has been made yet. The board (the -G version) hasn't arrived, so everything so far has run in the emulator only.
+> **Status (October 2026):** the firmware runs on the Time Stranger data: the roster, the routes, the stats, the skills and the elements, described under [The current firmware](#the-current-firmware). The rest of the rework (Agent Rank, the real boss ladder, the Digidex and more) is still to come, under [Planned](#planned). A public build has art for only 73 of the 469 forms, so those are the ones you meet. Saves from v1.0.0 are not carried forward: the firmware says so and starts a new game.
 >
 > **Non-commercial fan project.** The code is MIT licensed. Digimon, all names and all game art are © Bandai / Bandai Namco / Toei Animation. See [CREDITS.md](CREDITS.md).
 
@@ -37,6 +37,7 @@ joop0810 published TamaDigi as a single commit with no history. This repo puts t
 - **A baseline release, [v1.0.0](https://github.com/jaredbt/TamaDigi/releases/tag/v1.0.0):** joop0810's game as it was, so there is a known-good firmware to flash first and to roll back to. This fork's installer is live at https://jaredbt.github.io/TamaDigi/web/.
 - **Tests that pass:** the firmware tests had failed since the Digimon conversion (a save-migration test still used Pokémon dex numbers). They pass now, and the old-save upgrade test the conversion deleted is back, with a frozen v1.0.0 save that later builds must keep loading.
 - **The Time Stranger data** the rework needs (`tools/data/time-stranger/`): every Digimon's stats, evolution requirements, attribute, elemental weaknesses and skills, plus an audit of what the conversion has to handle.
+- **The cutover, phase 1:** the firmware now runs on that data. One roster with no V-Pet versions, seven raisable stages, Time Stranger's stat growth, routes, skills, elements and statuses, and a new save format.
 
 > **Private builds only.** The models, and every frame rendered from them, are Bandai Namco's assets. `tools/prerender/.gitignore` keeps them out of the repo, and they must never be committed or published. A public build would need other art.
 
@@ -44,129 +45,92 @@ joop0810 published TamaDigi as a single commit with no history. This repo puts t
 
 The decisions, all recorded in [docs/HANDOFF.md](docs/HANDOFF.md):
 
-- **One roster, one partner**: Time Stranger's Digimon with no V-Pet versions, raised one at a time. There are no teams anywhere, so every battle is 1-on-1. The first egg hatches a random In-Training I. Armor, Hybrid and a few forms that need Time Stranger-only mechanics can be met in the wild but not raised.
-- **Time Stranger evolution**: you choose among the branches whose conditions are met. The stage timers become minimums, evolution is always offered and never forced, and de-digivolution is allowed. A Mega+ stage follows Mega.
-- **Stats from Time Stranger**: each Digimon grows from its Time Stranger level-1 stats to its level-99 ones, one level per hour, plus training. HP grows with age only, and each de-digivolution adds 10% to it (up to double), which is how the hardest evolutions are reached. Training bridges to the late evolutions: the IV scales each session's gain (70% to 130%), so no evolution is out of reach because of a bad IV.
-- **Battles**: Time Stranger's attributes and its 11 elements, with each Digimon's own weaknesses. 44 learnable skills plus every Digimon's signature skills, simplified for 1-on-1, and six status effects.
+- **Eggs and the wild**: the first egg hatches a random In-Training I. Armor, Hybrid and a few forms that need Time Stranger-only mechanics can be met in the wild but not raised.
 - **Progress**: a 13-boss ladder of villains from the first two anime seasons (DemiDevimon up to Apocalymon) sets an Agent Rank, with an optional Hard mode; no battling is needed up to Champion. A Digidex by stage fills in as you see, scan (three wild wins or one boss win) and raise Digimon. Fusion (Jogress) with a past partner or a defeated wild Digimon is a stretch goal.
 - **Firmware work**: more frames per action, larger sprite files, the new sad and special-attack slots, the attack animation chosen by skill type, longer battle animation windows, and the new backdrop. socquique's later battery and drawing improvements should be ported too.
 
 Still open: how evolution and the 72-hour farewell are offered, battle timing and balance, and art for a public build.
 
-## The current firmware (TamaDigi 1.0.0)
+## The current firmware
 
-Everything in this section describes the firmware as it is today, inherited unchanged from joop0810's TamaDigi.
+Everything in this section describes the firmware as it is today. The boss ladder, the wild encounters, the eggs and the Digidex are simple stand-ins on the new data until the next phase replaces them.
 
-You raise a Digimon from a **Digi-Egg**. How well you care for and train it, and how many battles it wins, decides **which Digimon it digivolves into**.
+You raise a Digimon from a **Digi-Egg**. How you train it decides **which Digimon it can digivolve into**, and you choose among what is open.
 
 ### Screens
 
 Every image comes straight from the emulator (`bash tools/make_screens.sh`) and shows exactly what the display draws.
 
-| Your Digimon | Digi-Egg | Choose a version |
+| Your Digimon | Digi-Egg | Choose a starter |
 |---|---|---|
-| <img src="docs/screens/main.png" width="220"> | <img src="docs/screens/egg.png" width="220"> | <img src="docs/screens/region.png" width="220"> |
+| <img src="docs/screens/main.png" width="220"> | <img src="docs/screens/egg.png" width="220"> | <img src="docs/screens/starter.png" width="220"> |
 
-| Battle | Choose an attack | Wild Digimon | Explore |
+| Battle | Choose a skill | Wild Digimon | Explore |
 |---|---|---|---|
 | <img src="docs/screens/btlmenu.png" width="200"> | <img src="docs/screens/btlmoves.png" width="200"> | <img src="docs/screens/wild.png" width="200"> | <img src="docs/screens/explore.png" width="200"> |
 
-| Boss ladders | Ver.2 bosses | Victory |
+| Boss ladder | Victory | Digidex |
 |---|---|---|
-| <img src="docs/screens/gympick.png" width="200"> | <img src="docs/screens/gymsj.png" width="200"> | <img src="docs/screens/win.png" width="200"> |
+| <img src="docs/screens/gyms.png" width="200"> | <img src="docs/screens/win.png" width="200"> | <img src="docs/screens/gallery.png" width="200"> |
 
-| Digidex | Ver.1 | Ver.2 |
+| Tamer card | Skills | LAN battle |
 |---|---|---|
-| <img src="docs/screens/dexpick.png" width="200"> | <img src="docs/screens/gallery.png" width="200"> | <img src="docs/screens/gallery2.png" width="200"> |
-
-| Tamer card | Badges | Attacks | LAN battle |
-|---|---|---|---|
-| <img src="docs/screens/player.png" width="200"> | <img src="docs/screens/player2.png" width="200"> | <img src="docs/screens/moves.png" width="200"> | <img src="docs/screens/lanready.png" width="200"> |
+| <img src="docs/screens/player.png" width="200"> | <img src="docs/screens/moves.png" width="200"> | <img src="docs/screens/lanready.png" width="200"> |
 
 ### How it differs from TamaPoke
 
 | | TamaPoke | **TamaDigi** |
 |---|---|---|
-| Growth | Evolution by level, all stats ≥ 40 | **Digivolution** by age; *care* picks the branch |
-| Stages | Basic → Stage 1 → Stage 2 | **Digi-Egg → Baby I → Baby II → Rookie → Champion → Ultimate → Mega** |
-| Types | 18 Pokémon types | **9 elements** + the **attribute triangle** Vaccine > Virus > Data > Vaccine |
-| Regions | Kanto, Johto … | **V-Pet versions**: Ver.1 to Ver.5 |
+| Growth | Evolution by level, all stats ≥ 40 | **Digivolution** you choose among Time Stranger's routes, opened by age and training |
+| Stages | Basic → Stage 1 → Stage 2 | **Digi-Egg → In-Training I → In-Training II → Rookie → Champion → Ultimate → Mega → Mega+** |
+| Types | 18 Pokémon types | **11 elements**, a resistance row per Digimon, and the **attribute triangle** Vaccine > Virus > Data > Vaccine |
 | Catching | Poké Balls, a party and a box | **None**: one partner at a time, and every battle is 1-on-1 |
-| Healing/training | Potions, Protein … | **Recovery disks** (S/M/L), Full Recovery disk, Attack/Defence/Speed chip |
+| Healing/training | Potions, Protein … | **Recovery disks** (S/M/L), ALL CURE, Attack/Defence/Speed chip |
 | Food | Berries, candy | **Meat, fish, mushroom** (every Digimon has a favourite food), **protein** |
-| Gyms | Gym leaders + badges | **Boss ladders** per version + their own badges |
+| Gyms | Gym leaders + badges | A **boss ladder** with its own badges |
 | Shiny | Shiny Pokémon | a rare **colour variant** |
 | Art/music | Nintendo material | coloured Digimon Color sprites; the music, badges, avatars and backgrounds are **original work** |
 
-### Digivolution – how it works
+### One roster
 
-One level equals one hour of real time. When a stage's time is up, the **digivolution button** appears. Tap it to watch the digivolution; "Keep form" postpones it. **Which** Digimon comes out is decided by the first matching branch:
+Time Stranger's **469 forms**, in its Field Guide order, in seven raisable stages: In-Training I, In-Training II, Rookie, Champion, Ultimate, Mega and Mega+. There are no V-Pet versions any more. A form with no art never hatches, evolves or appears, and the public sprites cover **73** of them, starting from the three In-Training I forms Punimon, Botamon and Poyomon.
 
-| Stage | Digivolves from | What decides the branch |
-|---|---|---|
-| Baby I → Baby II | Lv. 2 (1 h) | – |
-| Baby II → Rookie | Lv. 7 (6 h) | **Care mistakes:** 0–2 → the first Rookie, otherwise the second |
-| Rookie → Champion | Lv. 25 (24 h) | **Care mistakes** (0–2 / 3–5 / more) × **training** (≥ 40 / less) |
-| Champion → Ultimate | Lv. 49 (48 h) | **5 battles won** in this stage |
-| Ultimate → Mega | Lv. 61 (60 h) | **15 battles won** in this stage |
+### Raising
 
-- **Care mistake**: a need (food, joy, energy, hygiene) drops to 10 or below (at most one per hour).
-- **Training**: the sum of strength, defence and speed (punching bag, reaction test, ball game, victories, chips).
-- Care mistakes and victories **start counting again after every digivolution**, as on the real V-Pet.
-- A Champion with no victories stays a Champion. It still reaches the end of its life: after 3 days any Digimon from Champion up can **say goodbye**, and a new Digi-Egg takes its place.
-- The **PROGRESS** card (swipe up on the status card) shows care mistakes, training, the hours until digivolution and the victories still missing.
-
-Example, Ver.1 – **Agumon** becomes:
-
-| | Training ≥ 40 | Training < 40 |
-|---|---|---|
-| **0–2 care mistakes** | Greymon | Tyrannomon |
-| **3–5 care mistakes** | Devimon | Meramon |
-| **more** | Numemon | Numemon |
-
-With 5 victories, Greymon, Devimon and Airdramon become **MetalGreymon**; Tyrannomon, Meramon and Seadramon become **Mamemon**; Numemon becomes **Monzaemon**. With 15 more victories these become the Megas **BlitzGreymon**, **BanchoMamemon** and **ShinMonzaemon**.
-
-### The versions
-
-| Version | Digi-Egg | Digimon | Megas |
-|---|---|---|---|
-| **Ver.1** | Botamon | 17 | BlitzGreymon, BanchoMamemon, ShinMonzaemon |
-| **Ver.2** | Punimon | 17 | SkullMammon, CresGarurumon, Ebemon |
-| **Ver.3** | Poyomon | 19 | HiAndromon, Gokumon, BanchoLeomon, **Millenniumon** |
-| **Ver.4** | Yuramon | 17 | Darkdramon, BloomLordmon, Gankoomon |
-| **Ver.5** | Zurumon | 17 | Machinedramon, Raidenmon, Gaioumon |
-| **ALL** | one of the five | mixed | |
-
-That makes **87 Digimon** in all, each with its own coloured art. The trees follow the V-Pets and *Digimon Color*. The branch conditions are adapted to this game's one-level-per-hour pace. It is all in one file: [`tools/digimon_data.py`](tools/digimon_data.py).
-
-**Ver.3 special route:** with 10 victories Sukamon becomes **Chimairamon**, otherwise with 5 it becomes Etemon. With 20 victories Chimairamon becomes **Millenniumon**, with 15 BanchoLeomon.
+- **Stats** grow in a straight line from Time Stranger's level-1 values to its level-99 ones, at one level an hour, scaled by a tenth, plus training. Training goes up to 255 on every stat, whatever the IV: a session pays 70% at IV 0 and 130% at IV 31. ATK training also raises magic attack, DEF training also raises magic defence.
+- **HP** grows with age only. Each de-digivolution multiplies it by a further 10%, up to double.
+- **Digivolution** is yours to choose: the branches whose stat, age and stage-timer conditions are met are offered, and never forced. "Keep form" asks again next level, with the next open branch.
+- **De-digivolution**, from the status card's progress page, goes back to any earlier form in your Digidex. The form then waits out its stage again.
+- **Skills**: four slots. Becoming a form gives its special skills at once and its attachment skills over the hours after. A free slot fills silently, a full set makes an offer, and a skill you drop is gone until you become a form that has it. Skills carry over between forms.
 
 ### Battle
 
-- Turn-based with 4 attacks. Signature attacks come with digivolution (Pepper Breath, Mega Flame, Giga Destroyer …).
-- **Element table** (Fire, Water, Plant, Electric, Wind, Earth, Light, Dark, Neutral) with 2×/½× and no immunities.
-- **Attribute triangle:** Vaccine beats Virus, Virus beats Data, Data beats Vaccine (×1.3 or ×0.8). Babies are *Free* and neutral.
-- **One partner, 1-on-1:** your Digimon is the only one you have. There is no party or box, and every fight is your partner against one opponent.
-- **Explore:** wild Digimon matched to your level (level 10 → Rookies, from level 25 Champions too). Wins can drop items.
-- **Boss ladders:** per version, 8 areas, 4 elite bosses and a champion, on Easy and Hard. Each boss fights alone, with the strongest Digimon of its old team. Victories train your Digimon and count toward digivolution.
+- Turn-based, 1-on-1, your partner against one opponent. Four skills plus a basic attack that is always there.
+- **Elements**: Time Stranger's eleven. Each Digimon has its own row of how much each one hurts it, from nothing to double. A form's own element, the one its signature attack uses, gets a ×1.5 bonus.
+- **Attribute triangle:** Vaccine beats Virus, Virus beats Data, Data beats Vaccine (×1.3 or ×0.8); the rest are neutral.
+- **Learnable skills** grow with the partner's level: tier I below 25, II at 25-60, III from 61. Multi-hit skills always land their full count of hits.
+- **Six statuses**: Injury (chip damage and halved physical attack), Crystallization (no actions until it wears off, or ALL CURE), Poison, Paralysis, Sleep and Confusion. No element is immune to any of them.
+- **Explore:** wild Digimon matched to your level. Wins can drop items. Nothing is caught.
+- **The boss ladder:** one ladder of 13, on Easy and Hard, each boss a single Digimon. Victories train your Digimon.
+- **The bag:** recovery disks, ALL CURE and stat chips.
 - **LAN battle** between two devices over ESP-NOW.
 
 ### Sprites
 
-The Digimon are the **coloured pixel sprites from *Digimon Color*** (Bandai), as collected by the [furudbat/wayland-vpets](https://github.com/furudbat/wayland-vpets) project (`assets/dmc/`). Each Digimon there has a sheet of 9–13 images: standing, happy, angry, eating, sleeping, refusing, sad, defeated and attacking. The animations (walking, eating, sleeping, hit, attack, nodding) are built from those. A light rim keeps the figure visible against the dark sky at night too. The rare **colour variant** is the same art with a shifted hue.
+The Digimon are the **coloured pixel sprites from *Digimon Color*** (Bandai), as collected by the [furudbat/wayland-vpets](https://github.com/furudbat/wayland-vpets) project (`assets/dmc/`), mapped onto their Time Stranger forms by name in `tools/data/art/digimon_color.tsv`.
 
 ```bash
 python3 tools/pack_sprites.py   # fetches the source images (once), produces tools/sdcard/mons/*.bin + noart.h
 python3 tools/make_thumbs.py    # Digidex thumbnails
-python3 tools/pack_bundle.py    # web/sprites-<version>.pak for the installer
+python3 tools/pack_bundle.py    # web/sprites-digimon.pak for the installer
 ```
 
-The finished packs are already in `web/sprites-ver1.pak` … `ver5.pak`. You only need to run these commands if you add Digimon or change the art. A Digimon without art goes into `noart.h`; it then never hatches and is never a digivolution target.
+The finished pack is already at `web/sprites-digimon.pak`. You only need to run these commands if you add Digimon or change the art.
 
 ### How to play
 
 - **Bottom**: 🍖 Feed (meat/fish/mushroom or protein) · 🌙 Light/sleep · 🫧 Bath · 🏋 Training (punching bag → strength, reaction → speed, ball → defence, memory game → joy)
-- **Swipe**: horizontally through `TAMER · PARTY · [DIGIMON] · EXPLORE · BOSSES · DIGIDEX`, up = status card, down = back, drag at the edge = turn pages
+- **Swipe**: horizontally through `TAMER · [DIGIMON] · EXPLORE · BOSSES · DIGIDEX`, up = status card, down = back, drag at the edge = turn pages
 - **Tap the name** = menu (bag, settings, say goodbye); **tap the Digimon** = pet it; **hold for 3 s** = release it
 - **At night** (0–6 h, screen off) your Digimon falls asleep on its own so it does not run away overnight. This needs the time to be set in the settings.
 - **PWR short press** = screen on/off, **long press (4 s)** = power off (the clock keeps running, so your Digimon ages while switched off too)
@@ -184,7 +148,7 @@ The finished packs are already in `web/sprites-ver1.pak` … `ver5.pak`. You onl
 
 1. Open **https://jaredbt.github.io/TamaDigi/web/** in **Chrome or Edge** (Firefox and Safari cannot do Web Serial).
 2. Plug the board in over USB-C, click **Install firmware** and choose the port.
-3. Further down, send the **version packs** (sprites) to the SD card: Ver.1–Ver.5, one at a time or all of them.
+3. Further down, send the **sprite pack** to the SD card.
 4. Done. To change the language on the device: tap the name → SETTINGS → tap the language row (until it shows the one you want).
 
 Every push to `main` rebuilds it: the Pages workflow compiles the firmware in the cloud and publishes the installer. The page offers "Current Pages build" (the latest `main`) plus every GitHub Release, starting with v1.0.0, the fork's baseline.
@@ -236,7 +200,7 @@ TAMA_TEST_BACKEND=host bash tools/emu/tests/run.sh digivolve # just one
 
 The runner needs `node`, `python3` and `arduino-cli` with the ESP32 core even for the host backend, because it compiles the real firmware first. The native backend also needs the `esp-emu` emulator (`TAMA_ESP_EMULATOR`).
 
-49 suites, including `digivolve_test` (every Ver.1 branch, victories, the stage clock, Megas in every version, no branch to a Digimon without a sprite), `upgrade_test` (a frozen v1.0.0 save and older save layouts must still load), battle, saving through a power cut, the web installer and touch. GitHub Actions runs them on every push and also compiles the real ESP32 firmware.
+49 suites, including `digivolve_test` (the routes, the stage timers, de-digivolving, and the design's worked examples), `upgrade_test` (a frozen v1.0.0 save and older save layouts are recognised and replaced, and never misread), battle, saving through a power cut, the web installer and touch. GitHub Actions runs them on every push and also compiles the real ESP32 firmware.
 
 ## Serial console (115200)
 

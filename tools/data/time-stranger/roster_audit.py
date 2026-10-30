@@ -44,7 +44,8 @@ BOSSES = [('DemiDevimon', 'Rookie'), ('Ogremon', 'Champion'), ('Unimon', 'Champi
           ('Mummymon', 'Ultimate'), ('Arukenimon', 'Ultimate'), ('MetalSeadramon', 'Mega'),
           ('MetalEtemon', 'Mega'), ('MaloMyotismon', 'Mega'), ('Diaboromon', 'Mega'),
           ('Apocalymon', 'Mega +')]
-# Digimon Color sprite names (tools/digimon_data.py) whose Time Stranger name differs.
+# Digimon Color sprite names whose Time Stranger name differs. The mapping these produced
+# is kept in tools/data/art/digimon_color.tsv.
 ART_ALIASES = {'Metal Greymon (Virus)': 'MetalGreymon (Blue)', 'Chimairamon': 'Kimeramon',
                'Gaioumon': 'Gaiomon', 'Mugendramon': 'Machinedramon', 'Cyclomon': 'Cyclonemon',
                'Millenniumon': 'Millenniummon', 'Piyomon': 'Biyomon', 'Yukidarumon': 'Frigimon',
@@ -190,18 +191,13 @@ def main():
     for d, v in clash.items():
         print(f'    clash {d}: {v}')
 
-    sys.path.insert(0, os.path.join(ROOT, 'tools'))
-    import digimon_data as D
-    art, missing = {}, []
-    for row in D.ROSTER:
-        sprite, disp = row[2], row[3]
-        f = kept.get(norm(ART_ALIASES.get(sprite, sprite))) or kept.get(norm(disp))
-        if f:
-            art[f['name']] = sprite
-        else:
-            missing.append(sprite)
-    print(f'\npublic art: {len(art)} of the 87 Digimon Color sprites map onto a kept Time Stranger form; '
-          f'{len(missing)} do not: {missing}')
+    art = {}
+    path = os.path.join(ROOT, 'tools', 'data', 'art', 'digimon_color.tsv')
+    for row in csv.DictReader((l for l in open(path) if not l.startswith('#')), delimiter='\t'):
+        f = kept.get(norm(row['form']))
+        assert f, row
+        art[f['name']] = row['sheet']
+    print(f'\npublic art: {len(art)} Digimon Color sheets map onto a kept Time Stranger form')
     aadj = defaultdict(set)
     for a, b, _ in edges:
         if a['name'] in art and b['name'] in art:

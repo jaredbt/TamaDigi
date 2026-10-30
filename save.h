@@ -27,8 +27,8 @@
 //
 // Raised from 4096 when the party and box became one atomic record, then from
 // 8192 when the box doubled to 36 slots. The party and box are gone, but it
-// stays: saveImport() still has to take a backup made while they existed.
-// saveExport() returns 0 rather than
+// stays: saveImport() still has to take a backup made while they existed, so that
+// saveReplaceOld() can say what it was. saveExport() returns 0 rather than
 // truncating, so outgrowing this turns EXPORT into "EXPORT FAIL" -- the backup
 // simply stops existing. save_test prints the margin and fails below a quarter
 // spare.
@@ -98,3 +98,24 @@ void resetComplete();   // acknowledge it, once the wipe has actually happened
 // clear of an already-empty store on the next boot, which is why the intent is
 // cleared second and not first.
 bool resetRecover();
+
+// ---------------------------------------------------------------------------
+// A SAVE FROM BEFORE THE TIME STRANGER CUTOVER IS RECOGNISED AND REPLACED.
+//
+// Dex numbers and skill ids are positional in saved data, and they all changed, so
+// a v1.0.0 save cannot be carried forward (decided in docs/HANDOFF.md, "v1.0.0
+// saves"; the installer backs the save up first). It must never be misread either.
+//
+// Checks what is THERE rather than looking for a marker: a marker that is merely
+// absent would wipe every new save made without one. The old checkpoints' magics
+// ("TKP1", "TKY1") and the legacy creature keys are what only an old save has.
+//
+// Call right after resetRecover() in setup(), before pet.begin() and bag.begin():
+// the bag reads the same namespace and would write an old one straight back.
+//
+// Empties the game namespace and keeps the settings (language, sound, volume,
+// brightness): they mean what they always did, and a player who has to start over
+// should not also have to find their language again. Returns true if it replaced
+// a save, so the panel can say so. A restored v1.0.0 backup comes through here too,
+// on the restart that follows IMPORT.
+bool saveReplaceOld();

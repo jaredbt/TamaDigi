@@ -1,44 +1,29 @@
-// Does an OLD save survive an update?
+// A save from before the Time Stranger cutover is RECOGNISED AND REPLACED.
 //
-// This is the question every existing player asks, and the answer has to be
-// proven rather than asserted: people have weeks of real time in these saves,
-// and "install without erase" is the path the web installer recommends.
+// THE DECISION (docs/HANDOFF.md, "v1.0.0 saves"): v1.0.0 saves are not carried
+// forward. Dex numbers, skill ids and item keys are positional in saved data and all
+// of them changed with the roster, so an old Digidex bit or move index would name
+// something else entirely. The firmware recognises one, says so, and starts a new
+// game; the web installer backs the save up first. This test checks exactly that:
+// detected, replaced cleanly, and NEVER misread.
 //
-// Two kinds of old save are covered:
+// V1_0_0_SAVE below is the backup blob (saveExport()) of a save written by the v1.0.0
+// firmware, the first release of this fork, generated from the v1.0.0 sources and
+// frozen here. Never regenerate it to make the test pass: it is the only copy of what
+// v1.0.0 actually wrote.
 //
-//  1. A REAL v1.0.0 save. V1_0_0_SAVE below is the backup blob (saveExport())
-//     of a save written by the v1.0.0 firmware, the first release of this fork,
-//     generated from the v1.0.0 sources and frozen here. A later build must
-//     import and load it unchanged. When a release changes the save format --
-//     the Time Stranger roster will renumber the Digidex and the move table --
-//     this test is what forces a migration for it, or an explicit decision,
-//     written down here, that v1.0.0 saves are no longer carried forward. Never
-//     regenerate the blob to make the test pass: that throws away the only copy
-//     of what v1.0.0 actually wrote.
-//
-//  2. The LEGACY shapes the loaders still migrate: a short Digidex bitmap,
-//     none of the keys added since (region, per-version badges, movesets), a v1
-//     player checkpoint, and -- the other direction -- a save from a build with
-//     a BIGGER dex, which is what rolling back through the installer does once
-//     the roster grows. These came from TamaPoke, where they guarded real saves;
-//     the Digimon conversion deleted the test rather than renumbering it, so
-//     every dex number here is derived from DEX_COUNT, never a literal from
-//     whichever roster was current when it was written.
-//
-// The party and box were removed by design: one partner, no teams. A save that
-// still holds them (the legacy "party"/"box" blobs, or the pbA/pbB checkpoint)
-// must load without crashing and with them ignored, never misread into the
-// partner; the checks that used to pin their contents now pin exactly that.
+// Every other old shape is here too: the legacy keys a pre-checkpoint save was made
+// of, either old checkpoint on its own. And the other direction, which matters as
+// much: a save made by THIS build is never taken for an old one. Detection looks at
+// what is there, so a marker that merely went missing cannot wipe anybody's game.
 #include "Arduino.h"
 #include "Preferences.h"
 #include "pet.h"
 #include "save.h"
 #include "inventory.h"
+#include "test_nvs.h"
 #include <cstdio>
 #include <cstring>
-#include <cstddef>
-#include <vector>
-#include <initializer_list>
 #ifndef TAMA_NATIVE_TEST
 uint32_t g_seed=13; FakeSerial Serial; FakeESP ESP; FakeWire Wire;
 volatile int g_touchX=0,g_touchY=0; volatile bool g_touchDown=false; bool wasPressed=false;
@@ -46,24 +31,9 @@ uint32_t millis(){return 0;} void FakeESP::restart(){exit(0);}
 int FakeSerial::available(){return 0;} String FakeSerial::readStringUntil(char){return String("");}
 void sfxPlay(uint8_t){}
 #endif
+
 static int bad=0;
 static void ck(bool ok,const char*w){printf("%s  %s\n",ok?"PASS":"FAIL",w); if(!ok)bad++;}
-
-// The Digidex bitmap an older, smaller-dex build stored: shorter than today's.
-constexpr size_t OLD_DEX_BYTES = (DEX_COUNT + 7) / 8 > 4 ? (DEX_COUNT + 7) / 8 - 4 : 1;
-constexpr int OLD_TOP_DEX = OLD_DEX_BYTES * 8;
-
-// A party record as the oldest builds stored it, before moves[] was appended.
-// Only written now, as a legacy key a loader must step over.
-struct OldPartyMon {
-  int16_t dex;
-  uint16_t level;
-  uint16_t medals;
-  uint8_t ivAtk, ivDef, ivSpe, ivHp;
-  uint8_t trAtk, trDef, trSpe;
-  uint8_t variant;
-  char nick[12];
-};
 
 // ---------------------------------------------------------------------------
 // The v1.0.0 save, as saveExport() wrote it. What it holds (and what the checks
@@ -363,306 +333,201 @@ static const uint8_t V1_0_0_SAVE[4620] = {
   0x00, 0x00, 0x00, 0x03, 0x00, 0x02, 0x01, 0x00, 0x00, 0x00, 0x46, 0x48,
 };
 
-static bool registeredExactly(const Pet &p, std::initializer_list<int> want) {
-  for (int d = 1; d <= DEX_COUNT; d++) {
-    bool expected = false;
-    for (int w : want) if (w == d) expected = true;
-    if (p.isRegistered(d) != expected) return false;
-  }
-  return true;
+static void wipeStore() {
+  Preferences p;
+  p.begin("tamadigi", false);
+  p.clear();
+  p.end();
 }
 
+// What a brand new game looks like, wherever a save was replaced from.
+static void expectNewGame(Pet &pet, const char *what) {
+  char m[96];
+  snprintf(m, sizeof(m), "%s: the player is on a new game", what);
+  ck(pet.isEgg() && pet.awaitingStarter(), m);
+  int registered = 0;
+  for (int d = 1; d <= DEX_COUNT; d++) if (pet.isRegistered(d)) registered++;
+  snprintf(m, sizeof(m), "%s: with an empty Digidex", what);
+  ck(registered == 0, m);
+  snprintf(m, sizeof(m), "%s: no badges, no name, no nickname", what);
+  ck(pet.badges == 0 && pet.badgesHard == 0 && !pet.trainerName[0] && !pet.nick[0], m);
+  snprintf(m, sizeof(m), "%s: nothing of the old creature's", what);
+  ck(pet.ageMinutes == 0 && pet.trAtk == 0 && pet.moveCount() == 0 && pet.totalMedals == 0 && pet.streak == 0, m);
+}
+
+// The save v1.0.0 wrote: a level 52 colour-variant METALGREYMON named BLAZE, tamer
+// JARED, a party, a box, badges on three ladders, nine Digidex entries, a bag.
 static void checkV1Save() {
+  wipeStore();
+  // saveImport() takes it: the file is sound, and a restored v1.0.0 backup has to reach
+  // this code rather than be refused with no explanation.
+  ck(saveImport(V1_0_0_SAVE, sizeof(V1_0_0_SAVE)), "the v1.0.0 backup is a sound file");
   {
-    Pet wipe; wipe.begin(); wipe.factoryReset();
+    Preferences look;
+    look.begin("tamadigi", true);
+    ck(look.isKey("petA") || look.isKey("petB"), "so its old checkpoints are in NVS");
+    look.end();
   }
-  ck(saveImport(V1_0_0_SAVE, sizeof(V1_0_0_SAVE)), "the v1.0.0 save imports");
+
+  ck(saveReplaceOld(), "the v1.0.0 save is recognised");
+  ck(!saveReplaceOld(), "once: what it leaves behind is not an old save");
+  {
+    Preferences look;
+    look.begin("tamadigi", true);
+    ck(!look.isKey("petA") && !look.isKey("petB") && !look.isKey("plyA") && !look.isKey("plyB") &&
+       !look.isKey("pbA") && !look.isKey("pbB") && !look.isKey("bag") && !look.isKey("init"),
+       "and nothing of the old game is left in NVS to be misread later");
+    look.end();
+  }
+
   Pet pet; Inventory inv;
   pet.begin(); inv.begin();
+  expectNewGame(pet, "v1.0.0");
+  ck(inv.count(IT_SMRECOVERY) == 5 && inv.count(IT_ALLCURE) == 1 && inv.distinctCount() == 2,
+     "and a fresh bag, not the old one: its keys meant other items");
+}
 
-  ck(pet.speciesId == 12 && pet.variant, "the creature is still a colour-variant METALGREYMON");
-  ck(pet.level() == 52, "at level 52");
-  ck(pet.ivAtk == 29 && pet.ivDef == 6 && pet.ivSpe == 17 && pet.ivHp == 23, "with its IVs");
-  ck(pet.trAtk == 88 && pet.trDef == 40 && pet.trSpe == 57, "and its training");
-  // Move IDs index MOVE_TBL. If the move table is renumbered, these must be
-  // migrated, not left pointing at whatever now sits at 28 and 5.
-  ck(pet.moves[0] == 28 && pet.moves[1] == 5 && pet.moves[2] == 0 && pet.moves[3] == 0,
-     "and the attacks it knew");
-  ck(!strcmp(pet.nick, "BLAZE") && !strcmp(pet.trainerName, "JARED"), "both names survive");
-  ck(pet.avatar == 5, "and the tamer avatar");
-  ck(pet.badges == 0x00BF && pet.badgesHard == 0x0005, "the Ver.1 badges, both ladders");
-  ck(pet.badgeMask(1, false) == 0x000F && pet.badgeMask(4, false) == 0x0081,
-     "and the badges of the other versions");
-  ck(pet.streak == 9 && pet.bestStreak == 14 && pet.totalMedals == 23, "streak and medals");
-  ck(pet.gameHi == 31 && pet.strHi == 47 && pet.spdHi == 12 && pet.memoHi == 6,
-     "all four minigame records");
-  ck(pet.bond == 64 && pet.careMistakes == 1 && pet.weight == 48, "bond, care mistakes and weight");
-  // Dex numbers are positional in saved data. A renumbered roster must map
-  // these, or a v1.0.0 Digidex silently turns into a list of other Digimon.
-  ck(registeredExactly(pet, {1, 2, 3, 5, 12, 18, 35, 71, 87}), "the Digidex holds exactly what it did");
-  ck(pet.isVariantRegistered(12), "including the colour-variant entry");
+// Reading the old records without the check in front of them must not misread them
+// either: a path that forgets to ask gets an egg, never a METALGREYMON made of two
+// tables. The record magics, not the check, are what guarantee this.
+static void checkOldRecordsAreNeverRead() {
+  wipeStore();
+  ck(saveImport(V1_0_0_SAVE, sizeof(V1_0_0_SAVE)), "the v1.0.0 backup imports again");
+  Pet pet;
+  pet.begin();
+  ck(pet.isEgg(), "with the check skipped, the old creature still does not load");
+  ck(pet.nick[0] == 0 && pet.trAtk == 0 && pet.badges == 0 && !pet.trainerName[0],
+     "and nothing of it is read into the new one");
+}
 
-  // The blob still carries the v1.0.0 party (four members) and box (five) in its
-  // pbA/pbB checkpoint. The party and box were REMOVED BY DESIGN -- one partner,
-  // no teams -- so they are not carried forward: the import skips the record,
-  // nothing writes it back, and the partner checked above loads intact. Spotting
-  // a v1.0.0 save and starting a new game instead (the decision recorded in
-  // docs/HANDOFF.md) comes with the Time Stranger data cutover, which rewrites
-  // this section; until then these are the checks that hold.
+// The settings mean what they always did, and a player starting over should not also
+// have to find their language again.
+static void checkSettingsKept() {
+  wipeStore();
+  ck(saveImport(V1_0_0_SAVE, sizeof(V1_0_0_SAVE)), "the v1.0.0 backup imports once more");
   {
-    Preferences p; p.begin("tamadigi", true);
-    ck(!p.isKey("pbA") && !p.isKey("pbB"),
-       "the v1.0.0 party and box are ignored, not written back");
+    Preferences p;
+    p.begin("tamadigi", false);
+    p.putUChar("lang", 3);
+    p.putBool("snd", false);
+    p.putUChar("vol", 2);
+    p.putUChar("brt", 4);
     p.end();
   }
-  ck(pet.speciesId == 12 && pet.level() == 52 && !strcmp(pet.nick, "BLAZE"),
-     "and ignoring them leaves the partner intact");
+  ck(saveReplaceOld(), "a save with settings in it is replaced too");
+  Preferences p;
+  p.begin("tamadigi", true);
+  ck(p.getUChar("lang", 0) == 3 && !p.getBool("snd", true) && p.getUChar("vol", 0) == 2 &&
+     p.getUChar("brt", 0) == 4, "and the language, sound and brightness survive it");
+  p.end();
+}
 
-  ck(inv.count(IT_SCANCHIP) == 12 && inv.count(IT_LGRECOVERY) == 2 && inv.count(IT_ALLCURE) == 1 &&
-     inv.distinctCount() == 4, "the bag survives");
+// Every other shape an old save comes in, one at a time.
+static void checkOtherOldShapes() {
+  // a save from before the checkpoints existed: nothing but legacy keys
+  {
+    wipeStore();
+    Preferences p;
+    p.begin("tamadigi", false);
+    p.putBool("init", true);
+    p.putShort("dexn", 12);
+    p.putUInt("age", 3000);
+    p.putString("nick", "OLD");
+    uint8_t dex[19] = { 0xFF };
+    p.putBytes("dexreg", dex, sizeof(dex));
+    p.end();
+    ck(saveReplaceOld(), "a pre-checkpoint save is recognised by its legacy keys");
+    Pet pet; pet.begin();
+    expectNewGame(pet, "legacy keys");
+  }
+  // older still: the flash-index key
+  {
+    wipeStore();
+    Preferences p;
+    p.begin("tamadigi", false);
+    p.putBool("init", true);
+    p.putChar("spec", 3);
+    p.end();
+    ck(saveReplaceOld(), "the oldest save of all is recognised too");
+  }
+  // one slot of a pair is enough: the other may never have been written
+  for (const char *key : { "petA", "petB", "plyA", "plyB" }) {
+    wipeStore();
+    const bool isPet = key[0] == 'p' && key[1] == 'e';
+    uint8_t rec[32] = { 'T', 'K', (uint8_t)(isPet ? 'P' : 'Y'), '1' };
+    Preferences p;
+    p.begin("tamadigi", false);
+    p.putBool("init", true);
+    p.putBytes(key, rec, sizeof(rec));
+    p.end();
+    char m[64];
+    snprintf(m, sizeof(m), "an old record in %s alone is enough", key);
+    ck(saveReplaceOld(), m);
+  }
+}
+
+// THE OTHER DIRECTION. A check that wiped the wrong save would be the worst bug here:
+// it would pass every test above.
+static void checkNewSavesAreLeftAlone() {
+  wipeStore();
+  ck(!saveReplaceOld(), "an empty store is not an old save");
+  uint16_t egg;
+  {
+    Pet pet; pet.begin();
+    pet.chooseStarter(6);
+    egg = pet.eggPeek();
+  }
+  ck(!saveReplaceOld(), "a new install is not replaced");
+  {
+    Pet pet; pet.begin();
+    ck(pet.isEgg() && pet.eggPeek() == egg, "and its egg is the same egg on the next boot");
+    ck(!pet.awaitingStarter(), "with the starter it was given");
+    pet.dbgHatchAs(89, true);
+    pet.ageMinutes = 3000;
+    pet.formAgeMin = 1000;
+    pet.trAtk = 200;
+    pet.deDigiCount = 3;
+    pet.evoHold = 77;
+    pet.moves[3] = MOVE_COUNT - 1;
+    pet.rename("BLAZE");
+    pet.renameTrainer("JARED");
+    pet.winBadge(12, false);
+    pet.saveNow();
+  }
+  ck(!saveReplaceOld(), "a real save made by this build is not replaced");
+  ck(!saveReplaceOld(), "however many boots there are");
+  Pet pet; pet.begin();
+  ck(pet.speciesId == 89 && pet.variant && pet.level() == 51 && pet.trAtk == 200,
+     "and it loads as it was");
+  ck(pet.formAgeMin == 1000 && pet.deDigiCount == 3 && pet.evoHold == 77,
+     "with the new fields");
+  ck(pet.moves[3] == MOVE_COUNT - 1, "a 16-bit skill id");
+  ck(!strcmp(pet.nick, "BLAZE") && !strcmp(pet.trainerName, "JARED") && pet.hasBadge(12, false),
+     "its names and its badges");
+  ck(pet.isRegistered(89) && pet.isVariantRegistered(89), "and the Digidex, past the first 87 bits");
+  // A record of ours that went bad is a lost record, not an old one.
+  {
+    Preferences p;
+    p.begin("tamadigi", false);
+    uint8_t junk[64];
+    memset(junk, 0x5A, sizeof(junk));
+    p.putBytes("petA", junk, sizeof(junk));
+    p.putBytes("petB", junk, sizeof(junk));
+    p.end();
+  }
+  ck(!saveReplaceOld(), "a corrupt record is not mistaken for a v1.0.0 one");
+  Pet lost; lost.begin();
+  ck(lost.isEgg() && !strcmp(lost.trainerName, "JARED"),
+     "losing both pet records costs the creature, never the player");
+  ck(lost.eggPeek() >= 1 && lost.eggPeek() <= DEX_COUNT, "and the new egg is a real one");
 }
 
 int main(){
   checkV1Save();
-
-  // ---- the legacy shapes
-  {
-    Pet wipe; wipe.begin(); wipe.factoryReset();
-  }
-
-  // --- write a save the way an older build would have
-  {
-    Preferences p;
-    p.begin("tamadigi", false);
-    p.clear();
-    p.putBool("init", true);
-    p.putUChar("full", 71); p.putUChar("joy", 63); p.putUChar("ene", 55);
-    p.putUChar("hyg", 88);
-    p.putShort("dexn", 12);                 // a METALGREYMON
-    p.putUInt("age", 39UL * MINUTES_PER_LEVEL);   // level() is 1 + age/rate
-    p.putUChar("ivat", 27); p.putUChar("ivdf", 14);
-    p.putUChar("ivsp", 30); p.putUChar("ivhp", 9);
-    p.putUChar("tatk", 55); p.putUChar("tdef", 12); p.putUChar("tspe", 61);
-    p.putUShort("strk", 9); p.putUShort("bstrk", 14);
-    p.putUShort("tmedal", 23);
-    p.putUShort("badg", 0x001F);             // five Ver.1 badges, easy
-    p.putUShort("badh", 0x0003);
-    p.putString("nick", "BLAZE");
-    p.putUChar("bond", 64);
-
-    // the Digidex as a SHORTER bitmap than today's, as a build with a smaller
-    // dex would have stored it; byte b bit k is dex b*8 + k + 1
-    uint8_t oldDex[OLD_DEX_BYTES] = {0};
-    oldDex[0] = 0xFF; oldDex[1] = 0xFF; oldDex[3] = 0x40;          // 1-16, 31
-    oldDex[(OLD_TOP_DEX - 1) >> 3] |= 1 << ((OLD_TOP_DEX - 1) & 7);
-    p.putBytes("dexreg", oldDex, sizeof(oldDex));
-    uint8_t oldVariant[OLD_DEX_BYTES] = {0};
-    oldVariant[3] = 0x08;                                           // dex 28
-    p.putBytes("dexsh", oldVariant, sizeof(oldVariant));
-
-    // a party in the OLD record layout, no moves[]. The party is gone, so this is
-    // a key the loader must step over without letting it touch the partner.
-    OldPartyMon op[6];                       // the six party slots it had
-    memset(op, 0, sizeof(op));
-    for (int i = 0; i < 4; i++) {
-      op[i].dex = (int16_t)(20 + i * 11);
-      op[i].level = (uint16_t)(44 + i);
-      op[i].ivAtk = op[i].ivDef = op[i].ivSpe = op[i].ivHp = (uint8_t)(15 + i);
-      op[i].trAtk = 30; op[i].variant = (i == 1); op[i].medals = (uint16_t)(3 + i);
-      snprintf(op[i].nick, sizeof(op[i].nick), "OLD%d", i);
-    }
-    p.putBytes("party", op, sizeof(op));
-    p.end();
-    printf("      wrote an old save: %zu-byte party records, %zu-byte dex\n",
-           sizeof(OldPartyMon), OLD_DEX_BYTES);
-  }
-
-  // --- now load it with the CURRENT code, as an update would
-  Pet pet;
-  pet.begin();
-
-  ck(pet.speciesId == 12, "the creature survives the update");
-  ck(pet.level() == 40, "at the level it was");
-  ck(pet.ivAtk == 27 && pet.ivDef == 14 && pet.ivSpe == 30 && pet.ivHp == 9,
-     "with its IVs intact");
-  ck(pet.trAtk == 55 && pet.trDef == 12 && pet.trSpe == 61, "and its training");
-  ck(!strcmp(pet.nick, "BLAZE"), "the nickname survives");
-  ck(pet.streak == 9 && pet.bestStreak == 14 && pet.totalMedals == 23,
-     "streak and medals survive");
-  ck(pet.bond == 64, "and the bond");
-
-  // badges: the old key holds Ver.1 and must still read as Ver.1
-  ck(pet.badgeMask(0, false) == 0x001F, "the Ver.1 badges are still there");
-  ck(pet.badgeMask(0, true) == 0x0003, "including the hard-mode ones");
-  ck(pet.badgeMask(1, false) == 0 && pet.badgeMask(2, false) == 0,
-     "and the other versions start empty rather than inheriting them");
-
-  // the Digidex: the short blob must land in the front of today's array
-  ck(pet.isRegistered(1) && pet.isRegistered(8) && pet.isRegistered(16) && pet.isRegistered(31),
-     "the old Digidex bits keep their meaning");
-  ck(pet.isRegistered(OLD_TOP_DEX), "including the last Digimon the old bitmap could name");
-  ck(pet.isVariantRegistered(28), "and the colour-variant registrations");
-  bool stray = false;
-  for (int d = OLD_TOP_DEX + 1; d <= DEX_COUNT; d++) if (pet.isRegistered(d)) stray = true;
-  ck(!stray, "and nothing past the old bitmap is falsely registered");
-
-  // The old party blob is ignored: the partner above loaded from its own keys,
-  // and nothing re-saves the party.
-  {
-    Preferences p; p.begin("tamadigi", true);
-    ck(!p.isKey("pbA") && !p.isKey("pbB"), "an old party blob is not migrated into a new record");
-    p.end();
-  }
-
-  // the new settings take their defaults rather than garbage
-  ck(pet.region < REGION_COUNT, "the egg region defaults sanely");
-
-  // --- and the whole thing can then be backed up and restored
-  {
-   static uint8_t buf[SAVE_TRANSFER_MAX];
-    size_t n = saveExport(buf, sizeof(buf));
-    ck(n > 0, "an upgraded save exports");
-    pet.factoryReset();
-    ck(saveImport(buf, n), "and imports again");
-    Pet p2; p2.begin();
-    ck(p2.speciesId == 12 && !strcmp(p2.nick, "BLAZE"),
-       "with the upgraded contents intact");
-  }
-
-  // ---- DOWNGRADE: a save written by a build with a BIGGER dex
-  //
-  // Every migration above tests GROWTH, which is the safe direction: getBytes
-  // copies the shorter stored blob into the front of the bigger array and the
-  // rest keeps its zero initialiser. Shrinking is the dangerous one and was
-  // never tested, because the emulator's getBytes used to truncate. Hardware
-  // does not -- Preferences::getBytes reads the stored length first and returns
-  // 0 WITHOUT COPYING if it exceeds the caller's buffer:
-  //
-  //     if (len > maxLen) { log_e("not enough space in buffer"); return 0; }
-  //
-  // So flashing a build with a smaller DEX_COUNT over a newer save leaves
-  // dexReg, dexVariantReg, the badge arrays and eggByRegion ENTIRELY ZERO: the
-  // Digidex, every badge past Ver.1 and the egg memory, gone. The creature
-  // survives, because it is all scalars. That is what "it rolled my game back"
-  // looks like from the player's side.
-  {
-    Preferences pr;
-    pr.begin("tamadigi", false);
-    // Pet::load() now persists a checkpoint the moment it migrates from legacy
-    // keys (rather than waiting for the next incidental save), so the round
-    // trip two blocks up already left a valid plyA/plyB in this store. This
-    // fixture means to be a save that has NEVER been through this build's
-    // checkpoint at all -- only ever a LATER build's bigger dex/badges as raw
-    // legacy keys -- so the lingering player checkpoint has to go first, or
-    // q.begin() below would just read that instead of the fixture.
-    pr.remove("plyA");
-    pr.remove("plyB");
-    // a dex bitmap from a build whose DEX_COUNT was larger than ours
-    std::vector<uint8_t> big(sizeof(((Pet*)nullptr)->dexReg) + 24, 0);
-    big[(25 - 1) >> 3] |= 1 << ((25 - 1) & 7);                  // dex 25 registered
-    big[(DEX_COUNT - 1) >> 3] |= 1 << ((DEX_COUNT - 1) & 7);    // and our last one
-    pr.putBytes("dexreg", big.data(), big.size());
-    std::vector<uint8_t> bigb(sizeof(((Pet*)nullptr)->badgesX) + 8, 0);
-    bigb[0] = 0xFF;                                  // all eight Ver.2 badges
-    pr.putBytes("badgX", bigb.data(), bigb.size());
-    pr.end();
-
-
-    Pet q; q.begin();
-    ck(q.isRegistered(25) && q.isRegistered(DEX_COUNT),
-       "a Digidex written by a LATER build still loads after downgrading");
-    ck(q.badgeCountIn(1, false) == 8,
-       "and so do the badges it recorded for a region this build still has");
-  }
-
-  // ---- A PLAYER CHECKPOINT FROM BEFORE memoHi EXISTED
-  //
-  // The player record gained a scalar, which moves where its ARRAYS start. That is
-  // the dangerous kind of change: loadPlayerSnapshot() validates the array
-  // dimensions against the stored body length, so a build that simply raised its
-  // idea of the fixed-block size would find every existing record too short,
-  // reject it, and fall back to the legacy keys -- the torn-write path the
-  // checkpoint exists to replace, on every device in the field.
-  //
-  // The fix is that the fixed-block length now TRAVELS IN THE RECORD, at the byte
-  // that used to be a reserved zero. A v1 record reads 0 there and 0 means 42.
-  // This builds such a record by hand -- the running build cannot write one -- and
-  // proves the badges, the streak and the three older minigame records all survive
-  // while the new one simply reads as "no record yet".
-  {
-    Preferences pr; pr.begin("tamadigi", false);
-    pr.remove("plyA"); pr.remove("plyB");
-
-    const size_t FIXED_V1 = 42;
-    const size_t dexBytes = sizeof(((Pet*)nullptr)->dexReg);
-    // FEWER than GYM_REGIONS - 1. The record has to be built the way an OLDER
-    // build wrote it, one with fewer boss ladders, so it stores fewer extra badge
-    // masks than this one. Using the current count would quietly stop testing
-    // array growth, which is the other half of what could go wrong here.
-    const size_t badgeN = GYM_REGIONS - 2;
-    static_assert(GYM_REGIONS - 2 >= 1,
-                  "this fixture needs at least one extra ladder to store and one to grow into");
-    const size_t nameN = 12;
-    const size_t body = FIXED_V1 + 2*dexBytes + 4*badgeN + 2*REGION_COUNT + nameN;
-    std::vector<uint8_t> b(body + 2, 0);
-    memcpy(b.data() + 0, "TKY1", 4);                       // PLAYER_MAGIC
-    uint16_t v = 1;  memcpy(b.data() + 4, &v, 2);          // version 1
-    uint16_t tot = (uint16_t)b.size(); memcpy(b.data() + 6, &tot, 2);
-    uint32_t gen = 3; memcpy(b.data() + 8, &gen, 4);
-    uint16_t db = (uint16_t)dexBytes; memcpy(b.data() + 12, &db, 2);
-    b[14] = REGION_COUNT;
-    b[15] = (uint8_t)badgeN;
-    b[16] = (uint8_t)nameN;
-    b[17] = 2;                                             // avatar
-    b[18] = 0;                                             // version Ver.1
-    b[19] = 0;                    // THE RESERVED ZERO: "the fixed block is 42"
-    uint16_t badg = 0x00FF; memcpy(b.data() + 20, &badg, 2);
-    uint16_t badh = 0x0003; memcpy(b.data() + 22, &badh, 2);
-    uint16_t strk = 21;     memcpy(b.data() + 24, &strk, 2);
-    uint16_t bstk = 34;     memcpy(b.data() + 26, &bstk, 2);
-    uint32_t cday = 1000;   memcpy(b.data() + 28, &cday, 4);
-    uint16_t tmed = 7;      memcpy(b.data() + 32, &tmed, 2);
-    uint16_t mstn = 7;      memcpy(b.data() + 34, &mstn, 2);
-    uint16_t ghi = 41;      memcpy(b.data() + 36, &ghi, 2);
-    uint16_t shi = 52;      memcpy(b.data() + 38, &shi, 2);
-    uint16_t qhi = 13;      memcpy(b.data() + 40, &qhi, 2);
-    // the arrays begin at 42, NOT at 44 -- that is the whole point
-    size_t at = FIXED_V1;
-    std::vector<uint8_t> dex(dexBytes, 0);
-    dex[(25 - 1) >> 3] |= 1 << ((25 - 1) & 7);             // dex 25
-    memcpy(b.data() + at, dex.data(), dexBytes); at += dexBytes;   // dexReg
-    at += dexBytes;                                                // dexVariantReg
-    uint16_t jx = 0x000F; memcpy(b.data() + at, &jx, 2);            // badgesX[0]
-    at += 2 * badgeN;
-    at += 2 * badgeN;                                               // badgesHardX
-    at += 2 * REGION_COUNT;                                         // eggByRegion
-    memcpy(b.data() + at, "OLDHAND", 7);                            // trainerName
-    uint16_t crc = 0xFFFF;
-    for (size_t i = 0; i + 2 < b.size(); i++) {
-      crc ^= (uint16_t)b[i] << 8;
-      for (int k = 0; k < 8; k++)
-        crc = (crc & 0x8000) ? (uint16_t)((crc << 1) ^ 0x1021) : (uint16_t)(crc << 1);
-    }
-    memcpy(b.data() + b.size() - 2, &crc, 2);
-    pr.putBytes("plyA", b.data(), b.size());
-    pr.remove("mhi");            // and no legacy key for it either
-    pr.end();
-
-    Pet p; p.begin();
-    ck(!strcmp(p.trainerName, "OLDHAND"),
-       "a v1 player record still loads: the trainer name is intact");
-    ck(p.badges == 0x00FF && p.badgesHard == 0x0003, "with both Ver.1 ladders");
-    ck(p.badgeCountIn(1, false) == 4, "and the Ver.2 badges after the scalars");
-    ck(p.badgeCountIn(GYM_REGIONS - 1, false) == 0,
-       "while the ladder that record never knew starts empty, not inheriting");
-    ck(p.streak == 21 && p.bestStreak == 34, "the streak survives");
-    ck(p.gameHi == 41 && p.strHi == 52 && p.spdHi == 13,
-       "and all three of the older minigame records");
-    ck(p.isRegistered(25), "the Digidex still lines up, so the arrays were not shifted");
-    ck(p.memoHi == 0,
-       "while the field that record never had reads as no-record-yet, not as dex bits");
-  }
-
+  checkOldRecordsAreNeverRead();
+  checkSettingsKept();
+  checkOtherOldShapes();
+  checkNewSavesAreLeftAlone();
   printf("%s\n", bad?"FAILURES":"all good");
   return bad?1:0;
 }

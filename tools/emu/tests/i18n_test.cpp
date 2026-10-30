@@ -4,6 +4,7 @@
 // no glyphs for accents).
 #include "Arduino.h"
 #include "Preferences.h"
+#include "roster.h"
 // linked against the same core as every other suite, so it needs the same
 // hardware stubs even though it only exercises the string table
 #ifndef TAMA_NATIVE_TEST
@@ -19,7 +20,6 @@ String FakeSerial::readStringUntil(char) { return String(""); }
 void sfxPlay(uint8_t) {}
 #endif
 #include "i18n.h"
-#include "moves.h"
 #include <cstdio>
 #include <cstring>
 
@@ -36,33 +36,12 @@ int main() {
       for (const unsigned char *p = (const unsigned char *)v; *p; p++)
         if (*p > 0x7F) { printf("NON-ASCII  %s index %d: \"%s\"\n", LANG[l], s, v); bad++; break; }
     }
-  for (int l = 0; l < LANG_COUNT; l++) {
-    int translated = 0;
-    setLang((Lang)l);
-    for (int move = 0; move < MOVE_COUNT; move++) {
-      const char *value = moveName((uint8_t)move);
-      if (!value) { printf("NULL MOVE  %s index %d\n", LANG[l], move); bad++; continue; }
-      for (const unsigned char *p = (const unsigned char *)value; *p; p++)
-        if (*p > 0x7F) { printf("NON-ASCII MOVE  %s index %d: \"%s\"\n", LANG[l], move, value); bad++; break; }
-      if (move && strcmp(value, MOVE_TBL[move].name)) translated++;
-      if (strlen(value) > 23) { printf("LONG MOVE  %s index %d: \"%s\"\n", LANG[l], move, value); bad++; }
-    }
-    // EN may differ from the internal <=12-char key: a signature attack shows
-    // its full name ("PEPPER BREATH" for PEPPER BRTH). Other languages must
-    // still localize the generic attacks rather than fall back wholesale.
-    if (l != LANG_EN && !translated) { printf("%s move table silently fell back to English\n", LANG[l]); bad++; }
-  }
-  static const char *EMBER[LANG_COUNT] = {
-    "PLACAJE", "TACKLE", "CHARGE", "TACKLE", "AZIONE", "INVESTIDA"
-  };
-  for (int l = 0; l < LANG_COUNT; l++) {
-    setLang((Lang)l);
-    if (strcmp(moveName(MV_TACKLE), EMBER[l])) {
-      printf("MOVE ORDER  %s expected %s, got %s\n", LANG[l], EMBER[l], moveName(MV_TACKLE));
-      bad++;
-    }
-  }
-  printf("%s: %d languages x %d strings + %d x %d move names\n",
-         bad ? "FAIL" : "PASS", LANG_COUNT, STR_COUNT, LANG_COUNT, MOVE_COUNT);
+  // Skill names are English in every language, like the Digimon names, and shared
+  // with the same font: they must be ASCII too.
+  for (uint16_t m = 0; m < MOVE_COUNT; m++)
+    for (const unsigned char *p = (const unsigned char *)TS_SKILL_TBL[m].name; *p; p++)
+      if (*p > 0x7F) { printf("NON-ASCII SKILL %u\n", m); bad++; break; }
+  printf("%s: %d languages x %d strings + %d skill names\n",
+         bad ? "FAIL" : "PASS", LANG_COUNT, STR_COUNT, MOVE_COUNT);
   return bad ? 1 : 0;
 }

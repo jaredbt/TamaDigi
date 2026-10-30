@@ -31,7 +31,7 @@ public:
   // The i-th non-empty key, for the bag list. ITEM_NONE past the end.
   ItemKey keyAt(uint8_t i) const;
 
-  // A new player needs something to throw. Called once, on the first begin()
+  // A new player needs something to heal with. Called once, on the first begin()
   // that finds an empty bag, so it can never top a real player back up.
   void grantStarterKit();
 

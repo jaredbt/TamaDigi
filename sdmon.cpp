@@ -1,6 +1,6 @@
 #include "sdmon.h"
 #include "pin_config.h"
-#include "pet.h"   // gRegionArt, REGIONS -- the mask this narrows
+#include "pet.h"   // gArtPack -- the flag this narrows
 #include "crc32.h"
 #include <FS.h>
 #include <SD_MMC.h>
@@ -130,35 +130,28 @@ const uint8_t *SdThumbs::get(int16_t dex) const {
   return data + off;
 }
 
-// Which versions actually have their sprite pack on the card.
+// Is the sprite pack actually on the card?
 //
-// Three probes per version, not one: the realistic failure is a half-finished
-// copy of a 100 MB pack, and a single probe would call that version present.
-// Start, middle and end, so a copy that stopped partway fails the check.
+// Three probes, not one: the realistic failure is a half-finished copy of a pack,
+// and a single probe would call it present. Start, middle and end, so a copy that
+// stopped partway fails the check.
 //
-// This NARROWS gRegionArt, which starts as everything. A board with no SD is
-// therefore untouched and keeps today's behaviour, which is the documented
-// requirement -- an empty game would be a worse answer than a graceful one.
-void sdScanRegionArt(bool verbose) {
-  if (!sdReady) return;                 // no card: leave every version enabled
-  uint16_t mask = 0;
-  for (uint8_t r = 0; r < REGION_COUNT; r++) {
-    if (r == REGION_ALL) continue;      // derived from the others, never probed
-    const RegionInfo &rg = REGIONS[r];
-    bool all = true;
-    for (int i = 0; i < 3 && all; i++) {
-      int16_t probe = regionArtProbe(r, (uint8_t)i);
-      if (!probe) { all = false; break; }
-      char path[28];
-      snprintf(path, sizeof(path), "/mons/p%03u.bin", (unsigned)probe);
-      File f = SD_MMC.open(path, FILE_READ);
-      if (!f) all = false; else f.close();
-    }
-    if (all) mask |= (uint16_t)(1u << r);
-    if (verbose)
-      Serial.printf("art: %-6s %s\n", rg.name, all ? "yes" : "NO (pack missing)");
+// This NARROWS gArtPack, which starts true. A board with no SD is therefore
+// untouched and keeps today's behaviour, which is the documented requirement --
+// an empty game would be a worse answer than a graceful one.
+void sdScanArtPack(bool verbose) {
+  if (!sdReady) return;                 // no card: leave everything enabled
+  bool all = true;
+  for (uint8_t i = 0; i < 3 && all; i++) {
+    int16_t probe = artProbe(i);
+    if (!probe) { all = false; break; }
+    char path[28];
+    snprintf(path, sizeof(path), "/mons/p%03u.bin", (unsigned)probe);
+    File f = SD_MMC.open(path, FILE_READ);
+    if (!f) all = false; else f.close();
   }
-  gRegionArt = mask;
+  if (verbose) Serial.printf("art: %s\n", all ? "yes" : "NO (pack missing)");
+  gArtPack = all;
 }
 
 bool sdBegin(bool formatIfUnreadable) {
@@ -167,7 +160,7 @@ bool sdBegin(bool formatIfUnreadable) {
   if (sdReady) {
     Serial.printf("SD mounted: %llu MB\n", SD_MMC.cardSize() / (1024ULL * 1024ULL));
     SD_MMC.mkdir("/mons");
-    sdScanRegionArt();
+    sdScanArtPack();
   } else {
     Serial.println(formatIfUnreadable
                        ? "SD: no card, or it could not be formatted"
@@ -255,8 +248,8 @@ void SdMon::unload() {
 //   SUM <path>\n                           -> "SUM <crc32> <bytes>" DONE, of the stored file
 //   LS\n                                   -> listing of /mons
 //   PACKS\n                                -> report each pack's state/version
-//   PACK BEGIN <version>\n                  -> invalidate before copying
-//   PACK COMMIT <version> <crc32>\n         -> record version after copying
+//   PACK BEGIN <pack>\n                     -> invalidate before copying
+//   PACK COMMIT <pack> <crc32>\n            -> record the pack after copying
 //   SD MOUNT [FORMAT]\n                    -> mount a card; FORMAT one it cannot read
 // Use with tools/send_sd.py
 // ---------------------------------------------------------------------------
@@ -265,8 +258,11 @@ static void packMarkerPath(uint8_t region, char *path, size_t cap) {
   snprintf(path, cap, "/mons/.pack-%u", (unsigned)region);
 }
 
+// One roster, one pack. The protocol keeps the index so the installer's catalogue
+// can grow; see web/paks.json.
+#define PACK_COUNT 1
 static bool validPackRegion(int region) {
-  return region >= 0 && region < REGION_COUNT && region != REGION_ALL;
+  return region >= 0 && region < PACK_COUNT;
 }
 
 static int8_t activePackRegion = -1;
@@ -286,14 +282,14 @@ static void invalidatePackForPath(const String &path) {
     if (validPackRegion(activePackRegion)) {
       invalidatePackMarker((uint8_t)activePackRegion);
     } else {
-      for (uint8_t r = 0; r < REGION_COUNT; r++) invalidatePackMarker(r);
+      for (uint8_t r = 0; r < PACK_COUNT; r++) invalidatePackMarker(r);
     }
     return;
   }
   if (*base == 'p') base += base[1] == 's' ? 2 : 1;
   int dex = 0;
   if (sscanf(base, "%4d", &dex) == 1 && dex > 0)
-    invalidatePackMarker(regionOfDex((int16_t)dex));
+    invalidatePackMarker(0);
 }
 
 bool sdSerialCommand(const String &line) {
@@ -384,15 +380,14 @@ bool sdSerialCommand(const String &line) {
       Serial.println("ERR");
       return true;
     }
-    sdScanRegionArt(false);
-    for (uint8_t r = 0; r < REGION_COUNT; r++) {
-      if (r == REGION_ALL) continue;
+    sdScanArtPack(false);
+    for (uint8_t r = 0; r < PACK_COUNT; r++) {
       char path[28], crc[9] = {0};
       packMarkerPath(r, path, sizeof(path));
       File f = SD_MMC.open(path, FILE_READ);
       bool marked = f && f.size() == 8 && f.read((uint8_t *)crc, 8) == 8;
       if (f) f.close();
-      const char *state = marked ? crc : ((gRegionArt & (1u << r)) ? "legacy" : "missing");
+      const char *state = marked ? crc : (gArtPack ? "legacy" : "missing");
       Serial.printf("PACK %u %s\n", (unsigned)r, state);
     }
     Serial.println("DONE");
@@ -428,8 +423,8 @@ bool sdSerialCommand(const String &line) {
       Serial.println("ERR");
       return true;
     }
-    sdScanRegionArt(false);
-    if (!(gRegionArt & (1u << region))) {
+    sdScanArtPack(false);
+    if (!gArtPack) {
       activePackRegion = -1;
       Serial.println("ERR");
       return true;
