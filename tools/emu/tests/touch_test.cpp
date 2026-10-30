@@ -421,7 +421,7 @@ int main(int argc, char **argv) {
     pet.fullness = pet.joy = pet.energy = pet.hygiene = 100;
     cardOpen = true; cardPage = 3;
     render();
-    click(233, 362 + 22);                 // the DE-DIGIVOLVE button
+    click(233, 386 + 22);                 // the DE-DIGIVOLVE button
     if (cardOpen) { printf("FAIL: the DE-DIGIVOLVE button did not answer\n"); return 1; }
     render();
     int b1t, b1b, b2t, b2b;

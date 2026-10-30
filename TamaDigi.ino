@@ -153,7 +153,7 @@ bool bathPending = false;
 struct { int16_t x, y; uint8_t r, ph; } bubbles[14];
 uint32_t feedMenuUntil = 0;   // food picker open until this millis
 
-// "taps" mini-game: keep the scan chip in the air
+// "taps" mini-game: keep the ball in the air
 bool gameOpen = false;
 uint32_t gameOverUntil = 0;
 // The ball game used to run until you missed three times or walked away, so a
@@ -186,7 +186,7 @@ bool sackNewHi = false;
 bool trainOpen = false;
 
 // move picker, opened from the MOVES card page. Most learnsets are level 0, so
-// a level-up "you learned a move" prompt would almost never fire -- the moveset
+// a "you learned a skill" prompt would almost never fire -- the skill set
 // is edited on demand instead.
 bool movePickOpen = false;
 uint8_t movePickSlot = 0;   // which of the 4 slots is being replaced
@@ -337,8 +337,6 @@ uint8_t btlMyAct = 0;        // host: our own action, latched until theirs lands
 // 9 mm -- what watchOS and Wear OS both land on -- in this panel's pixels.
 // Every control laid out from here on is held to THIS by hit_test.
 #define UI_TAP_FINGER 94
-
-// The LAN battle button on the boss version chooser.
 
 // The confirm panel, in ONE place. The digivolve/farewell/retire dialog on the
 // main screen and the settings reset both draw it, and hit_test asserts against
@@ -790,7 +788,7 @@ int16_t devolveTarget() {
 #define DEVO_BTN_W 240
 #define DEVO_BTN_H UI_TAP_MIN
 #define DEVO_BTN_X (CX - DEVO_BTN_W / 2)
-#define DEVO_BTN_Y 362
+#define DEVO_BTN_Y 386   // under the page dots, where the back hint would be
 uint32_t choiceUntil = 0;   // closes by itself at this millis
 int16_t tX0, tY0, tXl, tYl; // gesture in progress (start and last position)
 uint32_t tStart = 0;
@@ -1944,8 +1942,6 @@ void onTap(int16_t x, int16_t y) {
     return;
   }
   if (pet.isEgg()) {
-    // the version pill first, or choosing a version would also crack the egg --
-    // and a near miss is swallowed rather than counted, since three taps hatch
     pet.eggTap();
     sfxPlay(SFX_TAP);
     return;
@@ -2321,9 +2317,7 @@ static inline uint16_t uiChromeInk() {
 }
 
 // The tile axis, drawn on every screen that is on it. Five bound gestures that
-// nothing on the panel mentions is precisely how Ver.2 and Ver.3 came to be
-// built, reachable and completely invisible; an axis nobody can see is that
-// same mistake one level up.
+// nothing on the panel mentions would be built, reachable and completely invisible.
 void uiDrawTileDots() {
   int t = uiTileIndex();
   if (t < 0) return;
@@ -2657,7 +2651,7 @@ void render() {
   gfx->flush();
 }
 
-// ---------- mini-game: taps with the scan chip ----------
+// ---------- mini-game: taps with the ball ----------
 
 void startGame() {
   if (pet.isEgg() || pet.sleeping || pet.ceremony) return;
@@ -2986,7 +2980,7 @@ void renderGame() {
     gfx->drawCircle((int)hitX, (int)hitY, rad - 2, C565(0xff, 0xd9, 0x8a));
   }
 
-  // the scan chip
+  // the ball
   drawMap(SPR_ICON_PLAY, 16, (int)ballX - 24, (int)ballY - 24, 3, false);
 
   gfx->flush();
@@ -3681,7 +3675,7 @@ static void btlSyncSprite(uint8_t who, const Combatant &c) {
   btlPmd[who].unload();
   btlPmdDex[who] = 0;
   if (c.dex < 1 || c.dex > DEX_COUNT) return;
-  if (btlPmd[who].load(c.dex, c.variant)) btlPmdDex[who] = key;   // NOT (uint8_t): Ver.3 runs past 255
+  if (btlPmd[who].load(c.dex, c.variant)) btlPmdDex[who] = key;   // NOT (uint8_t): the dex runs past 2555
 }
 
 static void btlFreeSprites() {
@@ -3744,7 +3738,7 @@ static void foeFromSpecies(Combatant &c, int16_t dex, uint8_t lvl, bool variant)
 // Your side: the partner, and only the partner. Every battle is 1-on-1.
 //
 // The boss ladder caps your LEVEL to the boss's, so a boss is always fought on
-// its own terms and grinding is never the answer -- the type chart, the moveset
+// its own terms and grinding is never the answer -- the matchups, the skills
 // and the choices are. The cap is applied while BUILDING the combatant, so
 // nothing is ever written back to the live pet, exactly like ailments.
 static bool buildPartner(uint8_t maxLvl) {
@@ -3788,7 +3782,7 @@ void startTrainerBattle(uint8_t idx, bool hard) {
   // a bare dex number where a creature should be.
   if (!speciesShowable((int16_t)boss.dex)) return;
   // BOTH difficulties cap your level to the boss's. Without it a L73 partner
-  // walks every tamer at 100% and the type chart never matters. Hard adds a
+  // walks every tamer at 100% and the matchups never matter. Hard adds a
   // smarter AI.
   if (!buildPartner(boss.level)) return;
   btlTrainer = (int8_t)idx;
@@ -5424,16 +5418,6 @@ void renderCardProgress() {
   gfx->setTextColor(UI_INK);
   gfx->setCursor(CX - strlen(tt) * 6, 338);
   gfx->print(tt);
-  // De-digivolving into a form already in the Digidex. Declining moves this on to
-  // the next earlier form, so one button reaches them all.
-  if (devolveTarget()) {
-    gfx->fillRoundRect(DEVO_BTN_X, DEVO_BTN_Y, DEVO_BTN_W, DEVO_BTN_H, 11, UI_TRACK);
-    gfx->drawRoundRect(DEVO_BTN_X, DEVO_BTN_Y, DEVO_BTN_W, DEVO_BTN_H, 11, UI_INK);
-    gfx->setTextColor(UI_INK);
-    gfx->setTextSize(2);
-    gfx->setCursor(CX - (int)strlen(T(S_DEVOLVE)) * 6, DEVO_BTN_Y + 14);
-    gfx->print(T(S_DEVOLVE));
-  }
 }
 
 void renderCard() {
@@ -5450,10 +5434,22 @@ void renderCard() {
     if (i == cardPage) gfx->fillCircle(dx, 374, 5, UI_INK);
     else gfx->drawCircle(dx, 374, 4, UI_INK);
   }
-  gfx->setTextColor(UI_INK_SOFT);
-  gfx->setTextSize(2);
-  gfx->setCursor(CX - strlen(T(S_BACK)) * 6, 398);
-  gfx->print(T(S_BACK));
+  // De-digivolving into a form already in the Digidex. Declining moves this on to the
+  // next earlier form, so one button reaches them all. It takes the back hint's place:
+  // a tap anywhere else on the page still goes back.
+  if (cardPage == CARD_PROGRESS_PAGE && devolveTarget()) {
+    gfx->fillRoundRect(DEVO_BTN_X, DEVO_BTN_Y, DEVO_BTN_W, DEVO_BTN_H, 11, UI_TRACK);
+    gfx->drawRoundRect(DEVO_BTN_X, DEVO_BTN_Y, DEVO_BTN_W, DEVO_BTN_H, 11, UI_INK);
+    gfx->setTextColor(UI_INK);
+    gfx->setTextSize(2);
+    gfx->setCursor(CX - (int)strlen(T(S_DEVOLVE)) * 6, DEVO_BTN_Y + 14);
+    gfx->print(T(S_DEVOLVE));
+  } else {
+    gfx->setTextColor(UI_INK_SOFT);
+    gfx->setTextSize(2);
+    gfx->setCursor(CX - strlen(T(S_BACK)) * 6, 398);
+    gfx->print(T(S_BACK));
+  }
   uiChrome();
   gfx->flush();
 }

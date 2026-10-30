@@ -123,7 +123,7 @@ enum StrId : uint8_t {
   S_RETIRE_Q,       // ...and the confirmation
   S_RETIRE_COST,    // what retiring early costs the next creature
   S_EVO_SLOW,       // shown on the card while a creature carries that debt
-  S_NEED_PACK,      // version chooser: this version's sprite pack is not on the SD
+  S_NEED_PACK,      // the sprite pack is not on the SD
   // Letting a BANKED creature go for good, from the party or box detail sheet.
   // The confirmation reuses S_RELEASE_FMT / S_NO; its destructive action repeats
   // S_RELEASE_BTN instead of the ambiguous generic YES.
