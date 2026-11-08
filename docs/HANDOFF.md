@@ -183,8 +183,8 @@ the `TS_DEX_TBL` row, not by `tsDex`. They go to `renders/ts/tpk2/` (the older
 
 ```bash
 # one-time: the viewer (MIT) and its dev server
-git clone https://tangled.org/nuffle.me/dsts-viewer <dir> && (cd <dir> && pnpm install)
-(cd <dir> && DSTS_MODELS=~/Projects/TamaDigi/tools/prerender/models pnpm exec vite) &
+git clone https://tangled.org/nuffle.me/dsts-viewer <dir> && (cd <dir> && npx pnpm@10 install)   # pnpm 9 rejects its workspace file
+(cd <dir> && DSTS_MODELS=~/Projects/TamaDigi/tools/prerender/models npx pnpm@10 exec vite) &
 export PLAYWRIGHT_CORE=<path to playwright-core>/index.mjs
 # the batch (re-run the same line to resume; --limit N / --only slug,... for a slice)
 python3 -I tools/prerender/batch.py run --viewer <dir> --root ~/Projects/TamaDigi/tools/prerender
@@ -202,7 +202,9 @@ python3 -I tools/prerender/batch.py report --viewer <dir> --root ~/Projects/Tama
 - The batch stops below 5 GB free.
 - `renders/ts/log.jsonl` holds the state, and `REPORT.md` the coverage.
 - `fetch` downloads models only, and `report` audits clips offline; neither needs the
-  viewer.
+  viewer. A `fetch` and a `run` may overlap (each mode has its own lock).
+- About 55 s per form on this Mac, so the roster takes about 7 hours.
+- Keep the viewer clone out of `/private/tmp`: the OS clears it.
 
 ## Screen
 

@@ -162,15 +162,16 @@ def download(P, slug):
     if os.path.exists(dst):
         return 'cached'
     os.makedirs(os.path.dirname(dst), exist_ok=True)
+    part = f'{dst}.part{os.getpid()}'
     req = urllib.request.Request(CDN.format(slug=slug), headers={'User-Agent': 'TamaDigi-prerender/1 (personal batch)'})
     try:
-        with urllib.request.urlopen(req, timeout=120) as r, open(dst + '.part', 'wb') as fh:
+        with urllib.request.urlopen(req, timeout=120) as r, open(part, 'wb') as fh:
             shutil.copyfileobj(r, fh)
-        os.replace(dst + '.part', dst)
+        os.replace(part, dst)
         return 'ok'
     except urllib.error.HTTPError as e:
-        if os.path.exists(dst + '.part'):
-            os.unlink(dst + '.part')
+        if os.path.exists(part):
+            os.unlink(part)
         if e.code in (403, 404):
             return 'no_model'
         raise
@@ -431,7 +432,7 @@ def main():
     roster = load_roster(os.path.expanduser(opt(args, '--viewer')))
     with open(os.path.join(P.ts, 'roster.json'), 'w') as fh:
         json.dump(roster, fh, indent=1)
-    lock = os.path.join(P.ts, 'batch.lock')
+    lock = os.path.join(P.ts, f'batch-{args[0]}.lock')   # a run and a fetch may overlap
     if args[0] in ('run', 'fetch'):
         if os.path.exists(lock):
             pid = int(open(lock).read() or 0)
