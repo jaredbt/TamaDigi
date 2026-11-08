@@ -368,7 +368,7 @@ saved, on every player's device. **New skills go at the END** of the table, as
 `docs/ts-data-format.md` says. Same family as badges being stored additively: never
 reinterpret bytes that already exist.
 
-**The cutover hit this all over again**, from the other side: 1025 routes and 653
+**The cutover hit this all over again**, from the other side: 1034 routes and 653
 skills do not fit a `uint8_t` loop counter or a `uint8_t` move. Everything holding a
 skill is `uint16_t`, and a loop over the routes is `uint16_t` too.
 
@@ -719,7 +719,9 @@ per save is the real fix.
   partner into the player record's history AND into the creature record's
   `departed`, so the pet write is the commit; `load()` adds `departed` to the history
   when its serial is newer, once. `powerloss_test` cuts between the two writes, and
-  negative-checks the copy. Jogress will cross them again.
+  negative-checks the copy. Jogress did not need to cross them: a fusion with a past
+  partner leaves its history entry where it is, so only the creature record changes
+  (`jogressHalf`, saved with the new form).
 - **`Pet::saveHealthy()` is false when NVS would not open or has refused three
   writes in a row**, and `drawSaveWarning()` puts a red triangle beside the
   battery. A player who knows saving is broken can `EXPORT`; one who does not

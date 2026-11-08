@@ -41,7 +41,7 @@ constant, skill power by level, the home element and the matchups.
 | `stage` | `TS_ST_IN_TRAINING_1` ... `TS_ST_MEGA_PLUS` (0-6), `TS_ST_ARMOR` (7), `TS_ST_HYBRID` (8) |
 | `tier` | Stage used for wild encounters: the same as `stage` for the seven raisable stages. Armor/Hybrid use their stat tier: 14 Champion, 2 Ultimate, 5 Mega |
 | `attr` | `TS_AT_VACCINE, _DATA, _VIRUS, _FREE, _VARIABLE, _UNKNOWN, _NODATA`. Only Vaccine > Virus > Data > Vaccine matters; the rest are neutral. `VARIABLE` is the Hybrids' attribute, which HANDOFF does not list |
-| `flags` | Exactly one of `TSF_RAISABLE` (419), `TSF_WILD_ONLY` (33: 10 Armor, 11 Hybrid, the 12 listed forms) and `TSF_FUSION_ONLY` (17) |
+| `flags` | Exactly one of `TSF_RAISABLE` (435, the 16 forms only Jogress reaches among them), `TSF_WILD_ONLY` (34: 10 Armor, 11 Hybrid, the 12 listed forms and Susanomon) and `TSF_FUSION_ONLY` (none since Jogress shipped; 17 before, with 419 raisable and 33 wild-only) |
 | `resist[11]` | Damage taken from each element, in tenths (0, 5, 10, 15, 20). Order is `TS_EL_FIRE, _WATER, _PLANT, _ICE, _ELECTRICITY, _EARTH, _STEEL, _WIND, _LIGHT, _DARK, _NULL` |
 | `evoFirst`, `evoCount` | This form's routes in `TS_EVO_TBL` (`evoFirst` is 0 when `evoCount` is 0) |
 | `learnFirst`, `learnCount` | This form's learnset in `TS_LEARN_TBL` (`ts_skills.h`) |
@@ -49,7 +49,7 @@ constant, skill power by level, the home element and the matchups.
 `TS_STAGE_ENTRY[7]` = `{ 1, 2, 7, 25, 49, 61, 73 }` holds the stage-timer
 minimums as levels (level = hours since hatching + 1).
 
-### `TsEvo TS_EVO_TBL[TS_EVO_COUNT]` (1025 routes)
+### `TsEvo TS_EVO_TBL[TS_EVO_COUNT]` (1034 routes)
 
 Grouped by source in dex order, and in the game's order within each source. A
 de-digivolution is any route read backwards (`to` -> `from`).
@@ -62,19 +62,27 @@ de-digivolution is any route read backwards (`to` -> `from`).
 | `rank` | Agent Rank needed. 0 for every route into a stage below Ultimate. The game's value is kept for routes into Ultimate or later: 5 into Ultimate, 7 into Mega, 8 into Mega+ |
 
 Kept routes are those between two raisable forms that need no Jogress, item,
-Agent Skills or Talent. `JOGRESS_SHIPPED` in the generator makes the
-fusion-only forms raisable and restores the routes among them, such as
-Omnimon (X Antibody) -> Omnimon. Setting it is not enough on its own: the
-Jogress work must also add the Jogress pairs to `validate()`'s reachability
-check and update its expected counts (419 / 33 / 17).
+Agent Skills or Talent. Jogress itself is `TS_JOGRESS_TBL`, not a route. Since
+Jogress shipped (`JOGRESS_SHIPPED` in the generator) the fusion-only forms are
+raisable, and the 9 routes among them are kept, such as Omnimon (X Antibody) ->
+Omnimon (all Mega+ -> Mega+, rank 8). `validate()` walks the Jogress pairs in its
+reachability check: either half reaches the result and the result de-digivolves
+to either half, since the other half comes from the history or the wild. Setting
+`JOGRESS_SHIPPED = False` writes the pre-Jogress tables again, byte for byte.
 
-### `TsJogress TS_JOGRESS_TBL[TS_JOGRESS_COUNT]` (17 pairs, data only)
+### `TsJogress TS_JOGRESS_TBL[TS_JOGRESS_COUNT]` (17 pairs)
 
 | Field | Meaning |
 |---|---|
 | `a`, `b`, `to` | The two partners and the result, as dex ids. Each pair is listed once; the game's personality requirement is dropped |
 | `min[6]`, `rank` | The game's stat minimums and Agent Rank: 5 for the four Ultimate fusions (Shakkoumon, Silphymon, Dinobeemon, Paildramon, which are also reached by ordinary routes), 7 for Millenniummon and Mastemon, 8 for the rest |
-| `partnersRaisable` | 0 when a partner can never be a partner in v1. This holds only for EmperorGreymon + MagnaGarurumon -> Susanomon (both Hybrid) |
+| `partnersRaisable` | 0 when a partner can never be a partner in v1. This holds only for EmperorGreymon + MagnaGarurumon -> Susanomon (both Hybrid), so Susanomon stays wild-only (`FUSION_WILD`) |
+
+Your partner fuses as either half. The rank and minimums are checked against it,
+exactly as on a route (`jogressRoute()` builds one), and the result's stage timer
+applies. ExVeemon + Stingmon has two results (Dinobeemon and Paildramon), and
+BanchoLeomon is a half of two pairs, so a partner can have more than one fusion
+open.
 
 ### `TsBoss TS_BOSS_TBL[13]`
 
@@ -181,10 +189,10 @@ Per form (`learnFirst` / `learnCount`), as `{ skill, hours }`:
 
 | Question | Resolution |
 |---|---|
-| "16 fusion-only" | 17 are flagged: Susanomon also has no other route, and its partners are both Hybrids, so its Jogress pair has `partnersRaisable = 0` |
+| "16 fusion-only" | 17 had no other route: Susanomon too, but its partners are both Hybrids, so its Jogress pair has `partnersRaisable = 0`. Since Jogress shipped the 16 are raisable and Susanomon is wild-only |
 | Display-name rule behind "29 too long" | Upper case, drop `():`, keep spaces |
 | Hybrids' attribute "Variable" | Its own value, neutral like Free |
-| SP minimum above the source's level-99 SP (13 kept routes, e.g. Lillymon -> Rosemon) | Dropped, `minLevel` 0: Agent Rank and the trainable stats still gate them |
+| SP minimum above the source's level-99 SP (14 kept routes, e.g. Lillymon -> Rosemon; Omnimon Zwart -> Omnimon Zwart Defeat is the one Jogress added) | Dropped, `minLevel` 0: Agent Rank and the trainable stats still gate them |
 | Rank on Rookie -> Ultimate (Shoutmon -> OmniShoutmon), Ultimate -> Ultimate, Mega -> Mega | The rule follows the target's stage: kept from Ultimate on (5 / 7) |
 | Aura, X-Aura | Fold into Heal and X-Heal, as each Field folds into its Charge |
 | Signatures left with nothing | Accuracy down (Blinding Ray, Kudamon's only signature) -> ATK and magic attack down by the same percent. Damage-taken down (Bee Cyclone, Elec Guard) -> DEF and magic defence up |
