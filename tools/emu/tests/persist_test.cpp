@@ -29,7 +29,7 @@ static bool intact(Pet &p){
 
 int main(){
   Pet p; p.begin();
-  if (p.awaitingStarter()) p.chooseStarter(6);
+  p.dbgSetEgg(6);
   if (p.isEgg()) p.dbgHatchAs(4,false);
   award(p);
   ck(intact(p), "progress is set");

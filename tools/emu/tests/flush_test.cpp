@@ -66,7 +66,7 @@ static void crumbIs(const char *want){
 int main(){
   setup();
   for (int i=0;i<4;i++) render();
-  if (pet.awaitingStarter()) pet.chooseStarter(6);
+  pet.dbgSetEgg(6);
   if (pet.isEgg()) pet.dbgHatchAs(6,false);
   pet.ageMinutes = 60UL*60;
   while (pet.hasLearnOffer()) pet.declineLearn();

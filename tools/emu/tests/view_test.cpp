@@ -16,6 +16,7 @@
 #include <cstdio>
 #include <cstring>
 #include <set>
+#include <cmath>
 
 uint32_t g_seed=17; FakeSerial Serial; FakeESP ESP; FakeWire Wire;
 volatile int g_touchX=0,g_touchY=0; volatile bool g_touchDown=false;
@@ -28,6 +29,11 @@ extern Pet pet;
 // the view state and the firmware's own answers about it
 extern uint8_t galleryPage, galleryFilter;
 extern int16_t galleryDetail;
+extern int8_t galleryStage;
+uint16_t galleryStageTotal(uint8_t st);
+uint16_t galleryStageKnown(uint8_t st);
+int galleryStageAt(int16_t x, int16_t y);
+void galleryStageDisc(uint8_t i, int *cx, int *cy);
 bool galleryPass(int16_t dex);
 uint16_t galleryCount();
 int16_t galleryAt(uint16_t visual);
@@ -98,7 +104,7 @@ int main(){
   // disagree, every loop below is silently skipping a mode.
   ck(galleryFilterCount() == GFILT_VARIANT + 1,
      "this test knows about every Digidex filter the firmware has");
-  if (pet.awaitingStarter()) pet.chooseStarter(6);
+  pet.dbgSetEgg(6);
   if (pet.isEgg()) pet.dbgHatchAs(LIVE,false);
   while (pet.hasLearnOffer()) pet.declineLearn();
 
@@ -111,19 +117,43 @@ int main(){
   pet.dexVariantReg[(GREYMON-1)>>3] |= 1 << ((GREYMON-1)&7);   // ...and in its colour variant
   ck(!pet.isRegistered(GARURUMON), "GARURUMON is genuinely NOT in the dex");
 
+  // The stage picker is in front of every grid: with no stage chosen there is none.
   galleryFilter = GFILT_ALL;
-  ck(galleryCount() == NO_ART_DRAWABLE, "ALL shows every form that has art");
-  ck(galleryPages() == (NO_ART_DRAWABLE + 15) / 16, "across pages of sixteen");
-  ck(speciesHasArt(galleryAt(0)) && speciesHasArt(galleryAt(NO_ART_DRAWABLE - 1)),
-     "and the grid runs from the first form with art to the last");
-  ck(galleryAt(NO_ART_DRAWABLE) == 0, "with nothing past the end");
+  galleryStage = -1;
+  ck(galleryCount() == 0 && galleryAt(0) == 0, "the stage picker has no grid of its own");
+  // ALL, stage by stage, is every form with art, each in its own stage, once.
+  {
+    uint16_t total = 0;
+    bool wrongStage = false, artless = false;
+    std::set<int16_t> all;
+    for (uint8_t st = 0; st < TS_STAGE_COUNT; st++) {
+      galleryStage = (int8_t)st;
+      galleryPage = 0;
+      ck(galleryCount() == galleryStageTotal(st), "a stage's grid holds what its disc counts");
+      total += galleryCount();
+      for (const int16_t d : drawnAcrossPages()) {
+        if (TS_DEX_TBL[d].stage != st) wrongStage = true;
+        if (!speciesHasArt(d)) artless = true;
+        all.insert(d);
+      }
+      ck(galleryAt(galleryCount()) == 0, "with nothing past the end");
+    }
+    ck(total == NO_ART_DRAWABLE && all.size() == NO_ART_DRAWABLE,
+       "the stages together are every form that has art, each once");
+    ck(!wrongStage && !artless, "each in its own stage's grid, and nothing without art");
+  }
+  galleryStage = TS_ST_CHAMPION;   // GREYMON's and GARURUMON's
+  ck(galleryPages() == (galleryStageTotal(TS_ST_CHAMPION) + 15) / 16, "across pages of sixteen");
 
   galleryFilter = GFILT_RAISED;
   {
     const uint16_t n = galleryCount();
     ck(n >= 1, "RAISED shows what has actually been raised");
-    ck(galleryPass(LIVE) && galleryPass(GREYMON), "including the live creature and GREYMON");
+    ck(galleryPass(GREYMON), "including GREYMON");
     ck(!galleryPass(GARURUMON), "but NOT one that was never raised");
+    galleryStage = (int8_t)TS_DEX_TBL[LIVE].stage;
+    ck(galleryPass(LIVE), "and, in its own stage, the live creature");
+    galleryStage = TS_ST_CHAMPION;
   }
 
   galleryFilter = GFILT_VARIANT;
@@ -158,20 +188,37 @@ int main(){
   // Cycling a filter must not leave the page past the end of a shorter result.
   {
     galleryFilter = GFILT_ALL;
-    galleryPage = 4;                     // the last page of the forms with art
-    galleryFilter = GFILT_VARIANT;         // now one page
+    galleryPage = 1;                     // the Champions' second page
+    galleryFilter = GFILT_VARIANT;       // now one page
     galleryClampPage();
     ck(galleryPage == 0, "narrowing the filter pulls the page back into range");
+    galleryFilter = GFILT_ALL;
   }
 
-  // Only forms with art have an entry yet: phase 2's Digidex states change this.
+  // The picker's discs: nine of them, each its own hit area, none overlapping, all on
+  // the glass, each at least a finger across; a tap between them chooses nothing.
   {
-    galleryFilter = GFILT_ALL;
-    galleryPage = 0;
-    int artless = 0;
-    for (uint16_t v = 0; v < galleryCount(); v++)
-      if (!speciesHasArt(galleryAt(v))) artless++;
-    ck(artless == 0 && galleryAt(galleryCount()) == 0, "the grid lists the forms with art and stops");
+    bool ok = true;
+    for (uint8_t i = 0; i < TS_STAGE_COUNT; i++) {
+      int cx, cy;
+      galleryStageDisc(i, &cx, &cy);
+      if (galleryStageAt((int16_t)cx, (int16_t)cy) != i) ok = false;
+      const int dx = cx - 233, dy = cy - 233;
+      if (sqrt((double)(dx * dx + dy * dy)) + 52 > 233) ok = false;
+    }
+    ck(ok, "every stage disc answers at its centre and sits on the glass");
+    int cx0, cy0, cx1, cy1;
+    galleryStageDisc(0, &cx0, &cy0);
+    galleryStageDisc(1, &cx1, &cy1);
+    ck(galleryStageAt((int16_t)((cx0 + cx1) / 2), (int16_t)cy0) == -1,
+       "a tap between two discs chooses nothing");
+    ck(2 * 52 >= 94, "and a disc is at least a finger (UI_TAP_FINGER) across");
+    galleryStage = -1;
+    galleryStageDisc(TS_ST_CHAMPION, &cx0, &cy0);
+    galleryTap((int16_t)cx0, (int16_t)cy0);
+    ck(galleryStage == TS_ST_CHAMPION, "tapping a disc opens that stage's grid");
+    galleryTap(233, 30);
+    ck(galleryStage == -1, "and the title goes back to the picker");
   }
 
   // -------------------------------------------------------- derived personality
@@ -413,11 +460,13 @@ int main(){
     ensureMon();
     ck(g_emuCryCount == 0, "an egg does not cry");
 
-    // The Digidex speaks -- but only for an entry actually filled in. Playing the
-    // cry of a silhouette hands over the one thing the "???" is withholding.
+    // The Digidex speaks -- but only for an entry you have met. Playing the cry of a
+    // silhouette hands over the one thing the "???" is withholding.
     galleryFilter = GFILT_ALL;
     galleryPage = 0;
     galleryDetail = 0;
+    memset(pet.dexSeen, 0, sizeof(pet.dexSeen));
+    memset(pet.dexScan, 0, sizeof(pet.dexScan));
     pet.dexReg[(6 - 1) >> 3] |= 1 << ((6 - 1) & 7);       // BOTAMON registered
     const int16_t unknown = 13;                            // and TOKOMON is not
     pet.dexReg[(unknown - 1) >> 3] &= (uint8_t)~(1 << ((unknown - 1) & 7));
@@ -426,6 +475,7 @@ int main(){
 
     // Tap the cell each one occupies, resolved the way the grid draws it.
     auto tapDex = [&](int16_t want) {
+      galleryStage = (int8_t)TS_DEX_TBL[want].stage;
       for (uint16_t v = 0; v < 16; v++) {
         if (galleryAt(v) != want) continue;
         galleryDetail = 0;
@@ -440,9 +490,15 @@ int main(){
     ck(g_emuCryCount == 1 && g_emuCryDex == 6, "plays that species' cry");
     galleryDetail = 0;
     g_emuCryCount = 0;
-    ck(tapDex(unknown) && galleryDetail == unknown, "opening an UNregistered one");
+    ck(tapDex(unknown) && galleryDetail == unknown, "opening an unseen one");
     ck(g_emuCryCount == 0, "stays silent, so the cry cannot leak the species");
     galleryDetail = 0;
+    pet.markSeen(unknown);
+    g_emuCryCount = 0;
+    ck(tapDex(unknown) && g_emuCryCount == 1 && g_emuCryDex == unknown,
+       "once it has been seen in the wild, its entry has its voice");
+    galleryDetail = 0;
+    galleryStage = -1;
   }
 
   printf("%s\n", bad?"FAILURES":"all good");

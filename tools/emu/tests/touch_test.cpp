@@ -92,22 +92,17 @@ int main(int argc, char **argv) {
   setup();
   pump(4);
 
-  if (!pet.awaitingStarter()) { printf("FAIL: not on the starter screen\n"); return 1; }
-  printf("on starter screen, awaitingStarter=1\n");
-
-  // First boot: tap a starter and its Digi-Egg appears. Negative control first: a
-  // click below every row must choose nothing, or this test proves nothing about
-  // coordinate routing.
-  click(233, 420);
+  // First boot: an egg, never a chooser (the first egg hatches a random In-Training
+  // I). A tap on it must reach onTap: the egg cracks. Negative control first: the
+  // tap that wakes a dimmed panel does nothing, so only a tap once awake counts.
+  if (!pet.isEgg()) { printf("FAIL: a first boot is not an egg\n"); return 1; }
+  pet.dbgSetEgg(6);                // the rest of this test raises a BOTAMON
+  const uint8_t cracks0 = pet.eggCracks();
+  click(233, 233);
   pump(2);
-  if (!pet.awaitingStarter()) { printf("FAIL: off-row click chose a starter\n"); return 1; }
-  printf("click at (233,420) off the rows: correctly ignored\n");
-
-  click(233, 110 + 78 + 35);     // row 1: BOTAMON
-  pump(2);
-  if (pet.awaitingStarter()) { printf("FAIL: click did not register\n"); return 1; }
-  if (pet.eggPeek() != 6) { printf("FAIL: row 1's egg is not BOTAMON\n"); return 1; }
-  printf("PASS: tap reached onTap and picked a starter\n");
+  if (pet.eggCracks() != cracks0 + 1) { printf("FAIL: a tap on the egg did not crack it\n"); return 1; }
+  if (pet.eggPeek() != 6) { printf("FAIL: the egg is not BOTAMON's\n"); return 1; }
+  printf("PASS: tap reached onTap and cracked the egg\n");
 
   // --fast must still do its job: with no finger down, game time has to run at
   // the scale. Otherwise the touch fix would have quietly neutered the flag.
@@ -352,12 +347,12 @@ int main(int argc, char **argv) {
   pet.relearnFromLevel();
   while (pet.hasLearnOffer()) pet.declineLearn();
   bool hadBadge = pet.hasBadge(0, false);
-  const Trainer &firstBoss = TRAINERS[0];
+  const int16_t firstBoss = bossForm(0);
   startTrainerBattle(0, false);
   if (!battleOpen) { printf("FAIL: trainer battle did not start\n"); return 1; }
   printf("PASS: gym battle starts\n");
-  if (btlFoe.dex != firstBoss.dex) {
-    printf("FAIL: the first boss fought with dex %d, not %d\n", btlFoe.dex, firstBoss.dex);
+  if (btlFoe.dex != firstBoss) {
+    printf("FAIL: the first boss fought with dex %d, not %d\n", btlFoe.dex, firstBoss);
     return 1;
   }
   printf("PASS: the boss fights with its one Digimon\n");
@@ -366,7 +361,7 @@ int main(int argc, char **argv) {
   bool foeChanged = false;
   while (battleOpen && taps < 200) {
     taps++;
-    if (btlFoe.dex != firstBoss.dex) foeChanged = true;
+    if (btlFoe.dex != firstBoss) foeChanged = true;
     if (btlMsgCount) { click(233, 320); continue; }
     int slot = -1;
     for (int i = 0; i < MOVE_SLOTS; i++) if (btlYou.moves[i]) { slot = i; break; }
@@ -392,13 +387,13 @@ int main(int argc, char **argv) {
   }
   printf("PASS: a gym win keeps saving healthy and its badge and training survive reload\n");
 
-  // ---- both difficulties cap your level to the boss's
+  // ---- Hard caps your level to the boss's; Easy fights at your real level
   battleOpen = false;
   pet.ageMinutes = 100 * MINUTES_PER_LEVEL;   // a level 100 creature
-  startTrainerBattle(0, true);                // the first boss
-  const uint8_t top = firstBoss.level;
+  startTrainerBattle(0, true);                // the first boss, on Hard
+  const uint8_t top = bossLevel(0);
   printf("     hard vs %s: your partner is L%u (pet is L%u), boss L%u\n",
-         firstBoss.name, btlYou.level, pet.level(), top);
+         TS_DEX_TBL[firstBoss].name, btlYou.level, pet.level(), top);
   if (btlYou.level != top) {
     printf("FAIL: level not capped to the boss's (got %u, want %u)\n", btlYou.level, top);
     return 1;
@@ -407,6 +402,21 @@ int main(int argc, char **argv) {
   if (pet.level() != 100) { printf("FAIL: the stored pet was modified\n"); return 1; }
   printf("PASS: the stored creature is untouched (still L%u)\n", pet.level());
   battleOpen = false;
+  startTrainerBattle(0, false);               // the same boss, on Easy
+  if (btlYou.level != pet.level()) {
+    printf("FAIL: Easy capped the partner (L%u, real L%u)\n", btlYou.level, pet.level());
+    return 1;
+  }
+  printf("PASS: Easy fights at the partner's real level\n");
+  battleOpen = false;
+  pet.ageMinutes = 5 * MINUTES_PER_LEVEL;     // below the boss: Hard never scales UP
+  startTrainerBattle(0, true);
+  if (btlYou.level != pet.level()) {
+    printf("FAIL: Hard raised a L%u partner to L%u\n", pet.level(), btlYou.level);
+    return 1;
+  }
+  printf("PASS: Hard never raises a partner below the boss's level\n");
+  battleOpen = false;
 
   // ---- de-digivolving, through the card and the confirm dialog
   {
@@ -414,8 +424,7 @@ int main(int argc, char **argv) {
     pet.dbgHatchAs(21, false);            // AGUMON
     pet.ageMinutes = 40UL * MINUTES_PER_LEVEL;
     pet.trAtk = pet.trDef = pet.trSpe = 200;
-    while (pet.digiTarget() != 89) pet.declineEvolve();
-    pet.evolve();
+    pet.evolveTo(89);
     while (pet.hasLearnOffer()) pet.declineLearn();
     if (pet.speciesId != 89) { printf("FAIL: AGUMON did not become GREYMON\n"); return 1; }
     pet.fullness = pet.joy = pet.energy = pet.hygiene = 100;
@@ -479,9 +488,10 @@ int main(int argc, char **argv) {
   printf("PASS: hard mode keeps its own unlock order\n");
   gymHard = false; gymOpen = false; pet.badges = 0;
 
-  // easy caps the level too
+  // Easy does not cap: the partner fights at its real level (its own check is above,
+  // this one runs from the boss list's state)
   startTrainerBattle(0, false);
-  if (btlYou.level != top) { printf("FAIL: easy mode did not cap the level\n"); return 1; }
-  printf("PASS: easy mode caps the level as well\n");
+  if (btlYou.level != pet.level()) { printf("FAIL: easy mode capped the level\n"); return 1; }
+  printf("PASS: easy mode fights at the real level\n");
   return 0;
 }

@@ -29,7 +29,9 @@ extern bool trainOpen, movePickOpen, battleOpen, gymOpen, playerOpen;
 extern bool exploreOpen;
 extern bool btlWild;
 extern uint8_t cardPage, gymPage, playerPage, movePickPage;
-extern uint8_t galleryPage; extern bool galleryDirty; extern uint8_t galleryDetail;
+extern uint8_t galleryPage; extern bool galleryDirty; extern int16_t galleryDetail;
+extern int8_t galleryStage; extern uint8_t galleryDetailPage;
+uint16_t galleryCount(); uint8_t galleryDetailPages();
 extern uint8_t movePickSlot;
 extern bool bagOpen; extern uint8_t bagPage;
 static int bad=0;
@@ -61,7 +63,7 @@ uint8_t learnableList(uint16_t *out, uint8_t max);
 int main(){
   setup();
   for (int i=0;i<4;i++) render();
-  if (pet.awaitingStarter()) pet.chooseStarter(6);
+  pet.dbgSetEgg(6);
   pet.dbgHatchAs(377,false);           // DARKDRAMON: enough skills for a second page
   pet.ageMinutes = 60UL*60; pet.relearnFromLevel();
   while (pet.hasLearnOffer()) pet.declineLearn();
@@ -77,21 +79,44 @@ int main(){
   clearAll();
   for (ItemKey k=1;k<ITEM_COUNT;k++) bag.add(k, 1);
   bagOpen=true;                                   check("bag",      &bagOpen,      &bagPage);
-  // The Digidex pages to the end of the forms with art. It was capped at 10 flat
-  // pages when the dex was 151 long, which silently hid everything past 160 once it
-  // grew to 386.
-  clearAll(); galleryOpen=true; galleryDetail=0; galleryPage=0;
+  // The Digidex pages each stage's grid to its end. It was capped at 10 flat pages
+  // when the dex was 151 long, which silently hid everything past 160 once it grew
+  // to 386. Now every stage pages on its own, and the stages together must reach
+  // every form with art.
+  clearAll(); galleryOpen=true; galleryDetail=0; galleryPage=0; galleryStage=-1;
+  if (uiRimPages() != 1) { printf("FAIL  gallery    the stage picker pages\n"); bad++; }
+  else printf("PASS  %-10s the stage picker is one page\n", "gallery");
+  galleryStage = TS_ST_CHAMPION;               // 31 forms with public art: two pages
   onRim(1);
   if (!galleryOpen) { printf("FAIL  gallery    closed while paging\n"); bad++; }
   else if (galleryPage != 1) { printf("FAIL  gallery    did not advance (page=%u)\n", galleryPage); bad++; }
   else printf("PASS  %-10s pages on the rim\n", "gallery");
   {
-    const int pages = (NO_ART_DRAWABLE + 15) / 16;
-    galleryPage = 0;
-    for (int p = 0; p < pages + 2; p++) onRim(1);
-    if (galleryPage != pages - 1) {
-      printf("FAIL  gallery    stops at page %d of %d\n", galleryPage + 1, pages); bad++;
-    } else printf("PASS  %-10s every one of the %d forms with art is reachable\n", "gallery", NO_ART_DRAWABLE);
+    int reached = 0, short_ = 0;
+    for (int st = 0; st < TS_STAGE_COUNT; st++) {
+      galleryStage = (int8_t)st; galleryPage = 0;
+      const int n = galleryCount();
+      const int pages = n ? (n + 15) / 16 : 1;
+      for (int p = 0; p < pages + 2; p++) onRim(1);
+      if (galleryPage != pages - 1) short_++;
+      reached += n;
+    }
+    if (short_ || reached != NO_ART_DRAWABLE) {
+      printf("FAIL  gallery    the stages reach %d of %d forms with art\n", reached, NO_ART_DRAWABLE); bad++;
+    } else printf("PASS  %-10s every one of the %d forms with art is reachable, stage by stage\n", "gallery", NO_ART_DRAWABLE);
+  }
+  // An entry pages too, once it is scanned: its sprite, its stats, its routes.
+  {
+    galleryStage = TS_ST_CHAMPION; galleryPage = 0;
+    galleryDetail = 89;                        // GREYMON
+    galleryDetailPage = 0;
+    pet.addScan(89, SCAN_FULL);
+    const uint8_t n = galleryDetailPages();
+    for (int p = 0; p < n + 2; p++) onRim(1);
+    if (n < 3 || galleryDetailPage != n - 1) {
+      printf("FAIL  gallery    a scanned entry does not page to its routes (%u/%u)\n", galleryDetailPage, n); bad++;
+    } else printf("PASS  %-10s a scanned entry pages through %u pages\n", "gallery", n);
+    galleryDetail = 0; galleryDetailPage = 0;
   }
 
   // THE TILE AXIS. Horizontal is now one gesture with one meaning: move to the
@@ -157,10 +182,18 @@ int main(){
     onSwipeV(1);
     if (gymOpen) { printf("FAIL  gyms       swiping down does not go home\n"); bad++; }
     else printf("PASS  %-10s swiping down goes home\n", "gyms");
-    clearAll(); galleryOpen = true; galleryPage = 0;
+    // The Digidex is three levels deep, and down backs out one at a time.
+    clearAll(); galleryOpen = true; galleryPage = 0; galleryStage = TS_ST_ROOKIE; galleryDetail = 21;
+    onSwipeV(1);
+    if (!galleryOpen || galleryDetail || galleryStage != TS_ST_ROOKIE) {
+      printf("FAIL  gallery    down from an entry does not go back to its stage\n"); bad++;
+    } else printf("PASS  %-10s down from an entry goes back to its stage\n", "gallery");
+    onSwipeV(1);
+    if (!galleryOpen || galleryStage != -1) { printf("FAIL  gallery    down from a stage does not go to the picker\n"); bad++; }
+    else printf("PASS  %-10s down from a stage goes to the stage picker\n", "gallery");
     onSwipeV(1);
     if (galleryOpen) { printf("FAIL  gallery    swiping down does not go home\n"); bad++; }
-    else printf("PASS  %-10s swiping down goes home\n", "gallery");
+    else printf("PASS  %-10s swiping down from the picker goes home\n", "gallery");
   }
 
   // The hour offsets live in the learnset and moves_test pins them -- but the

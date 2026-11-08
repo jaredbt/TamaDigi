@@ -24,7 +24,7 @@ static void ck(bool ok,const char*w){printf("%s  %s\n",ok?"PASS":"FAIL",w); if(!
 
 int main(){
   Pet p; p.begin();
-  if (p.awaitingStarter()) p.chooseStarter(6);
+  p.dbgSetEgg(6);
   // What BRING BACK used to leave behind: a Digimon at its banked level, frozen.
   p.dbgHatchAs(6, true);
   p.ageMinutes = 60UL * MINUTES_PER_LEVEL;

@@ -136,16 +136,85 @@ int main(){
     ck(p->routeMet(*e), "and at that level it is open");
   }
 
-  // STUB, until phase 2: Agent Rank passes everywhere. When it lands this flips: a
-  // route with a rank must be shut at rank 1. See Pet::agentRank().
+  // AGENT RANK: 1 + the Easy area badges, 10 for the champion. Hard badges and the
+  // elites never count. Routes below Ultimate need none; into Ultimate 5, Mega 7,
+  // Mega+ 8.
   {
     Pet *p = fresh(BOTAMON, 1);
+    p->badges = p->badgesHard = 0;
     uint8_t top = 0;
     for (uint16_t i = 0; i < TS_EVO_COUNT; i++) if (TS_EVO_TBL[i].rank > top) top = TS_EVO_TBL[i].rank;
-    ck(top == 8 && p->agentRank() >= top, "the rank stub clears the highest rank in the table");
+    ck(top == 8, "the table's highest rank is 8 (into Mega+)");
+    ck(p->agentRank() == 1, "a new tamer is rank 1");
+    p->badgesHard = 0x1FFF;
+    ck(p->agentRank() == 1, "and every Hard badge leaves it there");
+    p->badges = 0x0F;
+    ck(p->agentRank() == 5, "four Easy area badges are rank 5: Ultimate opens");
+    p->badges = 0x3F;
+    ck(p->agentRank() == 7, "six are rank 7: Mega opens");
+    p->badges = 0xFF | (0x0F << TRAINER_GYMS);
+    ck(p->agentRank() == 9, "eight are rank 9, and the four elites add nothing");
+    p->badges |= 1u << TRAINER_CHAMPION;
+    ck(p->agentRank() == AGENT_RANK_MAX && AGENT_RANK_MAX == 10, "the champion makes it 10");
+    p->badges = p->badgesHard = 0;
+  }
+  // ...and it gates the routes that ask for it, and only those
+  {
+    const TsEvo *gate = nullptr;    // a Champion -> Ultimate route with art at both ends
+    for (uint16_t i = 0; i < TS_EVO_COUNT && !gate; i++) {
+      const TsEvo &e = TS_EVO_TBL[i];
+      if (e.rank == 5 && TS_DEX_TBL[e.from].stage == TS_ST_CHAMPION &&
+          speciesHasArt((int16_t)e.from) && speciesHasArt((int16_t)e.to)) gate = &e;
+    }
+    ck(gate != nullptr, "some drawable Champion -> Ultimate route asks rank 5");
+    Pet *p = fresh((int16_t)gate->from, 99);
+    p->trAtk = p->trDef = p->trSpe = 255;
+    p->deDigiCount = DEDIGI_COUNT_MAX;
+    p->badges = 0x07;                      // rank 4
+    ck(!p->routeMet(*gate), "at rank 4 the route into Ultimate is shut");
+    ck(!offers(p, (int16_t)gate->to), "and the branch is not offered");
+    p->badges = 0x0F;                      // rank 5
+    ck(p->routeMet(*gate), "at rank 5 it opens");
+    ck(offers(p, (int16_t)gate->to), "and is offered");
+    p->badges = 0x07;
+    bool everyBelow = true;
+    for (uint16_t i = 0; i < TS_EVO_COUNT; i++)
+      if (TS_DEX_TBL[TS_EVO_TBL[i].to].stage < TS_ST_ULTIMATE && TS_EVO_TBL[i].rank) everyBelow = false;
+    ck(everyBelow, "no route into a stage below Ultimate asks any rank");
+    p->badges = 0;
+  }
+  // evoRankWanted() is what the card asks: rank is named only when it is the one
+  // thing missing.
+  {
+    int16_t champ = 0;
+    const TsEvo *only = nullptr;
+    for (int16_t d = 1; d <= DEX_COUNT && !only; d++) {
+      if (TS_DEX_TBL[d].stage != TS_ST_CHAMPION || !speciesHasArt(d)) continue;
+      const TsDexEntry &de = TS_DEX_TBL[d];
+      bool allRanked = de.evoCount > 0;
+      for (uint16_t i = de.evoFirst; i < (uint16_t)de.evoFirst + de.evoCount; i++)
+        if (speciesHasArt((int16_t)TS_EVO_TBL[i].to) && !TS_EVO_TBL[i].rank) allRanked = false;
+      if (allRanked) { champ = d; only = &TS_EVO_TBL[de.evoFirst]; }
+    }
+    ck(champ != 0, "some drawable Champion has only ranked branches");
+    Pet *p = fresh(champ, 99);
+    p->trAtk = p->trDef = p->trSpe = 255;
+    p->deDigiCount = DEDIGI_COUNT_MAX;
+    p->badges = 0;
+    ck(!p->canEvolveNow() && p->evoRankWanted() == 5, "at rank 1 the card says rank 5 is wanted");
+    p->badges = 0x0F;
+    ck(p->canEvolveNow() && p->evoRankWanted() == 0, "and once it is held, nothing is wanted");
+    p->badges = 0;
+    Pet *q = fresh(champ, 25);             // untrained, young: rank is not the only gap
+    q->badges = 0;
+    bool statGap = false;
+    const TsDexEntry &de = TS_DEX_TBL[champ];
+    for (uint16_t i = de.evoFirst; i < (uint16_t)de.evoFirst + de.evoCount; i++)
+      if (!q->routeMet(TS_EVO_TBL[i])) statGap = true;
+    ck(statGap, "a young untrained one is shut for more than rank");
   }
 
-  // choosing among branches: declining moves the offer to the next open one
+  // choosing among branches: the offer can take any open one; keeping form waits
   {
     Pet *p = fresh(KOROMON, 25);
     p->trAtk = p->trDef = p->trSpe = 100;
@@ -153,16 +222,16 @@ int main(){
     const uint8_t n = p->evoOptions(open, EVO_OPTIONS_MAX);
     printf("      KOROMON has %u branches open at level 25\n", n);
     ck(n >= 2, "a trained KOROMON has more than one branch open");
-    const int16_t first = p->digiTarget();
-    ck(first == open[0], "the first is on offer");
+    ck(p->digiTarget() == open[0], "the first is what evolve() would take");
     p->declineEvolve();
-    ck(p->digiTarget() == open[1 % n], "keeping form moves the offer to the next branch");
-    ck(!p->wantEvolveButton(), "and it waits for the next level to ask again");
+    ck(!p->wantEvolveButton(), "keeping form waits for the next level to ask again");
     p->ageMinutes += MINUTES_PER_LEVEL;
     ck(p->wantEvolveButton(), "which it then does");
-    const int16_t want = p->digiTarget();
-    p->evolve();
-    ck(p->speciesId == want, "evolve() takes the branch on offer");
+    ck(!p->evolveTo(GREYMON), "evolveTo() refuses a form that is not an open branch");
+    ck(p->speciesId == KOROMON, "and nothing changed");
+    const int16_t want = open[n - 1];
+    ck(p->evolveTo(want), "evolveTo() takes any open branch, not only the first");
+    ck(p->speciesId == want, "the one chosen");
     ck(p->careMistakes == 0, "and the new form counts care mistakes from zero");
   }
 
@@ -200,8 +269,7 @@ int main(){
     q.fullness = q.joy = q.energy = q.hygiene = 100;
     ck(q.level() == 40, "at level 40");
     ck(offers(&q, GREYMON), "AGUMON can become GREYMON");
-    while (q.digiTarget() != GREYMON) q.declineEvolve();
-    q.evolve();
+    q.evolveTo(GREYMON);
     ck(q.speciesId == GREYMON, "and does");
     const uint16_t hp = q.vitStat();
     int16_t back[8];
@@ -218,8 +286,7 @@ int main(){
     ck(!offers(&q, GREYMON), "not even at level 57");
     q.ageMinutes = 57UL * MINUTES_PER_LEVEL;     // level 58
     ck(offers(&q, GREYMON), "and at 58 GREYMON is open again");
-    while (q.digiTarget() != GREYMON) q.declineEvolve();
-    q.evolve();
+    q.evolveTo(GREYMON);
     ck(q.speciesId == GREYMON && q.evoHold == 0, "a digivolution clears the hold");
     ck(q.vitStat() > hp, "and it is a tougher GREYMON than the first");
     ck(q.vitStat() == petCalcHp(GREYMON, 58, 1), "by exactly the x1.1");

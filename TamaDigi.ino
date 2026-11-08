@@ -41,8 +41,8 @@
 // the web installer). Shown on the settings screen and over serial at boot.
 #define FW_VERSION "2.0.0"
 
-// Set once at boot when a v1.0.0 save was found and replaced, so the first screen
-// can say so. RAM only: the save it describes is gone.
+// Set once at boot when a v1.0.0 save was found and replaced, so the first egg
+// can say so; it clears when that egg hatches. RAM only: the save it describes is gone.
 bool gOldSaveReplaced = false;
 
 Arduino_DataBus *bus = new Arduino_ESP32QSPI(
@@ -76,10 +76,11 @@ PmdMon galleryPmd;  // large sprite for the gallery detail view (PMD/TPK2, legal
 // digidex gallery
 bool galleryOpen = false;
 bool galleryDirty = false;
-// 16 to a page. Phase 2 of the cutover puts a stage picker in front of this grid;
-// until then it lists the forms that have art, in dex order.
+// 16 to a page, behind a stage picker (galleryStage -1). See "THE DIGIDEX" below.
 #define GAL_PER_PAGE 16
 uint8_t galleryPage = 0;    // galleryPages() pages of GAL_PER_PAGE
+int8_t galleryStage = -1;   // TS_ST_* of the grid on show; -1 = the stage picker
+uint8_t galleryDetailPage = 0;   // galleryDetailPages() pages of an entry
 // ---------------------------------------------------------------------------
 // DIGIDEX FILTERS. A view setting, so RAM only -- deliberately NO save field:
 // every one of these is derived from data the save already holds, and a filter
@@ -207,7 +208,7 @@ uint8_t movePickPage = 0;
 bool battleOpen = false;
 
 enum : uint8_t {
-  SCR_STARTER = 0, SCR_GALLERY, SCR_MOVEPICK,
+  SCR_GALLERY = 0, SCR_MOVEPICK,
   SCR_KEYBOARD, SCR_CARD, SCR_PLAYER, SCR_CLOCK, SCR_GYM,
   SCR_EXPLORE, SCR_LAN, SCR_BATTLE, SCR_WIN, SCR_LEARN, SCR_TRAIN, SCR_MENU,
   SCR_BAGSCR, SCR_GAME, SCR_MAIN, SCR_TRANSFER, SCR_COUNT
@@ -251,6 +252,8 @@ void startTrainerBattle(uint8_t idx, bool hard);
 // defined, because the number of PAGES depends on it -- and non-static so a test
 // can drive the firmware's own answer instead of recomputing it.
 bool galleryPass(int16_t dex);
+uint8_t galleryDetailPages();
+bool galleryBack();
 uint16_t galleryCount();
 int16_t galleryAt(uint16_t visual);
 uint8_t galleryPages();
@@ -275,7 +278,7 @@ void drawConfirmPanel(const char *q, const char *sub1, const char *sub2,
                       uint16_t subCol, const char *o1, uint16_t c1, uint16_t t1,
                       const char *o2, uint16_t c2, uint16_t t2);
 const char *const SCREEN_NAME[SCR_COUNT] = {
-  "starter", "gallery", "movepick",
+  "gallery", "movepick",
   "keyboard", "card", "player", "clock", "gym",
   "explore", "lan", "battle", "win", "learn", "train", "menu",
   "bag", "minigame", "main", "transfer"
@@ -377,7 +380,7 @@ bool lanWantHost = true;
 bool playerOpen = false;
 // The badges, then the medals, then TODAY's checklist.
 uint8_t playerPage = 0;
-#define PLAYER_PAGES 3
+#define PLAYER_PAGES 4   // + the partner history
 uint8_t gymPage = 0;
 #define GYM_ROWS 5
 #define GYM_ROW_Y(i) (110 + (i) * 50)
@@ -391,7 +394,8 @@ void gymRowRect(int i, int *x, int *y, int *w, int *h);
 #define GYMBTN_W 190
 #define GYMBTN_H UI_TAP_MIN
 #define GYMBTN_X (CX - GYMBTN_W / 2)
-int8_t btlTrainer = -1;      // index into TRAINERS, -1 = a one-off fight
+int8_t btlTrainer = -1;      // boss slot (TS_BOSS_TBL), -1 = a one-off fight
+int16_t btlBossDex = 0;      // the form that slot fought as: bossForm() at the start
 bool btlHard = false;
 
 // ---------------------------------------------------------------------------
@@ -668,24 +672,6 @@ static const uint8_t CRACK2[][2] = { {11,13},{12,14},{11,15},{20,12},{19,13},{20
 static const uint16_t STARS[][2] = { {120,140},{330,120},{370,210},{95,230},{280,90},{160,95} };
 
 bool wasPressed = false;
-// starter choice (first game): BOTAMON / AGUMON / BETAMON, 3 rows
-// The In-Training I forms that can be drawn, from pet.cpp's starterForms(), which is
-// also the egg pool. On public art that is Punimon, Botamon and Poyomon.
-#define STARTER_SHOWN 3
-int16_t starterOf(uint8_t i) {
-  int16_t forms[STARTER_SHOWN];
-  const uint8_t n = starterForms(forms, STARTER_SHOWN);
-  return i < n && i < STARTER_SHOWN ? forms[i] : 0;
-}
-uint8_t starterCountShown() {
-  int16_t forms[STARTER_SHOWN];
-  const uint8_t n = starterForms(forms, STARTER_SHOWN);
-  return n < STARTER_SHOWN ? n : STARTER_SHOWN;
-}
-
-#define STARTER_ROW_Y 110
-#define STARTER_ROW_H 70
-#define STARTER_ROW_GAP 8
 // digivolution CTA button (centred, mid-screen)
 #define EVO_BTN_W 256
 #define EVO_BTN_H 64
@@ -776,8 +762,41 @@ uint32_t holdStart = 0;     // long press on the creature
 uint32_t confirmUntil = 0;  // "release?" dialog active until this millis
 uint8_t choiceKind = 0;     // decision dialog: 0 none, 1 digivolution, 2 farewell,
                             // 3 retirement, 4 de-digivolution
-// Which earlier form the card's button offers. Declining moves it on, the way
-// "keep form" moves the digivolution offer to the next branch.
+// THE EVOLUTION OFFER. One open branch at a time, paged on the rim (uiRimTarget()),
+// with DIGIVOLVE for the one shown and KEEP FORM for none. A round 466 px panel has
+// room for one branch's name and requirements at a size that can be read, not for a
+// list of them; the rim is how every other paged screen here works. A branch into
+// a Digimon you have seen is named, otherwise "???"; its requirements show only
+// once it is scanned or raised. RAM only, reset each time the offer opens.
+uint8_t evoPick = 0;
+uint8_t evoChoiceCount() {
+  int16_t open[EVO_OPTIONS_MAX];
+  return pet.evoOptions(open, EVO_OPTIONS_MAX);
+}
+int16_t evoChoiceTarget() {
+  int16_t open[EVO_OPTIONS_MAX];
+  const uint8_t n = pet.evoOptions(open, EVO_OPTIONS_MAX);
+  return n ? open[evoPick % n] : 0;
+}
+// What a route needs, in one line ("Lv.25 ATK41 DEF30 RANK5"): the data's own
+// numbers, scaled the way routeMet() scales them, not this partner's clock. The
+// offer and the Digidex both write it with this.
+void routeReqText(const TsEvo &e, char *out, size_t n) {
+  static const StrId LBL[TS_STAT_COUNT] = { S_STAT_VIT, S_STAT_ATK, S_STAT_DEF,
+                                            S_STAT_SPE, S_STAT_MATK, S_STAT_MDEF };
+  uint8_t lv = TS_STAGE_ENTRY[TS_DEX_TBL[e.to].stage % STAGE_COUNT];
+  if (e.minLevel > lv) lv = e.minLevel;
+  int w = snprintf(out, n, T(S_LVL_FMT), (unsigned)lv);
+  for (uint8_t i = 0; i < TS_STAT_COUNT; i++) {
+    if (!e.min[i] || w < 0 || (size_t)w >= n) continue;
+    w += snprintf(out + w, n - w, " %s%u", T(LBL[i]), (unsigned)tsScaled(e.min[i]));
+  }
+  if (e.rank && w >= 0 && (size_t)w < n) {
+    w += snprintf(out + w, n - w, " ");
+    if (w >= 0 && (size_t)w < n) snprintf(out + w, n - w, T(S_REQ_RANK_FMT), (unsigned)e.rank);
+  }
+}
+// Which earlier form the card's button offers. Declining moves it on.
 uint8_t devolvePick = 0;
 #define DEVO_OPTIONS_MAX 16
 int16_t devolveTarget() {
@@ -1218,9 +1237,19 @@ void handleSerial() {
     Serial.println("DONE");
   } else if (line == "GAL") {
     galleryOpen = !galleryOpen;
+    galleryStage = -1;
     galleryDetail = 0;
     galleryDirty = true;
     if (!galleryOpen) galleryPmd.unload();
+    Serial.println("DONE");
+  } else if (line.startsWith("BADGE ")) {
+    // BADGE <slot> [hard]: as if that boss were beaten, so Agent Rank can be tried
+    // on a board without fighting the ladder first.
+    int i = -1, h = 0;
+    if (sscanf(line.c_str() + 6, "%d %d", &i, &h) >= 1 && i >= 0 && i < TRAINER_COUNT) {
+      pet.winBadge((uint8_t)i, h != 0);
+      Serial.printf("rank=%u\n", pet.agentRank());
+    }
     Serial.println("DONE");
   } else if (line == "EGGS") {
     // simulate 20 egg rolls (does not change the game state)
@@ -1410,6 +1439,9 @@ void handleSerial() {
     Serial.printf("variant=%d streak=%u/%u bond=%u medals=0x%X(%u) nick=%s\n",
                   pet.variant, pet.streak, pet.bestStreak, pet.bond, pet.medals,
                   pet.totalMedals, pet.nick);
+    Serial.printf("rank=%u badges=0x%X/0x%X seen=%u raised=%u history=%u\n",
+                  pet.agentRank(), pet.badges, pet.badgesHard, pet.seenCount(),
+                  pet.registeredCount(), pet.historyCount);
     Serial.println("DONE");
   }
 }
@@ -1514,7 +1546,6 @@ void handleTouch() {
 void openClock();  // prototype
 
 void onSwipeV(int dir) {
-  if (pet.awaitingStarter()) return;  // blocked during the starter choice
   if (menuOpen) { menuOpen = false; return; }   // any swipe closes the menu
   if (battleOpen) return;   // no swiping out of a fight
   const bool back = dir > 0;
@@ -1545,11 +1576,8 @@ void onSwipeV(int dir) {
 
   if (gymOpen) { if (back) uiTileGo(TILE_PET); return; }
   if (galleryOpen) {
-    if (galleryDetail) {
-      if (back) { galleryDetail = 0; galleryPmd.unload(); galleryDirty = true; }
-      return;
-    }
-    if (back) uiTileGo(TILE_PET);
+    // Down backs out one level: the entry, then the stage, then home.
+    if (back && !galleryBack()) uiTileGo(TILE_PET);
     return;
   }
   if (playerOpen) { if (back) uiTileGo(TILE_PET); return; }
@@ -1648,15 +1676,13 @@ int uiButtonHitR() { return BTN_HIT; }
 // how the same paging bug shipped four times. Paging moved to the rim
 // (onRim), which is what frees this axis to mean one thing.
 void onSwipe(int dir) {
-  // First boot has no axis yet: nothing exists but the starter choice.
-  if (pet.awaitingStarter()) return;
   if (menuOpen) { menuOpen = false; return; }   // any swipe closes the menu
   if (battleOpen) return;   // no swiping out of a fight
 
   int t = uiTileIndex();
   if (t >= 0) {
     // A sheet drawn on top of a tile closes first; the axis is underneath it.
-    if (galleryDetail) { galleryDetail = 0; galleryPmd.unload(); galleryDirty = true; return; }
+    if (galleryDetail) { galleryBack(); return; }
     if (pet.ceremony || confirmUntil) return;
     int n = t - dir;   // the content follows the finger
     // IT BUMPS. This is the whole point of the axis: a horizontal swipe can no
@@ -1679,18 +1705,6 @@ void onSwipe(int dir) {
 }
 
 void onTap(int16_t x, int16_t y) {
-  if (pet.awaitingStarter()) {  // first game: choose a starter
-    for (int i = 0; i < starterCountShown(); i++) {
-      int ry = STARTER_ROW_Y + i * (STARTER_ROW_H + STARTER_ROW_GAP);
-      if (x >= 70 && x <= 396 && y >= ry && y <= ry + STARTER_ROW_H) {
-        gOldSaveReplaced = false;
-        pet.chooseStarter(starterOf((uint8_t)i));
-        sfxPlay(SFX_TAP);
-        break;
-      }
-    }
-    return;
-  }
   if (battleOpen) {
     battleTap(x, y);
     return;
@@ -1815,7 +1829,7 @@ void onTap(int16_t x, int16_t y) {
       menuOpen = false;
       if (i == 0) { cardOpen = true; cardPage = 1; }   // straight to the stats page
       else if (i == 1) { bagOpen = true; bagPage = 0; }
-      else if (i == 2) { galleryOpen = true; galleryPage = 0; galleryDetail = 0; galleryDirty = true; }
+      else if (i == 2) { galleryOpen = true; galleryStage = -1; galleryPage = 0; galleryDetail = 0; galleryDirty = true; }
       else if (i == 3) { openClock(); }
       else if (i == 4) {
         if (!pet.canRetireNow()) { sfxPlay(SFX_DENY); return; }
@@ -1902,9 +1916,11 @@ void onTap(int16_t x, int16_t y) {
     const bool inX = (x >= CONFIRM_BTN_X && x <= CONFIRM_BTN_X + CONFIRM_BTN_W);
     bool b1 = inX && y >= c1t && y <= c1b;   // action
     bool b2 = inX && y >= c2t && y <= c2b;   // keep / stay together
-    if (choiceKind == 1) {                 // digivolution
-      if (b1) { int16_t old = pet.speciesId; pet.evolve(); evoPmd.load(old, pet.variant); }
-      else if (b2) pet.declineEvolve();
+    if (choiceKind == 1) {                 // digivolution: the branch on the page
+      if (b1) {
+        int16_t old = pet.speciesId;
+        if (pet.evolveTo(evoChoiceTarget())) evoPmd.load(old, pet.variant);
+      } else if (b2) pet.declineEvolve();
     } else if (choiceKind == 3) {          // retirement on request
       if (b1) pet.startRetire();
       // b2 is simply "no": nothing to decline, the row is always there
@@ -1950,6 +1966,7 @@ void onTap(int16_t x, int16_t y) {
   if (pet.wantEvolveButton() && x >= EVO_BTN_X && x <= EVO_BTN_X + EVO_BTN_W &&
       y >= EVO_BTN_Y && y <= EVO_BTN_Y + EVO_BTN_H) {
     choiceKind = 1; choiceUntil = millis() + 12000;
+    evoPick = 0;
     return;
   }
   // ending buttons (same box): runaway goes straight ahead; farewell opens a dialog.
@@ -2106,49 +2123,6 @@ void drawScene(uint8_t biome, uint32_t now, bool night) {
   }
 }
 
-// first game: choose a starter from BOTAMON / AGUMON / BETAMON
-void renderStarterSelect() {
-  gfx->fillScreen(RGB565_BLACK);
-  gfx->fillCircle(CX, CY, 231, UI_BG_DAY);
-  const char *t = T(S_CHOOSE_STARTER);
-  gfx->setTextColor(UI_INK);
-  gfx->setTextSize(2);
-  gfx->setCursor(CX - strlen(t) * 6, 68);
-  gfx->print(t);
-  for (int i = 0; i < starterCountShown(); i++) {
-    int16_t d = starterOf(i);
-    const uint16_t accent = dexAccent(d);
-    int ry = STARTER_ROW_Y + i * (STARTER_ROW_H + STARTER_ROW_GAP);
-    gfx->fillRoundRect(70, ry, 326, STARTER_ROW_H, 14, lerp565(accent, UI_WHITE, 6, 8));
-    gfx->drawRoundRect(70, ry, 326, STARTER_ROW_H, 14, accent);
-    const uint8_t *th = thumbs.get(d);     // the starter's thumbnail (if the SD is ready)
-    if (th) drawThumb(th, 76, ry - 5, 3, false);
-    gfx->setTextColor(UI_INK);
-    gfx->setTextSize(3);
-    gfx->setCursor(178, ry + 24);
-    gfx->print(TS_DEX_TBL[d].name);
-  }
-  // No hatchling can be drawn: the pack is not on the card. Saying so is the only way
-  // off this screen, which a first boot has no other way past.
-  if (!starterCountShown()) {
-    gfx->setTextColor(UI_TEXT_BAD);
-    gfx->setCursor(CX - (int)strlen(T(S_NEED_PACK)) * 6, 200);
-    gfx->setTextSize(2);
-    gfx->print(T(S_NEED_PACK));
-  }
-  // A v1.0.0 save cannot be carried forward. A player who just updated has to be told
-  // why their partner is gone, on the panel: they are not watching the serial port.
-  if (gOldSaveReplaced) {
-    gfx->setTextColor(UI_TEXT_BAD);
-    gfx->setTextSize(1);
-    gfx->setCursor(CX - (int)strlen(T(S_OLD_SAVE)) * 3, 354);
-    gfx->print(T(S_OLD_SAVE));
-    gfx->setCursor(CX - (int)strlen(T(S_OLD_SAVE2)) * 3, 366);
-    gfx->print(T(S_OLD_SAVE2));
-  }
-  gfx->flush();
-}
-
 // ---------- crash breadcrumbs ----------
 //
 // "It has a mini crash" is not a bug report you can act on, because the board
@@ -2168,7 +2142,6 @@ RTC_NOINIT_ATTR uint32_t gCrumbHeap;
 // Which screen is on the panel RIGHT NOW, in the same order render() tests.
 uint8_t uiCurrentScreen() {
   if (transferMode()) return SCR_TRANSFER;
-  if (pet.awaitingStarter()) return SCR_STARTER;
   if (galleryOpen) return SCR_GALLERY;
   if (movePickOpen) return SCR_MOVEPICK;
   if (bagOpen) return SCR_BAGSCR;
@@ -2232,7 +2205,7 @@ void uiTileGo(int i) {
     case SCR_GYM: gymOpen = true; gymPage = 0; break;
     case SCR_EXPLORE: exploreOpen = true; break;
     case SCR_GALLERY:
-      galleryOpen = true; galleryPage = 0;
+      galleryOpen = true; galleryStage = -1; galleryPage = 0;
       galleryDirty = true;
       break;
     case SCR_PLAYER: playerOpen = true; playerPage = 0; break;
@@ -2254,7 +2227,11 @@ static uint8_t *uiRimTarget(uint8_t *pages) {
     case SCR_GYM:     p = &gymPage;     n = (TRAINER_COUNT + GYM_ROWS - 1) / GYM_ROWS; break;
     // galleryPages(): with a filter on, the grid is shorter, and paging past the
     // filtered end draws an empty screen.
-    case SCR_GALLERY: p = &galleryPage; n = galleryPages(); break;
+    case SCR_GALLERY:
+      // An entry pages through its sprite, stats and routes; the picker does not page.
+      if (galleryDetail) { p = &galleryDetailPage; n = galleryDetailPages(); }
+      else if (galleryStage >= 0) { p = &galleryPage; n = galleryPages(); }
+      break;
     case SCR_PLAYER:  p = &playerPage;  n = PLAYER_PAGES; break;
     case SCR_BAGSCR:  p = &bagPage;     n = bagPages(); break;
     case SCR_CARD:    p = &cardPage;    n = CARD_PAGES; break;
@@ -2262,6 +2239,10 @@ static uint8_t *uiRimTarget(uint8_t *pages) {
     // is how every other paged screen here works, and uiDrawRimBar() reads the
     // same table, so the second page advertises itself with no new control.
     case SCR_CLOCK:   p = &clockPage;   n = CLOCK_PAGES; break;
+    // The evolution offer pages through the open branches.
+    case SCR_MAIN:
+      if (choiceKind == 1) { p = &evoPick; n = evoChoiceCount(); }
+      break;
     case SCR_MOVEPICK: {
       uint16_t all[MOVE_PICK_MAX];
       uint8_t k = learnableList(all, MOVE_PICK_MAX);
@@ -2297,6 +2278,7 @@ void onRim(int dir) {
   if (v == (int)(*p)) return;
   *p = (uint8_t)v;
   if (uiCurrentScreen() == SCR_GALLERY) galleryDirty = true;
+  if (uiCurrentScreen() == SCR_MAIN && choiceKind) choiceUntil = millis() + 12000;
   sfxPlay(SFX_TAP);
 }
 
@@ -2465,10 +2447,6 @@ void render() {
     renderTransfer();
     return;
   }
-  if (pet.awaitingStarter()) {  // first game: choose a starter
-    renderStarterSelect();
-    return;
-  }
   if (galleryOpen) {
     renderGallery();
     return;
@@ -2570,12 +2548,24 @@ void render() {
     gfx->setTextSize(2);
     gfx->setCursor(CX - strlen(reg) * 6, 344);
     gfx->print(reg);
+    // A v1.0.0 save cannot be carried forward. A player who just updated has to be
+    // told why their partner is gone, on the panel: they are not watching the serial
+    // port. The first screen of a replaced save is this egg.
+    if (gOldSaveReplaced) {
+      gfx->setTextColor(UI_TEXT_BAD);
+      gfx->setTextSize(1);
+      gfx->setCursor(CX - (int)strlen(T(S_OLD_SAVE)) * 3, 372);
+      gfx->print(T(S_OLD_SAVE));
+      gfx->setCursor(CX - (int)strlen(T(S_OLD_SAVE2)) * 3, 384);
+      gfx->print(T(S_OLD_SAVE2));
+    }
 
     // Which generation this egg comes from. It lives HERE rather than in the
     // settings screen because this is the only moment it does anything: the
     // Digimon is decided when the egg appears, so choosing the version is
     // something you do to the egg in front of you.
   } else {
+    gOldSaveReplaced = false;   // the notice has done its job once the egg hatches
     const TsDexEntry &d = TS_DEX_TBL[pet.speciesId];
     char name[28];
     const char *base = pet.nick[0] ? pet.nick : d.name;
@@ -3725,8 +3715,8 @@ static void btlNarrate(const Combatant &actor, const Combatant &target, const Tu
 }
 
 // Builds one opponent through Pet, so it gets the same stat formula and the
-// same learnset-driven skills the player's creatures do. IVs no longer touch a stat,
-// so a Hard boss differs by its AI until phase 2 brings Hard mode's level rule.
+// same learnset-driven skills the player's creatures do. IVs no longer touch a stat:
+// a Hard boss differs by its AI, and by the cap on your partner's level.
 static void foeFromSpecies(Combatant &c, int16_t dex, uint8_t lvl, bool variant) {
   Pet foe;
   foe.dbgHatchAs(dex, variant);
@@ -3737,10 +3727,10 @@ static void foeFromSpecies(Combatant &c, int16_t dex, uint8_t lvl, bool variant)
 
 // Your side: the partner, and only the partner. Every battle is 1-on-1.
 //
-// The boss ladder caps your LEVEL to the boss's, so a boss is always fought on
-// its own terms and grinding is never the answer -- the matchups, the skills
-// and the choices are. The cap is applied while BUILDING the combatant, so
-// nothing is ever written back to the live pet, exactly like ailments.
+// Hard mode caps your LEVEL to the boss's (never raises it), so a Hard boss is
+// fought on its own terms and waiting is never the answer. The cap is applied while
+// BUILDING the combatant, so nothing is ever written back to the live pet, exactly
+// like ailments. 0 = no cap: Easy, the wild, and a one-off fight.
 static bool buildPartner(uint8_t maxLvl) {
   if (pet.isEgg()) return false;
   combatantFromPet(btlYou, pet, maxLvl);
@@ -3777,18 +3767,22 @@ void startLinkBattle() {
 
 void startTrainerBattle(uint8_t idx, bool hard) {
   if (idx >= TRAINER_COUNT || pet.isEgg() || pet.ceremony != CER_NONE) return;
-  const Trainer &boss = TRAINERS[idx];
-  // The gate the wild has too: a boss that cannot be drawn would open the fight with
-  // a bare dex number where a creature should be.
-  if (!speciesShowable((int16_t)boss.dex)) return;
-  // BOTH difficulties cap your level to the boss's. Without it a L73 partner
-  // walks every tamer at 100% and the matchups never matter. Hard adds a
-  // smarter AI.
-  if (!buildPartner(boss.level)) return;
+  // The real boss when it can be drawn, else its stand-in: one answer, bossForm().
+  // 0 means nothing of its stage can be drawn (no pack), and a fight that opened
+  // with a bare dex number where a creature should be is worse than none.
+  const int16_t dex = bossForm(idx);
+  if (!dex) return;
+  const uint8_t lvl = bossLevel(idx);
+  // Easy: your partner fights at its real level. Hard: a partner above the boss's
+  // level is scaled DOWN to it (never up), so waiting cannot win a Hard badge.
+  // Hard also plays the boss with the smarter AI.
+  if (!buildPartner(hard ? lvl : 0)) return;
   btlTrainer = (int8_t)idx;
+  btlBossDex = dex;
   btlHard = hard;
   btlWild = false;
-  foeFromSpecies(btlFoe, boss.dex, boss.level, false);
+  pet.markSeen(dex);
+  foeFromSpecies(btlFoe, dex, lvl, false);
   btlMsgCount = 0;
   btlOver = false;
   btlWon = false;
@@ -4018,6 +4012,10 @@ static void btlResolve(uint16_t yourMove) {
     btlWon = btlFoe.fainted();
     btlNewBadge = false;
     btlTrainGain = 0;
+    // Beating a boss scans it fully; a wild win adds a third of a scan. The form
+    // scanned is the one that was fought.
+    if (btlWon && btlTrainer >= 0) pet.addScan(btlBossDex, SCAN_FULL);
+    if (btlWon && btlWild) pet.addScan(btlFoe.dex, 1);
     if (btlWon && btlTrainer >= 0 && !pet.hasBadge(btlTrainer, btlHard)) {
       pet.winBadge(btlTrainer, btlHard);
       btlNewBadge = true;
@@ -4027,10 +4025,14 @@ static void btlResolve(uint16_t yourMove) {
     // is worth returning to. Battling already costs the partner energy, which
     // is what rate-limits the grind without needing a cooldown.
     if (btlWon && btlTrainer >= 0) {
-      // Later bosses are worth more, and hard mode is worth roughly double.
-      uint8_t amt = (btlHard ? 6 + random(5) : 3 + random(3)) + btlTrainer / 3;
+      // Later bosses are worth more, and Hard pays double what Easy would.
+      uint8_t amt = (uint8_t)(3 + random(3) + btlTrainer / 3);
+      if (btlHard) amt = (uint8_t)(amt * 2);
       btlTrainGain = pet.rewardTraining(amt, btlTrainWhich);
     }
+    // The badge and the training save as they land. A win that brought neither (a
+    // rematch with every stat trained) or a wild win still has its scan to keep.
+    if (btlWon && (btlWild || (btlTrainer >= 0 && !btlNewBadge && !btlTrainGain))) pet.saveNow();
     audioMusic(btlWon ? MUS_VICTORY : MUS_NONE);
     if (btlWon) sfxPlay(SFX_VICTORY);
     // Tell the peer before anything else: if we stop here without sending, the
@@ -4145,7 +4147,6 @@ static void btlEaseBars() {
 // The moment the ladder builds toward. It used to be one more line in the same
 // message box as "It's super effective!", with the badge awarded silently.
 void renderWin() {
-  const Trainer &t = TRAINERS[btlTrainer];
   gfx->fillScreen(RGB565_BLACK);
   gfx->fillCircle(CX, CY, 231, UI_BG_DAY);
 
@@ -4155,7 +4156,7 @@ void renderWin() {
   gfx->print(T(S_BTL_WIN));
 
   char l[40];
-  snprintf(l, sizeof(l), T(S_BTL_BEAT), t.name);
+  snprintf(l, sizeof(l), T(S_BTL_BEAT), TS_DEX_TBL[btlBossDex].name);
   gfx->setTextColor(UI_INK);
   gfx->setTextSize(2);
   gfx->setCursor(CX - (int)strlen(l) * 6, 96);
@@ -4179,7 +4180,7 @@ void renderWin() {
         }
     } else {
       // An elite or the champion has no badge. A plain medal in the boss's colour.
-      const uint8_t el = homeElement((int16_t)TRAINERS[btlTrainer].dex);
+      const uint8_t el = homeElement(btlBossDex);
       gfx->fillCircle(CX, by, 26, typeColor(el));
       gfx->drawCircle(CX, by, 26, UI_INK);
       char n[4];
@@ -4579,6 +4580,49 @@ static void renderPlayerBadges() {
   snprintf(l, sizeof(l), T(S_DIGIDEX_FMT), pet.registeredCount(), DEX_COUNT);
   gfx->setCursor(CX - (int)strlen(l) * 6, 312);
   gfx->print(l);
+  // Agent Rank: what the Easy area badges add up to, and what opens Ultimate and later.
+  snprintf(l, sizeof(l), T(S_RANK_FMT), (unsigned)pet.agentRank());
+  gfx->setTextColor(UI_BAR_WARN);
+  gfx->setCursor(CX - (int)strlen(l) * 6, 338);
+  gfx->print(l);
+}
+
+// Page 4: the partners that have left, newest first: name, final form, age, and how
+// it ended. Text only, nothing to tap, so the rows can be tighter than a finger.
+static void renderPlayerHistory() {
+  gfx->setTextColor(UI_INK);
+  gfx->setTextSize(3);
+  gfx->setCursor(CX - (int)strlen(T(S_HISTORY)) * 9, 44);
+  gfx->print(T(S_HISTORY));
+  if (!pet.historyCount) {
+    gfx->setTextColor(UI_INK_SOFT);
+    gfx->setTextSize(2);
+    gfx->setCursor(CX - (int)strlen(T(S_HISTORY_NONE)) * 6, 200);
+    gfx->print(T(S_HISTORY_NONE));
+    return;
+  }
+  static const StrId END_STR[] = { S_END_FAREWELL, S_END_FAREWELL, S_END_RUNAWAY,
+                                   S_END_RELEASE, S_END_RETIRED };
+  for (uint8_t i = 0; i < pet.historyCount && i < PARTNER_HISTORY_MAX; i++) {
+    const PartnerRecord &r = pet.history[i];
+    const int16_t dex = dexValid(r.dex) ? r.dex : 1;
+    const int y = 92 + i * 36;
+    char l[48];
+    snprintf(l, sizeof(l), "%s%s", (r.flags & PARTNER_VARIANT) ? "*" : "",
+             r.name[0] ? r.name : TS_DEX_TBL[dex].name);
+    gfx->setTextColor(dexAccent(dex));
+    gfx->setTextSize(2);
+    gfx->setCursor(CX - (int)strlen(l) * 6, y);
+    gfx->print(l);
+    char age[16];
+    snprintf(age, sizeof(age), T(S_AGE_DH_FMT), (unsigned)(r.ageHours / 24), (unsigned)(r.ageHours % 24));
+    snprintf(l, sizeof(l), "%s  %s  %s", TS_DEX_TBL[dex].name, age,
+             T(END_STR[r.end < sizeof(END_STR) / sizeof(END_STR[0]) ? r.end : 0]));
+    gfx->setTextColor(UI_INK_SOFT);
+    gfx->setTextSize(1);
+    gfx->setCursor(CX - (int)strlen(l) * 3, y + 18);
+    gfx->print(l);
+  }
 }
 
 // Page 2: the medals. They used to sit on the creature's card; they belong with
@@ -4722,7 +4766,8 @@ void renderPlayer() {
   gfx->fillCircle(CX, CY, 231, UI_BG_DAY);
   if (playerPage == 0) renderPlayerBadges();
   else if (playerPage == 1) renderPlayerMedals();
-  else renderPlayerGoals();
+  else if (playerPage == 2) renderPlayerGoals();
+  else renderPlayerHistory();
 
   gfx->setTextColor(UI_INK_SOFT);
   gfx->setTextSize(2);
@@ -5232,8 +5277,9 @@ void renderGyms() {
   gfx->setTextSize(2);
   gfx->setCursor(CX - (int)strlen(title) * 6, 42);
   gfx->print(title);
-  // difficulty pill: hard brings better boss IVs and a smarter AI, so it is a
-  // different ladder with its own badges rather than a damage multiplier
+  // difficulty pill: Hard scales your partner down to the boss's level and plays
+  // the boss smarter, so it is a different ladder with its own badges (which do not
+  // count toward Agent Rank) rather than a damage multiplier
   const char *dif = T(gymHard ? S_HARD : S_EASY);
   int dw = (int)strlen(dif) * 12 + 48;      // wider as well as taller
   if (dw < 120) dw = 120;
@@ -5247,7 +5293,8 @@ void renderGyms() {
   for (int i = 0; i < GYM_ROWS; i++) {
     uint8_t idx = gymPage * GYM_ROWS + i;
     if (idx >= TRAINER_COUNT) break;
-    const Trainer &t = TRAINERS[idx];
+    const int16_t form = bossForm(idx);
+    const char *bname = TS_DEX_TBL[form ? form : (int16_t)TS_BOSS_TBL[idx].dex].name;
     int rx, y, rw, rh;
     gymRowRect(i, &rx, &y, &rw, &rh);
     bool done = pet.hasBadge(idx, gymHard);
@@ -5257,14 +5304,14 @@ void renderGyms() {
     gfx->setTextColor(open_ ? UI_INK : UI_TRACK);
     gfx->setTextSize(2);
     gfx->setCursor(rx + 14, y + 8);
-    gfx->print(t.name);
+    gfx->print(bname);
     gfx->setTextSize(1);
     gfx->setTextColor(UI_INK_SOFT);
     gfx->setCursor(rx + 14, y + 28);
-    gfx->print(open_ ? t.place : T(S_LOCKED));
+    gfx->print(open_ ? TRAINER_PLACE[idx] : T(S_LOCKED));
     // the level of the one Digimon it fights with: the honest measure of the wall
     char lv[16];
-    snprintf(lv, sizeof(lv), "Lv.%u", (unsigned)t.level);
+    snprintf(lv, sizeof(lv), "Lv.%u", (unsigned)bossLevel(idx));
     gfx->setTextColor(done ? UI_BAR_OK : (open_ ? UI_INK : UI_TRACK));
     gfx->setCursor(rx + rw - 12 - (int)strlen(lv) * 6, y + 28);
     gfx->print(lv);
@@ -5387,6 +5434,11 @@ void renderCardProgress() {
     // not met yet. routeMet() is what decides both, so this cannot promise a
     // digivolution that then does not happen.
     if (pet.digiTarget()) { evo = T(S_EVO_READY); evoCol = UI_BAR_OK; }
+    else if (pet.evoRankWanted()) {
+      // Everything else is met: the boss ladder is what stands in the way.
+      snprintf(evoBuf, sizeof(evoBuf), T(S_EVO_RANK_FMT), (unsigned)pet.evoRankWanted());
+      evo = evoBuf; evoCol = UI_BAR_WARN;
+    }
     else { evo = T(S_EVO_BLOCKED); evoCol = UI_BAR_WARN; }
   } else {
     snprintf(evoBuf, sizeof(evoBuf), T(S_EVO_IN_FMT), needed - pet.level());
@@ -5627,20 +5679,19 @@ void bagTap(int16_t x, int16_t y) {
 
 // ---------- wild encounters ----------
 
-// Rolls a wild Digimon and opens the fight. The stand-in for phase 2's wild rules.
+// Rolls a wild Digimon and opens the fight: at your partner's level, of the stage
+// that level has reached (65%), one behind (25%) or one ahead (10%); Mega+ only for
+// a Mega+ partner. wild.cpp holds the rules as pure functions.
 bool startWildBattle(bool hard) {
   if (pet.isEgg() || pet.ceremony != CER_NONE) return false;
   if (!gArtPack) return false;
-  // The level first: it decides which STAGE can turn up. A level-10 encounter
-  // is a Rookie, never a Champion that has not had time to exist.
-  uint8_t lo = wildLevelMin(pet.level(), hard);
-  uint8_t hi = wildLevelMax(pet.level(), hard);
-  uint8_t lvl = (uint8_t)(lo + random(hi - lo + 1));
-  uint8_t stage = wildStageFor(lvl, (uint8_t)random(100));
+  const uint8_t lvl = wildLevelFor(pet.level());
+  const bool megaPlus = TS_DEX_TBL[pet.speciesId].stage == TS_ST_MEGA_PLUS;
+  uint8_t stage = wildStageFor(pet.level(), megaPlus, (uint8_t)random(100));
   int16_t dex = wildPickSpecies(stage, (uint32_t)random(65536) * 31u + random(31));
-  // A stage can be empty (no Mega+ form has art): step down rather than refuse,
-  // since "nothing happened" reads as a broken button.
-  for (int st = (int)stage - 1; !dex && st >= TS_ST_IN_TRAINING_2; st--)
+  // A stage can be empty (no Mega+ form has public art): step down rather than
+  // refuse, since "nothing happened" reads as a broken button.
+  for (int st = (int)stage - 1; !dex && st >= TS_ST_IN_TRAINING_1; st--)
     dex = wildPickSpecies((uint8_t)st, random(65536));
   if (!dex) return false;
   wildDex = dex;
@@ -5660,6 +5711,7 @@ bool startWildBattle(bool hard) {
   btlLink = false;
   btlTrainer = -1;
   btlHard = hard;
+  pet.markSeen(dex);
   btlMsgCount = 0;
   btlOver = false;
   btlWon = false;
@@ -5836,12 +5888,62 @@ void drawThumb(const uint8_t *b, int x, int y, int s, bool sil) {
 }
 
 // ---------------------------------------------------------------------------
+// THE DIGIDEX has three levels, and down goes back one: the STAGE PICKER (nine
+// discs, In-Training I to Mega+, then Armor and Hybrid, each with how many of its
+// forms you have seen), a stage's GRID (16 to a page, in Time Stranger's dex order),
+// and an entry's DETAIL. galleryStage is -1 on the picker.
+//
+// What an entry shows follows its state (Pet::dexState()): unseen is a silhouette
+// and "???"; seen has its name and sprite and its scan progress; scanned adds its
+// stats and every route into it with what that route needs; raised adds your
+// record. A form with no art has no entry yet.
+
+const char *stageName(uint8_t st) {
+  if (st < STAGE_COUNT) return T((StrId)(S_STAGE_0 + st));
+  return T(st == TS_ST_ARMOR ? S_STAGE_ARMOR : S_STAGE_HYBRID);
+}
+
+// Entries in a stage (forms with art), and how many of them are seen or better.
+uint16_t galleryStageTotal(uint8_t st) {
+  uint16_t n = 0;
+  for (int16_t d = 1; d <= DEX_COUNT; d++)
+    if (TS_DEX_TBL[d].stage == st && speciesHasArt(d)) n++;
+  return n;
+}
+uint16_t galleryStageKnown(uint8_t st) {
+  uint16_t n = 0;
+  for (int16_t d = 1; d <= DEX_COUNT; d++)
+    if (TS_DEX_TBL[d].stage == st && speciesHasArt(d) && pet.dexState(d) >= DEX_SEEN) n++;
+  return n;
+}
+
+// The picker's discs: a 3x3 ring-free grid of 104 px discs, which a round panel can
+// hold because the corner discs' far edges sit at radius 226 of 233. A disc is its
+// own hit area, the same predicate for the draw and the tap (memoPadAt's shape).
+#define GAL_DISC_R 52
+#define GAL_DISC_PITCH 118
+void galleryStageDisc(uint8_t i, int *cx, int *cy) {
+  *cx = CX + ((int)(i % 3) - 1) * GAL_DISC_PITCH;
+  *cy = CY + 8 + ((int)(i / 3) - 1) * GAL_DISC_PITCH;
+}
+int galleryStageAt(int16_t x, int16_t y) {
+  for (uint8_t i = 0; i < TS_STAGE_COUNT; i++) {
+    int cx, cy;
+    galleryStageDisc(i, &cx, &cy);
+    const int dx = x - cx, dy = y - cy;
+    if (dx * dx + dy * dy <= GAL_DISC_R * GAL_DISC_R) return i;
+  }
+  return -1;
+}
+
+// ---------------------------------------------------------------------------
 // The filter, as four small functions. THE draw path and THE tap path both go
 // through galleryAt(), which is the whole point: with a filter on, the grid is no
 // longer contiguous, so the cell arithmetic that used to be repeated in both
 // places would put a tap on a different creature than the one drawn.
 
 bool galleryPass(int16_t dex) {
+  if (galleryStage < 0 || TS_DEX_TBL[dex].stage != (uint8_t)galleryStage) return false;
   if (!speciesHasArt(dex)) return false;   // a form with no art has no entry yet
   switch (galleryFilter) {
     case GFILT_RAISED: return pet.isRegistered(dex);
@@ -5886,10 +5988,177 @@ const char *galleryFilterName() {
 
 // Cycling the filter can leave the page past the end of a shorter result, and a
 // page number beyond the count draws nothing at all. One place fixes it, called
-// by everything that changes either the filter or the version.
+// by everything that changes either the filter or the stage.
 void galleryClampPage() {
   const uint8_t n = galleryPages();
   if (galleryPage >= n) galleryPage = n - 1;
+}
+
+// Every route INTO a form, as indices into TS_EVO_TBL. Routes are grouped by their
+// source, so this walks them all; it runs when a page is drawn, not per frame of
+// anything else.
+uint8_t galleryRoutesInto(int16_t dex, uint16_t *out, uint8_t max) {
+  uint8_t n = 0;
+  for (uint16_t i = 0; i < TS_EVO_COUNT; i++) {
+    if ((int16_t)TS_EVO_TBL[i].to != dex) continue;
+    if (out && n < max) out[n] = i;
+    if (n < 255) n++;
+  }
+  return n;
+}
+#define GAL_ROUTES_PER_PAGE 4
+
+// An entry's pages: the sprite page alone until it is scanned; then its stats, and
+// the routes into it, four to a page (one page that says where it comes from when
+// no route leads to it).
+uint8_t galleryDetailPages() {
+  if (!galleryDetail || !pet.dexKnows(galleryDetail)) return 1;
+  const uint8_t r = galleryRoutesInto(galleryDetail, nullptr, 0);
+  const uint8_t rp = r ? (uint8_t)((r + GAL_ROUTES_PER_PAGE - 1) / GAL_ROUTES_PER_PAGE) : 1;
+  return (uint8_t)(2 + rp);
+}
+
+void galleryOpenDetail(int16_t dex) {
+  galleryDetail = dex;
+  galleryDetailPage = 0;
+  const bool seen = pet.dexState(dex) >= DEX_SEEN;
+  galleryPmd.load(dex, pet.isVariantRegistered(dex));
+  // Only for an entry the player has actually met. Playing the cry of a silhouette
+  // would hand over the one thing the "???" is withholding.
+  if (seen) audioCry(dex);
+}
+
+static void galleryDetailSprite(int16_t dex, uint8_t st) {
+  const bool seen = st >= DEX_SEEN;
+  if (galleryPmd.loaded) {
+    // animated and in colour once seen; a static silhouette if not ("?" style)
+    drawPmdActM(galleryPmd, PMD_IDLE, CX, 300, seen ? millis() : 0, true, !seen, 6);
+  } else {
+    const uint8_t *t = thumbs.get(dex);
+    if (t) drawThumb(t, CX - GAL_CELL, 135, 4, !seen);
+  }
+  const char *line = nullptr;
+  char buf[32];
+  uint16_t col = UI_INK;
+  switch (st) {
+    case DEX_UNSEEN: line = T(S_DEX_UNSEEN); col = UI_INK_SOFT; break;
+    case DEX_SEEN:
+      snprintf(buf, sizeof(buf), T(S_DEX_SCAN_FMT), (unsigned)pet.scanProgress(dex));
+      line = buf; col = UI_BAR_WARN; break;
+    case DEX_SCANNED: line = T(S_DEX_SCANNED); col = UI_BAR_OK; break;
+    default: line = T(S_DEX_RAISED); col = UI_BAR_OK; break;
+  }
+  gfx->setTextColor(col);
+  gfx->setTextSize(2);
+  gfx->setCursor(CX - (int)strlen(line) * 6, 330);
+  gfx->print(line);
+  if (st == DEX_RAISED) {   // your record: how often a partner left as this form
+    uint8_t n = 0;
+    for (uint8_t i = 0; i < pet.historyCount; i++)
+      if (pet.history[i].dex == dex) n++;
+    snprintf(buf, sizeof(buf), T(S_DEX_RECORD_FMT), (unsigned)n);
+    gfx->setTextColor(UI_INK_SOFT);
+    gfx->setTextSize(1);
+    gfx->setCursor(CX - (int)strlen(buf) * 3, 354);
+    gfx->print(buf);
+  }
+}
+
+static void galleryDetailStats(int16_t dex) {
+  const TsDexEntry &d = TS_DEX_TBL[dex];
+  char l[40];
+  snprintf(l, sizeof(l), "%s / %s", typeName(homeElement(dex)), attrName(d.attr));
+  gfx->setTextColor(dexAccent(dex));
+  gfx->setTextSize(2);
+  gfx->setCursor(CX - (int)strlen(l) * 6, 100);
+  gfx->print(l);
+  char a[12], b[12];
+  snprintf(a, sizeof(a), T(S_LVL_FMT), 1u);
+  snprintf(b, sizeof(b), T(S_LVL_FMT), (unsigned)TS_GROWTH_LEVEL_MAX);
+  snprintf(l, sizeof(l), "%s  /  %s", a, b);
+  gfx->setTextColor(UI_INK_SOFT);
+  gfx->setTextSize(1);
+  gfx->setCursor(CX + 40 - (int)strlen(l) * 3, 132);
+  gfx->print(l);
+  static const StrId LBL[TS_STAT_COUNT] = { S_STAT_VIT, S_STAT_ATK, S_STAT_DEF,
+                                            S_STAT_SPE, S_STAT_MATK, S_STAT_MDEF };
+  for (uint8_t i = 0; i < TS_STAT_COUNT; i++) {
+    const int y = 150 + i * 34;
+    gfx->setTextColor(UI_INK);
+    gfx->setTextSize(2);
+    gfx->setCursor(CX - 130, y);
+    gfx->print(T(LBL[i]));
+    snprintf(l, sizeof(l), "%u / %u", (unsigned)tsScaled(d.base[i]), (unsigned)tsScaled(d.max[i]));
+    gfx->setCursor(CX + 40 - (int)strlen(l) * 6, y);
+    gfx->print(l);
+  }
+}
+
+static void galleryDetailRoutes(int16_t dex, uint8_t page) {
+  gfx->setTextColor(UI_INK_SOFT);
+  gfx->setTextSize(2);
+  gfx->setCursor(CX - (int)strlen(T(S_DEX_FROM)) * 6, 100);
+  gfx->print(T(S_DEX_FROM));
+  uint16_t idx[64];
+  const uint8_t n = galleryRoutesInto(dex, idx, 64);
+  if (!n) {
+    const char *why = TS_DEX_TBL[dex].stage == TS_ST_IN_TRAINING_1 ? T(S_DEX_EGG) : T(S_DEX_WILD);
+    gfx->setTextColor(UI_INK);
+    gfx->setCursor(CX - (int)strlen(why) * 6, 220);
+    gfx->print(why);
+    return;
+  }
+  for (uint8_t k = 0; k < GAL_ROUTES_PER_PAGE; k++) {
+    const uint16_t at = (uint16_t)page * GAL_ROUTES_PER_PAGE + k;
+    if (at >= n || at >= 64) break;
+    const TsEvo &e = TS_EVO_TBL[idx[at]];
+    const int y = 136 + k * 62;
+    const int16_t from = (int16_t)e.from;
+    // The source is named once you have met it, like every other entry.
+    const char *nm = pet.dexState(from) >= DEX_SEEN ? TS_DEX_TBL[from].name : "???";
+    gfx->setTextColor(UI_INK);
+    gfx->setTextSize(2);
+    gfx->setCursor(CX - (int)strlen(nm) * 6, y);
+    gfx->print(nm);
+    char req[64];
+    routeReqText(e, req, sizeof(req));
+    gfx->setTextColor(UI_INK_SOFT);
+    gfx->setTextSize(1);
+    gfx->setCursor(CX - (int)strlen(req) * 3, y + 22);
+    gfx->print(req);
+  }
+}
+
+static void renderGalleryPicker() {
+  uint16_t known = 0, total = 0;
+  for (uint8_t st = 0; st < TS_STAGE_COUNT; st++) {
+    known += galleryStageKnown(st);
+    total += galleryStageTotal(st);
+  }
+  char head[32];
+  snprintf(head, sizeof(head), T(S_DIGIDEX_FMT), (unsigned)known, (unsigned)total);
+  gfx->setTextColor(UI_INK);
+  gfx->setTextSize(2);
+  gfx->setCursor(CX - (int)strlen(head) * 6, 26);
+  gfx->print(head);
+  for (uint8_t i = 0; i < TS_STAGE_COUNT; i++) {
+    int cx, cy;
+    galleryStageDisc(i, &cx, &cy);
+    const uint16_t t = galleryStageTotal(i), k = galleryStageKnown(i);
+    gfx->fillCircle(cx, cy, GAL_DISC_R, t ? UI_WHITE : UI_BG_DAY);
+    gfx->drawCircle(cx, cy, GAL_DISC_R, t ? UI_INK : UI_TRACK);
+    const char *nm = stageName(i);
+    gfx->setTextColor(t ? UI_INK : UI_TRACK);
+    gfx->setTextSize(1);
+    gfx->setCursor(cx - (int)strlen(nm) * 3, cy - 16);
+    gfx->print(nm);
+    char c[12];
+    snprintf(c, sizeof(c), "%u/%u", (unsigned)k, (unsigned)t);
+    gfx->setTextColor(k && k == t ? UI_BAR_OK : (t ? UI_INK : UI_TRACK));
+    gfx->setTextSize(2);
+    gfx->setCursor(cx - (int)strlen(c) * 6, cy + 2);
+    gfx->print(c);
+  }
 }
 
 void renderGallery() {
@@ -5897,23 +6166,22 @@ void renderGallery() {
     gfx->fillScreen(RGB565_BLACK);
     gfx->fillCircle(CX, CY, 231, UI_BG_DAY);
     const TsDexEntry &d = TS_DEX_TBL[galleryDetail];
-    bool reg = pet.isRegistered(galleryDetail);
+    const uint8_t st = pet.dexState(galleryDetail);
+    const bool seen = st >= DEX_SEEN;
     char head[24];
-    snprintf(head, sizeof(head), "N.%03d %s%s", galleryDetail,
-             pet.isVariantRegistered(galleryDetail) ? "*" : "", reg ? d.name : "???");
-    gfx->setTextColor(reg ? dexAccent(galleryDetail) : UI_INK);
+    snprintf(head, sizeof(head), "N.%03d %s%s", (int)d.tsDex,
+             pet.isVariantRegistered(galleryDetail) ? "*" : "", seen ? d.name : "???");
+    gfx->setTextColor(seen ? dexAccent(galleryDetail) : UI_INK);
     int glen = strlen(head);
-    int gts = (glen <= 13) ? 3 : 2;  // auto-encoge nombres largos (no caben a t3)
+    int gts = (glen <= 13) ? 3 : 2;  // long names shrink: they do not fit at size 3
     gfx->setTextSize(gts);
     gfx->setCursor(CX - glen * (gts == 3 ? 9 : 6), gts == 3 ? 56 : 60);
     gfx->print(head);
-    if (galleryPmd.loaded) {
-      // animated and in colour if registered; a static silhouette if not ("?" style)
-      drawPmdActM(galleryPmd, PMD_IDLE, CX, 300, reg ? millis() : 0, true, !reg, 6);
-    } else {
-      const uint8_t *t = thumbs.get(galleryDetail);
-      if (t) drawThumb(t, CX - GAL_CELL, 135, 4, !reg);
-    }
+    const uint8_t pages = galleryDetailPages();
+    if (galleryDetailPage >= pages) galleryDetailPage = pages - 1;
+    if (galleryDetailPage == 0) galleryDetailSprite(galleryDetail, st);
+    else if (galleryDetailPage == 1) galleryDetailStats(galleryDetail);
+    else galleryDetailRoutes(galleryDetail, (uint8_t)(galleryDetailPage - 2));
     gfx->setTextColor(UI_INK);
     gfx->setTextSize(2);
     gfx->setCursor(CX - strlen(T(S_DETAIL_BACK)) * 6, 408);
@@ -5923,20 +6191,28 @@ void renderGallery() {
     return;
   }
 
-  if (!galleryDirty) return;  // the grid is static
+  if (!galleryDirty) return;  // the picker and the grid are static
   galleryDirty = false;
 
   gfx->fillScreen(RGB565_BLACK);
   gfx->fillCircle(CX, CY, 231, UI_BG_DAY);
+  if (galleryStage < 0) {
+    renderGalleryPicker();
+    uiChrome();
+    gfx->flush();
+    return;
+  }
+  const uint8_t gst = (uint8_t)galleryStage;
   char head[32];
-  snprintf(head, sizeof(head), T(S_DIGIDEX_FMT), pet.registeredCount(), DEX_COUNT - NO_ART_COUNT);
+  snprintf(head, sizeof(head), "%s %u/%u", stageName(gst), (unsigned)galleryStageKnown(gst),
+           (unsigned)galleryStageTotal(gst));
   gfx->setTextColor(UI_INK);
-  gfx->setTextSize(3);
-  gfx->setCursor(CX - strlen(head) * 9, 36);
+  gfx->setTextSize(strlen(head) <= 20 ? 3 : 2);
+  gfx->setCursor(CX - (int)strlen(head) * (strlen(head) <= 20 ? 9 : 6), 36);
   gfx->print(head);
   // The filter, under the tally and tappable -- it has to be VISIBLE, or a filter
   // left on reads as a Digidex that lost half its entries. Says what it is
-  // showing and how many, since "ALL 151" and "VARIANT 3" answer different
+  // showing and how many, since "ALL 31" and "VARIANT 3" answer different
   // questions and the count is the interesting half.
   {
     char fl[32];
@@ -5961,9 +6237,10 @@ void renderGallery() {
       const int16_t dex = galleryAt(visual);
       if (!dex) break;                 // past the end of the filtered list
       int x = GAL_X + c * GAL_CELL, y = GAL_Y + r * GAL_CELL;
+      const uint8_t st = pet.dexState(dex);
       const uint8_t *t = thumbs.get(dex);
       if (t) {
-        drawThumb(t, x, y, 2, !pet.isRegistered(dex));
+        drawThumb(t, x, y, 2, st == DEX_UNSEEN);
         if (pet.isVariantRegistered(dex)) {
           gfx->setTextColor(UI_BAR_WARN);
           gfx->setTextSize(2);
@@ -5977,6 +6254,13 @@ void renderGallery() {
         gfx->setTextSize(2);
         gfx->setCursor(x + 24, y + 32);
         gfx->print(num);
+      }
+      // Scan progress as three pips under a seen entry; full and green once scanned.
+      if (st >= DEX_SEEN) {
+        const uint8_t sp = st >= DEX_SCANNED ? SCAN_FULL : pet.scanProgress(dex);
+        for (uint8_t k = 0; k < SCAN_FULL; k++)
+          gfx->fillRect(x + 26 + k * 10, y + 72, 7, 4,
+                        k < sp ? (st >= DEX_SCANNED ? UI_BAR_OK : UI_BAR_WARN) : UI_TRACK);
       }
     }
   }
@@ -5993,16 +6277,43 @@ void renderGallery() {
   gfx->flush();
 }
 
-void galleryTap(int16_t x, int16_t y) {
-  if (galleryDetail) {  // back to the grid
+// One level back: the detail to its grid, the grid to the picker, the picker home.
+// Returns false when there was nothing left to back out of (the picker).
+bool galleryBack() {
+  if (galleryDetail) {
     galleryDetail = 0;
+    galleryDetailPage = 0;
     galleryPmd.unload();
     galleryDirty = true;
+    return true;
+  }
+  if (galleryStage >= 0) {
+    galleryStage = -1;
+    galleryPage = 0;
+    galleryDirty = true;
+    return true;
+  }
+  return false;
+}
+
+void galleryTap(int16_t x, int16_t y) {
+  if (galleryDetail) { galleryBack(); return; }   // back to the grid
+  if (galleryStage < 0) {                         // the stage picker
+    const int st = galleryStageAt(x, y);
+    if (st >= 0 && galleryStageTotal((uint8_t)st)) {
+      galleryStage = (int8_t)st;
+      galleryPage = 0;
+      galleryClampPage();
+      galleryDirty = true;
+      sfxPlay(SFX_TAP);
+      return;
+    }
+    if (y < 58 && st < 0) { galleryOpen = false; galleryPmd.unload(); }   // the top = leave
     return;
   }
   // The filter strip, BEFORE the exit band. It sits at y 66 inside what used to
   // be "tap the header to leave", so the two are split by height: the title band
-  // still exits, the strip under it cycles.
+  // goes back to the picker, the strip under it cycles.
   if (y >= 58 && y < 80) {
     galleryFilter = (uint8_t)((galleryFilter + 1) % GFILT_COUNT);
     galleryClampPage();
@@ -6010,22 +6321,14 @@ void galleryTap(int16_t x, int16_t y) {
     sfxPlay(SFX_TAP);
     return;
   }
-  if (y < 58) {  // tap the top = leave
-    galleryOpen = false;
-    galleryPmd.unload();
-    return;
-  }
+  if (y < 58) { galleryBack(); return; }   // the top = back to the stages
   int c = (x - GAL_X) / GAL_CELL, r = (y - GAL_Y) / GAL_CELL;
-  if (c < 0 || c > 3 || r < 0 || r > 3) return;
+  if (x < GAL_X || y < GAL_Y || c > 3 || r > 3) return;
   // The SAME function the grid was drawn from, so a tap cannot land on a
   // different creature than the one under the finger.
   const int16_t dex = galleryAt((uint16_t)galleryPage * GAL_PER_PAGE + r * 4 + c);
   if (!dex) return;
-  galleryDetail = dex;
-  galleryPmd.load(dex, pet.isVariantRegistered(dex));
-  // Only for an entry the player has actually filled in. Playing the cry of a
-  // silhouette would hand over the one thing the "???" is withholding.
-  if (pet.isRegistered(dex)) audioCry(dex);
+  galleryOpenDetail(dex);
 }
 
 void drawBattery() {
@@ -6198,12 +6501,27 @@ void drawChoiceDialog() {
   const char *q, *o1, *o2;
   const char *sub1 = nullptr, *sub2 = nullptr;
   uint16_t c1, c2, t1, t2;
-  if (choiceKind == 1) {  // evolution
-    // Named, because "keep form" is how a player passes over this branch for the next.
+  if (choiceKind == 1) {  // evolution: the open branch on this page of the rim
     q = T(S_EVO_Q); o1 = T(S_EVO_TAP); o2 = T(S_EVO_KEEP);
     c1 = UI_BAR_BAD; t1 = UI_WHITE; c2 = UI_TRACK; t2 = UI_INK;
-    int16_t to = pet.digiTarget();
-    if (to) sub1 = TS_DEX_TBL[to].name;
+    const int16_t to = evoChoiceTarget();
+    static char req[64];
+    sub1 = (to && pet.dexState(to) >= DEX_SEEN) ? TS_DEX_TBL[to].name : "???";
+    sub2 = "???";
+    const TsEvo *e = to ? tsRoute(pet.speciesId, to) : nullptr;
+    if (e && pet.dexKnows(to)) { routeReqText(*e, req, sizeof(req)); sub2 = req; }
+    // Which page of how many, above the panel, when there is more than one branch.
+    const uint8_t n = evoChoiceCount();
+    if (n > 1) {
+      char pg[16];
+      snprintf(pg, sizeof(pg), "< %u/%u >", (unsigned)(evoPick % n + 1), (unsigned)n);
+      gfx->fillRoundRect(CX - 50, CONFIRM_Y - 40, 100, 30, 10, UI_WHITE);
+      gfx->drawRoundRect(CX - 50, CONFIRM_Y - 40, 100, 30, 10, UI_INK);
+      gfx->setTextColor(UI_INK);
+      gfx->setTextSize(2);
+      gfx->setCursor(CX - (int)strlen(pg) * 6, CONFIRM_Y - 32);
+      gfx->print(pg);
+    }
   } else if (choiceKind == 4) {   // de-digivolution
     q = T(S_DEVOLVE); o1 = T(S_YES); o2 = T(S_NO);
     c1 = UI_BAR_WARN; t1 = UI_INK; c2 = UI_TRACK; t2 = UI_INK;

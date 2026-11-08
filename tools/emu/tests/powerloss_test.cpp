@@ -268,7 +268,7 @@ int main() {
 
     const char *slot = newerSlot("petA", "petB");
     std::vector<uint8_t> whole = slotBytes(slot);
-    ck(whole.size() == 98, "the record is its 96-byte body and a crc");
+    ck(whole.size() == 118, "the record is its 116-byte body and a crc");
     const size_t SHORT_BODY = 84;             // everything before the nickname
     std::vector<uint8_t> shorter(whole.begin(), whole.begin() + SHORT_BODY);
     uint16_t size = SHORT_BODY + 2;

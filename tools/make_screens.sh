@@ -16,7 +16,7 @@ trap 'rm -rf "$TMP"' EXIT
 mkdir -p "$OUT"
 
 # Keep this list in step with the tables in README.md § Screens.
-SHOTS="main starter egg btlmenu btlmoves wild explore gyms win gallery player moves lanready"
+SHOTS="main stages egg btlmenu btlmoves wild explore gyms win gallery player moves lanready"
 
 # THE SPRITES HAVE TO BE THERE. tools/sdcard/mons/*.bin is gitignored -- it is a
 # build intermediate -- so a fresh checkout renders every creature as a bare dex

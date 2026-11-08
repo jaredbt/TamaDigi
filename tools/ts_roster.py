@@ -18,14 +18,15 @@ STAGES = ['IN_TRAINING_1', 'IN_TRAINING_2', 'ROOKIE', 'CHAMPION', 'ULTIMATE', 'M
 ELEMENTS = ['FIRE', 'WATER', 'PLANT', 'ICE', 'ELECTRICITY', 'EARTH', 'STEEL', 'WIND',
             'LIGHT', 'DARK', 'NULL']
 
-_ROW = re.compile(r'^\s*\{ "([^"]+)", \d+, \{ [\d, ]+ \}, \{ [\d, ]+ \}, TS_ST_(\w+), TS_ST_(\w+), '
-                  r'TS_AT_\w+, TSF_\w+, \{ ([\d, ]+) \}, \d+, \d+, (\d+), (\d+) \},\s*// (\d+) (.*)$', re.M)
+_ROW = re.compile(r'^\s*\{ "([^"]+)", \d+, \{ [\d, ]+ \}, \{ ([\d, ]+) \}, TS_ST_(\w+), TS_ST_(\w+), '
+                  r'TS_AT_(\w+), TSF_(\w+), \{ ([\d, ]+) \}, \d+, \d+, (\d+), (\d+) \},\s*// (\d+) (.*)$', re.M)
 ROSTER = {}
 for m in _ROW.finditer(_DEX):
-    ROSTER[int(m.group(7))] = {
-        'dex': int(m.group(7)), 'name': m.group(1), 'form': m.group(8), 'stage': STAGES.index(m.group(2)),
-        'tier': STAGES.index(m.group(3)), 'resist': [int(v) for v in m.group(4).split(', ')],
-        'learn_first': int(m.group(5)), 'learn_count': int(m.group(6)),
+    ROSTER[int(m.group(10))] = {
+        'dex': int(m.group(10)), 'name': m.group(1), 'form': m.group(11), 'stage': STAGES.index(m.group(3)),
+        'tier': STAGES.index(m.group(4)), 'resist': [int(v) for v in m.group(7).split(', ')],
+        'learn_first': int(m.group(8)), 'learn_count': int(m.group(9)),
+        'max': [int(v) for v in m.group(2).split(', ')], 'attr': m.group(5), 'flag': m.group(6),
     }
 if sorted(ROSTER) != list(range(1, COUNT + 1)):
     raise SystemExit('ts_roster: could not read every row of ts_dex.h')

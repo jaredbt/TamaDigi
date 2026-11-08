@@ -344,7 +344,7 @@ static void wipeStore() {
 static void expectNewGame(Pet &pet, const char *what) {
   char m[96];
   snprintf(m, sizeof(m), "%s: the player is on a new game", what);
-  ck(pet.isEgg() && pet.awaitingStarter(), m);
+  ck(pet.isEgg() && TS_DEX_TBL[pet.eggPeek()].stage == TS_ST_IN_TRAINING_1, m);
   int registered = 0;
   for (int d = 1; d <= DEX_COUNT; d++) if (pet.isRegistered(d)) registered++;
   snprintf(m, sizeof(m), "%s: with an empty Digidex", what);
@@ -474,14 +474,13 @@ static void checkNewSavesAreLeftAlone() {
   uint16_t egg;
   {
     Pet pet; pet.begin();
-    pet.chooseStarter(6);
+    pet.dbgSetEgg(6);
     egg = pet.eggPeek();
   }
   ck(!saveReplaceOld(), "a new install is not replaced");
   {
     Pet pet; pet.begin();
     ck(pet.isEgg() && pet.eggPeek() == egg, "and its egg is the same egg on the next boot");
-    ck(!pet.awaitingStarter(), "with the starter it was given");
     pet.dbgHatchAs(89, true);
     pet.ageMinutes = 3000;
     pet.formAgeMin = 1000;

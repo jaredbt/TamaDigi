@@ -9,7 +9,7 @@ enum Lang : uint8_t { LANG_ES = 0, LANG_EN, LANG_FR, LANG_DE, LANG_IT, LANG_PT, 
 extern Lang gLang;  // active language (defined in i18n.cpp)
 
 // String IDs. The order must match the STRINGS table in i18n.cpp.
-enum StrId : uint8_t {
+enum StrId : uint16_t {   // 16-bit: phase 2 took the table past 256 strings
   // creature status (statusMsg)
   S_EVOLVING, S_EATING, S_LIKES, S_HUNGRY, S_NEEDS_BATH,
   S_EXHAUSTED, S_SAD, S_CHUBBY, S_IS_VARIANT, S_HAPPY,
@@ -181,6 +181,31 @@ enum StrId : uint8_t {
   S_BASIC_ATK,      // the battle menu's basic attack, always there
   S_OLD_SAVE, S_OLD_SAVE2,  // two lines: a v1.0.0 save was found and replaced
   S_DEVOLVE,        // the card's button and the confirm's title
+  // Phase 2: the Digidex's Armor/Hybrid pages, magic stats, the four Digidex states,
+  // incoming routes, the partner history, Agent Rank and its requirement
+  S_STAGE_ARMOR,
+  S_STAGE_HYBRID,
+  S_STAT_MATK,
+  S_STAT_MDEF,
+  S_DEX_UNSEEN,
+  S_DEX_SEEN,
+  S_DEX_SCAN_FMT,
+  S_DEX_SCANNED,
+  S_DEX_RAISED,
+  S_DEX_FROM,
+  S_DEX_EGG,
+  S_DEX_WILD,
+  S_DEX_RECORD_FMT,
+  S_HISTORY,
+  S_HISTORY_NONE,
+  S_END_FAREWELL,
+  S_END_RUNAWAY,
+  S_END_RELEASE,
+  S_END_RETIRED,
+  S_RANK_FMT,
+  S_REQ_RANK_FMT,
+  S_EVO_RANK_FMT,
+  S_AGE_DH_FMT,
   STR_COUNT
 };
 

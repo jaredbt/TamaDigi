@@ -66,7 +66,7 @@ static void ck(bool ok,const char*w){printf("%s  %s\n",ok?"PASS":"FAIL",w); if(!
 int main(){
   setup();
   for (int i=0;i<4;i++) render();
-  if (pet.awaitingStarter()) pet.chooseStarter(6);
+  pet.dbgSetEgg(6);
   if (pet.isEgg()) pet.dbgHatchAs(6,false);
   pet.ageMinutes = 50UL*MINUTES_PER_LEVEL;
   pet.relearnFromLevel();
@@ -163,7 +163,7 @@ int main(){
     const int BTN_LIGHT_IDX = uiSleepButton(nullptr, nullptr);
     int lx = 0, ly = 0;
     uiSleepButton(&lx, &ly);
-    if (pet.awaitingStarter()) pet.chooseStarter(6);
+    pet.dbgSetEgg(6);
     if (pet.isEgg()) pet.dbgHatchAs(6, false);
     while (pet.hasLearnOffer()) pet.declineLearn();
     if (!pet.sleeping) pet.toggleLight();
@@ -284,7 +284,7 @@ int main(){
   // by going to sleep -- night_test covers that end of it.
   {
     battleOpen = false;
-    if (pet.awaitingStarter()) pet.chooseStarter(6);
+    pet.dbgSetEgg(6);
     if (pet.isEgg()) pet.dbgHatchAs(25, false);
     while (pet.hasLearnOffer()) pet.declineLearn();
     if (pet.sleeping) pet.toggleLight();
