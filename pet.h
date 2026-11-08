@@ -52,6 +52,23 @@ enum : uint8_t { SLEEP_NONE = 0, SLEEP_AUTO, SLEEP_PLAYER };
 // (TsEvo::rank; 0 below Ultimate). Hard badges never count. See Pet::agentRank().
 #define AGENT_RANK_MAX 10
 #define EVO_OPTIONS_MAX 32                 // more than any form has open at once
+// JOGRESS (fusion). Your partner, as either half of a TS_JOGRESS_TBL pair, fuses with
+// a Digimon that left your partner history as the other half (the entry stays), or
+// with a wild one it has just beaten. The pair's Agent Rank and stat minimums apply
+// to your partner, and so does the result's stage timer, exactly as on a route
+// (Pet::routeMet() on jogressRoute()). Time Stranger's personality requirement is
+// dropped. Once your partner is eligible (form, rank and clock), the other half is
+// met in about 1 wild battle in 5 (WILD_JOGRESS_PCT). De-digivolving the result goes
+// back to your own half (Pet::jogressHalf).
+#define JOGRESS_OPTIONS_MAX 8   // a form is a half of at most two pairs today
+struct JogressOption {
+  int16_t to;      // the result
+  int16_t other;   // the half that is not your partner
+};
+// A pair as a route out of `from`: its result, rank and stat minimums, no level minimum.
+TsEvo jogressRoute(const TsJogress &j, int16_t from);
+// The half of `j` that is not `half`; 0 if `half` is neither.
+int16_t jogressOther(const TsJogress &j, int16_t half);
 
 // ---------------------------------------------------------------------------
 // WHAT A CLOCK READING IS WORTH.
@@ -222,6 +239,9 @@ public:
   // The level a de-digivolved form must reach before it may evolve again: it waits
   // out its stage. 0 once it has evolved.
   uint8_t evoHold = 0;
+  // The form this partner was when it last fused: its own half, which de-digivolving
+  // the result goes back to. 0 when it has not fused (or has gone back).
+  int16_t jogressHalf = 0;
   uint32_t formAgeMin = 0;    // ageMinutes when it became this form: the skill clock
   bool sleeping = false;
   uint32_t lastSeenEpoch = 0;   // last RTC time seen (for offline progression)
@@ -441,7 +461,8 @@ public:
   void evolve();              // the first open branch (the console's, and old callers')
   // Into this branch, if it is one of evoOptions() right now. The offer's choice.
   bool evolveTo(int16_t dex);
-  // De-digivolving: into any form that evolves into this one and is in the Digidex.
+  // De-digivolving: into any form that evolves into this one and is in the Digidex,
+  // and, for a fused partner, back to its own half (offered first).
   // The earlier form then waits out its stage, and the partner's HP goes up.
   uint8_t devolveOptions(int16_t *out, uint8_t max) const;
   bool devolve(int16_t to);
@@ -540,8 +561,24 @@ public:
   // de-digivolved form's hold, and the day owed for an early retire. One sum, asked
   // by routeMet() and by the card's countdown.
   uint8_t routeClock(const TsEvo &e) const;
-  // Every branch open right now, in the game's order. Returns how many.
+  // Every branch open right now, in the game's order, then the fusions open with a
+  // partner from the history (jogressOptions(.., 0)). Returns how many.
   uint8_t evoOptions(int16_t *out, uint8_t max) const;
+  // Jogress. Eligible: this form is a half, the result can be drawn, and the rank and
+  // the clock are met -- what makes the other half turn up in the wild. Met: the stat
+  // minimums too, so the fusion can happen now.
+  bool jogressEligible(const TsJogress &j) const;
+  bool jogressMet(const TsJogress &j) const;
+  // Did a partner leave as this form?
+  bool historyHas(int16_t dex) const;
+  // The fusions open right now with this wild Digimon, or (wildDex 0) with a partner
+  // in the history. Returns how many.
+  uint8_t jogressOptions(JogressOption *out, uint8_t max, int16_t wildDex) const;
+  // The other halves of every pair this partner is eligible for that can be drawn,
+  // each once: the wild encounter's pool for its 1-in-5.
+  uint8_t jogressWildHalves(int16_t *out, uint8_t max) const;
+  // Fuse into `to` with `other`, if that is one of jogressOptions(wildDex) right now.
+  bool jogress(int16_t to, int16_t other, int16_t wildDex);
   // The first open branch, 0 if none.
   int16_t digiTarget() const;
   // The soonest any showable branch's clock opens, 0 if this form has none left.

@@ -46,21 +46,24 @@ credits all four authors.
   the skills ("TamaDigi: Time Stranger skills") is in the owner's Google Drive.
 - **Every design and data decision for v1 is made** (2026-10-28): the design
   table below. What is left is presentation and balance tuning (see "Still open").
-- **The cutover is done but for Jogress** (2026-11-08). Phase 1 (PR #5) put the
+- **The cutover is done** (2026-11-08). Phase 1 (PR #5) put the
   firmware on the Time Stranger tables: roster, stats, routes, skills, battle, items and
   saves. Phase 2 (PR #6) replaced every stub with the design table's rules: Agent Rank,
   the 13-boss ladder and Hard mode, wild encounters, eggs, the Digidex states and stage
-  picker, partner history and the evolution offer. "Firmware change list" has the
-  details and "Phase 2's judgment calls" what the table left open.
+  picker, partner history and the evolution offer. Jogress (PR #7, the v1 stretch goal)
+  made the 16 fusion-only forms raisable. "Firmware change list" has the details, and
+  "Phase 2's judgment calls" and "Jogress's judgment calls" what the table left open.
 
 ### Next, in order
 
-1. Jogress (the v1 stretch goal), on a branch with a PR: see "Still to do" below.
+1. Review and merge Jogress (PR #7, a draft): its judgment calls are under "Firmware
+   change list".
 2. Before the board arrives: pull the hardware bring-up notes back from upstream's
    CLAUDE.md (`git show f7f02f8:CLAUDE.md`: "Hardware bring-up order", "First
    bring-up, actually done", "Found by hand on the board, not by any test").
 3. After the rework: rebuild the README's "game manual" of exact numbers
    (upstream's is at `git show f7f02f8:README.md`).
+4. The balance pass (see "Still open"); it can now include the fusions.
 
 ### What joop0810's conversion left out
 
@@ -75,7 +78,7 @@ stale test comments saying Ver.3 has no Baby I art (it has, now).
 
 | # | Decision |
 |---|---|
-| Roster | Time Stranger's, **one single roster**: no "versions" (joop0810's term is dropped). v1 has **469 forms** (all 475 except the Aegiomon line); 448 sit on the evolution tree, and Armor, Hybrid, the 12 wild-only forms and (until Jogress) the fusion-only forms can be met but not raised (see Stages, Wild-only Digimon, Jogress). A form with no art never hatches, evolves or appears (the existing `NO_ART` mechanism). The first egg hatches a random In-Training I; eggs, wild Digimon and the boss ladder are their own rows |
+| Roster | Time Stranger's, **one single roster**: no "versions" (joop0810's term is dropped). v1 has **469 forms** (all 475 except the Aegiomon line); 448 sit on the evolution tree (435 raisable, the 16 Jogress results among them), and Armor, Hybrid, the 12 wild-only forms and Susanomon can be met but not raised (see Stages, Wild-only Digimon, Jogress). A form with no art never hatches, evolves or appears (the existing `NO_ART` mechanism). The first egg hatches a random In-Training I; eggs, wild Digimon and the boss ladder are their own rows |
 | Evolution | Time Stranger style: choose among branches whose conditions are met. TamaDigi's stage timers (6/24/48/60/72 h) are **minimums**; evolution is offered, never forced ("keep form" re-offers next level) |
 | De-digivolve | Allowed (Q5): into any form that evolves into the current one, if it is in the Digidex. The earlier form then waits out its stage again (Q8) |
 | Level | Stays as age (Q4); no XP-based level |
@@ -99,9 +102,9 @@ stale test comments saying Ver.3 has no Baby I art (it has, now).
 | Status effects (2026-10-28) | Keep it simple. **Injury** takes over the engine's Burn (Pokemon-style chip damage each turn and halved physical attack), caused by any element, so Burn's "Fire can't be burned" immunity goes. **Crystallization** takes over the engine's Freeze: no actions until it wears off (Freeze's per-turn thaw chance) or the ALL CURE item clears it; Freeze's "Water can't be frozen" immunity goes. **Deep Slumber** folds into Sleep and **Deadly Poison** into Poison. **Chaos** (11 skills) and **Instant Death** (7) are dropped as effects: those skills keep their damage, and Death Lure keeps its SPI drop. Paralysis, Confusion and Sleep map directly |
 | Learnable skills (2026-10-28) | Time Stranger's 181 attachment skills become **44**. (1) **One skill per I/II/III family**; its power comes from the partner's **level**, in the stage-timer bands: tier I below level 25, II at 25-60, III from 61. Level is age and never drops, so a de-digivolved partner keeps its power (Greymon -> Agumon: Wolkenapalm stays at 60). Learnset entries for another tier of a family already known are skipped. (2) **All-enemies families fold into their single-target twin** (Time Stranger has exactly one of each per element and physical/magic, e.g. Ignition Flare into Wolkenapalm), using the single-target powers: **22 attack skills**, one per element and physical/magic. (3) **22 support skills**: one up and one down skill each for ATK, DEF, magic attack, magic defence and speed (Field = Charge, Break = Bind in 1-on-1), physical and magic charge, Heal and X-Heal, one status cure, remove buffs, remove debuffs, and one skill each for Sleep, Confusion, Paralysis, Poison and Crystallization. Dropped: party-only skills (Reflect, Taunt, Guts, Reverse, Revive, immunity barriers), crit up/down, and the 13 skills no Digimon has. |
 | Signature skills (2026-10-28) | All 613 special skills stay (cutting to one per Digimon was considered and rejected: it removes ~150 entries, no rules, and most Megas' second finisher). Each keeps its **name, element, physical/magic, power, hit count and accuracy, plus at most one effect** from: one of the six statuses (with a chance), a stat up or down, drain, recoil, heal, moves first, never misses, or a lost next turn. **Dropped**: trait bonuses, all-enemies targeting (single target in 1-on-1; all-enemies signatures such as Mega Flame need a power boost, ~55-60), conditional clauses ("if the target has already acted", "the lower the user's HP"), SP costs; percent-of-HP damage becomes ordinary power. Counter skills (Maul Attack, Dragon's Roar, Graceful Lance, Weltgeist) become plain attacks with the counter's element and power; Monkey Wrench keeps its ATK/magic-attack drop. Attract Echo, Brain Rupture, Breath of the Gods, Table Flip and Purge Shine are dropped; every Digimon keeps at least one signature (dropping all ten would have left Grizzlymon and KingEtemon with none). After this the 613 signatures have about 325 distinct behaviours |
-| SP requirements (Q15, 2026-10-28) | SP is dropped as a stat, so each evolution's SP minimum becomes an age minimum: the level at which the source form's untrained SP would reach it (as HP already works). An SP minimum the source can never reach is **dropped** (13 routes, among them every way into MetalGarurumon, Rosemon and Apocalymon); Agent Rank and the trainable stats still gate them |
-| Wild-only Digimon (2026-10-28) | Twelve forms need a Time Stranger mechanic TamaDigi lacks and are **wild-only in v1** (in the Digidex, seen and scanned, never raised): Agent Skills (Jupitermon, Jupitermon WM, Chronomon HM, Chronomon DM, Agumon (Bond of Bravery), Gabumon (Bond of Friendship)), Talent (Lucemon, Lucemon CM, Lucemon SM, Parallelmon), items (Imperialdramon PM, Magnamon (X Antibody)). Later stand-ins: Bond for Agent Skills and Talent, boss rewards for items. The fusion-only forms are wild-only too until Jogress ships |
-| Jogress (2026-10-28) | One partner, so fusion uses a second Digimon from outside the party: your partner fuses with **either a Digimon in your partner history** (it must have left as that exact form; the history entry stays) **or a wild Digimon you just defeated** (a prompt after the win; declining is a normal win). Time Stranger's Agent Rank requirement stays (rank 8, Millenniummon and Mastemon 7); its personality requirement goes. Once your partner is eligible for a fusion (right form and rank), its fusion partner appears far more often in the wild (about 1 battle in 5 instead of ~1 in 200). De-digivolving a fused Digimon returns to your own half (Omnimon -> WarGreymon); the HP boost applies as usual. Makes the 16 fusion-only Digimon raisable (Omnimon and its forms, Millenniummon, Mastemon, GraceNovamon, Alphamon: Ouryuken, both Chaosmon, Examon, Craniamon + Enbarrmon, Titamon + SkullBaluchimon); Susanomon needs two Hybrids, which are not in v1. **A stretch goal for v1**: built if time allows; until it ships, the fusion-only Digimon are wild-only |
+| SP requirements (Q15, 2026-10-28) | SP is dropped as a stat, so each evolution's SP minimum becomes an age minimum: the level at which the source form's untrained SP would reach it (as HP already works). An SP minimum the source can never reach is **dropped** (13 routes, 14 since Jogress added Omnimon Zwart -> Omnimon Zwart Defeat; among them every way into MetalGarurumon, Rosemon and Apocalymon); Agent Rank and the trainable stats still gate them |
+| Wild-only Digimon (2026-10-28) | Twelve forms need a Time Stranger mechanic TamaDigi lacks and are **wild-only in v1** (in the Digidex, seen and scanned, never raised): Agent Skills (Jupitermon, Jupitermon WM, Chronomon HM, Chronomon DM, Agumon (Bond of Bravery), Gabumon (Bond of Friendship)), Talent (Lucemon, Lucemon CM, Lucemon SM, Parallelmon), items (Imperialdramon PM, Magnamon (X Antibody)). Later stand-ins: Bond for Agent Skills and Talent, boss rewards for items. Susanomon is wild-only too: Jogress has shipped, but both its halves are Hybrids |
+| Jogress (2026-10-28) | One partner, so fusion uses a second Digimon from outside the party: your partner fuses with **either a Digimon in your partner history** (it must have left as that exact form; the history entry stays) **or a wild Digimon you just defeated** (a prompt after the win; declining is a normal win). Time Stranger's Agent Rank requirement stays (rank 8, Millenniummon and Mastemon 7); its personality requirement goes. Once your partner is eligible for a fusion (right form and rank), its fusion partner appears far more often in the wild (about 1 battle in 5 instead of ~1 in 200). De-digivolving a fused Digimon returns to your own half (Omnimon -> WarGreymon); the HP boost applies as usual. Makes the 16 fusion-only Digimon raisable (Omnimon and its forms, Millenniummon, Mastemon, GraceNovamon, Alphamon: Ouryuken, both Chaosmon, Examon, Craniamon + Enbarrmon, Titamon + SkullBaluchimon); Susanomon needs two Hybrids, which are not in v1. **A stretch goal for v1, built** (2026-11-08, PR #7): see "Jogress's judgment calls" under "Firmware change list" |
 | Stats storage (2026-10-28) | The built-in species table stores Time Stranger's **raw** level-1 and level-99 values for HP, ATK, DEF, speed, magic attack (INT) and magic defence (SPI) as **16-bit numbers** (24 bytes a Digimon, about 11 KB for the 469 forms in flash); the scale factor (~0.1) is one constant applied in firmware, so balance can be tuned without regenerating data. Saves are unaffected (IVs, training and the de-digivolve count stay bytes); calculated stats are already 16-bit (worst case 487 HP, x2.0 boost = 974) |
 | Stat mapping (Q12a/b) | HP, ATK, DEF, SPD direct; INT -> Special Attack; SPI -> Special Defense; **SP dropped** |
 | Stat formula (Q12e) | **Approach B**: rebuild TamaDigi's formula on Time Stranger growth. Each species grows linearly from its TS level-1 to its TS max (level 99) stats (`tools/data/time-stranger/stats.tsv`, 475 forms incl. personality), times one scale factor (~0.1), plus training. TamaDigi level = TS level, one per hour. Requirements convert with the same factor; no per-stage scaling. Battle balance must be redone |
@@ -249,10 +252,58 @@ one commit: a cut between the two writes is repaired on load, once (`powerloss_t
   the cutover's version.
 - **`Pet::frozen`** is still there, unset, from the removed box. Removing it is a cleanup.
 
-**Still to do:** Jogress (the stretch goal, not built in phase 2): `TS_JOGRESS_TBL`,
-`JOGRESS_SHIPPED` in the generator (and its reachability check and counts), a fusion
-prompt after a wild win or from the partner history (the entry stays), the fusion
-partner at about 1 battle in 5 once eligible, and de-digivolving to your own half.
+**Done with Jogress (2026-11-08, PR #7).** The last item of the cutover:
+
+| Piece | Now | Where |
+|---|---|---|
+| Data | `JOGRESS_SHIPPED = True`: the 16 fusion-only forms are raisable (435 raisable, 34 wild-only with Susanomon, 0 fusion-only) and the 9 routes among them are kept (1034 routes). `validate()` walks the 17 pairs in its reachability check, checks each pair's rank by the result's stage, and keeps Susanomon wild-only (`FUSION_WILD`). `False` still writes the old tables byte for byte | `tools/gen_ts_data.py`, `ts_dex.h` |
+| Eligibility | Your partner is either half of a pair whose halves can be raised, the result can be drawn, and the pair's Agent Rank and the result's stage timer are met. The fusion itself also needs the pair's stat minimums: `routeMet()` on the pair as a route (`jogressRoute()`). Personality is ignored | `Pet::jogressEligible()`, `Pet::jogressMet()` |
+| From the history | A partner that left as the other half (any of the 8 entries; the entry stays) makes the result one more branch of the evolution offer, with "JOGRESS + <half>" and the pair's requirements on its card | `Pet::evoOptions()`, `Pet::evolveTo()`, `evoChoiceFusion()` |
+| After a wild win | Beating the other half in the wild asks "Jogress?" over the main screen as the fight closes (`choiceKind` 5), paged on the rim when a pair has two results; NO or 30 s is a plain win | `btlResolve()`, `battleTap()`, `drawChoiceDialog()`, `Pet::jogress()` |
+| Encounters | An eligible partner meets one of its other halves in 20 battles in 100 (`WILD_JOGRESS_PCT`), at its own level; the ordinary roll decides the rest. No roll is drawn for a partner that is not eligible | `wildJogressPick()`, `Pet::jogressWildHalves()`, `startWildBattle()` |
+| De-digivolve | A fused partner's own half (`Pet::jogressHalf`) is offered first, with the usual x1.1 HP, count and stage hold; going back clears it | `Pet::devolveOptions()`, `Pet::devolve()` |
+| Digidex | A result's route pages list its pair ("KIMERAMON + MACHINEDRAMON", then "JOGRESS" and what either half needs). Susanomon's pair is not listed: it says "met in the wild only" | `galleryRoutesInto()`, `galleryDetailRoutes()` |
+
+**Saves (Jogress).** The creature's record grew append-only, `PET_FIXED` 116 -> 120: the
+half it fused from (`jogressHalf`, 0 = not fused) and two spare bytes, which the struct's
+4-byte alignment would add anyway. A phase-2 record loads unfused (`powerloss_test`). The
+player record is unchanged: a history fusion leaves its entry where it is, so nothing
+crosses records. v1.0.0 detection and `upgrade_test`'s frozen `V1_0_0_SAVE` are untouched.
+
+**Jogress's judgment calls** (the design row left these open):
+
+- **The result's stage timer applies**, as on any route (Millenniummon and Mastemon at
+  level 61, the Mega+ fusions at 73), and so do a de-digivolved form's hold and an early
+  retire's day. It is part of eligibility too, so the 1-in-5 never brings the other half
+  before the prompt could come. Only the stat minimums (Omnimon Alter-S is the only pair
+  with any) wait for the fusion itself.
+- **All 16 pairs with raisable halves are Jogress**, the four Ultimate fusions included
+  (Shakkoumon, Silphymon, Dinobeemon and Paildramon, rank 5, also reached by ordinary
+  routes). So a rank-5 Angemon, Ankylomon, Gatomon, Aquilamon, ExVeemon or Stingmon gets
+  the 1-in-5 too. An open ordinary route to the same form is a plain digivolution.
+- **A history fusion is a branch of the evolution offer**, not a button on the tamer
+  card: the offer already pages branches, and the DIGIVOLVE button and the card's READY
+  follow without new screens. The card's countdown and its rank hint still count ordinary
+  routes only.
+- **Any of the 8 history entries counts, and can be used again**: the entry stays, so one
+  MetalGarurumon that left can fuse with each later WarGreymon.
+- **The wild prompt is RAM only**: a reboot before answering is a decline. It closes
+  after 30 s, not the dialogs' usual 12, since it cannot be asked again for that fight.
+  If a skill offer comes up at the same time it covers the prompt, which can then time out.
+- **The other half in the wild** is drawn at your partner's level whatever its stage, and
+  uniformly among the pairs your partner is eligible for, if it can be drawn. The beaten
+  half is gone after a fusion; its win's scan is all it leaves.
+- **De-digivolving a fused partner** offers its own half first, and the ordinary routes
+  read backwards as before (Omnimon can also go to Omnimon (X Antibody) if raised), never
+  the other half. A fused form that digivolves on (Omnimon -> Omnimon Zwart) keeps its
+  half, so coming back to Omnimon can still return to WarGreymon.
+- **A fusion is a digivolution otherwise**: training, bond, skills, the de-digivolve count
+  and age all carry over.
+- **`TSF_FUSION_ONLY` stays in the enum**, unused, so `JOGRESS_SHIPPED = False` still
+  reproduces the old header.
+
+**Still to do:** nothing in the cutover. What remains is presentation and balance
+("Still open", "Later").
 
 **Findings from phase 1, for the balance pass:**
 
@@ -323,7 +374,7 @@ partner at about 1 battle in 5 once eligible, and de-digivolving to your own hal
 - How the 72-hour farewell is offered (it is still the two-button dialog).
 - Battle timing (above), and the balance pass: the stat scale constant and boosts
   for all-enemies signatures such as Mega Flame (~55-60).
-- Jogress (a v1 stretch goal); later stand-ins for the wild-only forms (Bond for
+- Later stand-ins for the wild-only forms (Bond for
   Agent Skills and Talent, boss rewards for items); personality skills (passives);
   separate INT/SPI training mini-games.
 - Public-build art: only 73 of the 87 Digimon Color sprites map onto Time Stranger

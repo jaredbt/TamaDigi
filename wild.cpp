@@ -76,3 +76,8 @@ int16_t wildPickSpecies(uint8_t stage, uint32_t roll) {
   }
   return 0;
 }
+
+int16_t wildJogressPick(const int16_t *halves, uint8_t n, uint8_t roll, uint32_t pick) {
+  if (!halves || !n || roll % 100 >= WILD_JOGRESS_PCT) return 0;
+  return halves[pick % n];
+}

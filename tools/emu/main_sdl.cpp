@@ -118,6 +118,8 @@ extern uint8_t galleryDetailPage, choiceKind, evoPick;
 extern uint32_t choiceUntil;
 void galleryOpenDetail(int16_t dex);
 int16_t evoChoiceTarget();
+extern int16_t jogWildDex;
+extern uint8_t jogPick;
 int wavMain(const char *path, const char *demo);
 extern bool lanOpen;
 extern uint8_t btlMyAct;
@@ -228,6 +230,40 @@ static int shotMode(const char *screen, const char *out, int lvl, int iv, int de
     while (pet.hasLearnOffer()) pet.declineLearn();
     pet.addScan(evoChoiceTarget(), 3);
     choiceKind = 1; evoPick = 0; choiceUntil = millis() + 600000;
+  }
+  else if (!strcmp(screen, "jogress") || !strcmp(screen, "jogevo")) {
+    // A rank-7 KIMERAMON at level 61 that can fuse into MILLENNIUMMON: the prompt after
+    // beating a wild MACHINEDRAMON, or (jogevo) the offer with a MACHINEDRAMON that
+    // left the partner history. MILLENNIUMMON is scanned, so its requirements show.
+    pet.dbgHatchAs(229, false);
+    pet.ageMinutes = 60UL * MINUTES_PER_LEVEL;
+    pet.formAgeMin = pet.ageMinutes;
+    pet.badges = 0x3F;
+    while (pet.hasLearnOffer()) pet.declineLearn();
+    pet.markSeen(400);
+    pet.addScan(399, 3);
+    if (!strcmp(screen, "jogress")) {
+      jogWildDex = 400; jogPick = 0; choiceKind = 5;
+    } else {
+      pet.history[0] = PartnerRecord();
+      pet.history[0].dex = 400;
+      pet.historyCount = 1;
+      choiceKind = 1;
+      evoPick = 0;
+      while (evoChoiceTarget() != 399 && evoPick < 40) evoPick++;
+    }
+    choiceUntil = millis() + 600000;
+    for (int i = 0; i < 2; i++) loop();
+  }
+  else if (!strcmp(screen, "dexjogress")) {
+    // MILLENNIUMMON's routes page: its one way in is the Jogress pair.
+    galleryOpen = true;
+    galleryStage = TS_ST_MEGA;
+    pet.addScan(399, 3);
+    pet.markSeen(229);
+    pet.markSeen(400);
+    galleryOpenDetail(399);
+    galleryDetailPage = 2;
   }
   else if (!strcmp(screen, "partners")) {
     for (int16_t d : { 89, 86, 21 }) {   // three partners, three endings

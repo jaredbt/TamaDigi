@@ -192,12 +192,33 @@ int main(){
     }
     ck(tierOk, "every form's wild tier is its stage, Armor/Hybrid Champion..Mega, no Aegiomon");
     ck(wildOnly, "and the wild-only forms are in the roster to be met");
-    bool fusionMet = false;
-    for (uint32_t r = 0; r < 4000 && !fusionMet; r++) {
-      const int16_t d = wildPickSpecies(TS_ST_MEGA, r);
-      if (d && (TS_DEX_TBL[d].flags & TSF_FUSION_ONLY)) fusionMet = true;
-    }
-    ck(fusionMet, "a fusion-only form with art (MILLENNIUMMON) can be met in the wild");
+    // Jogress shipped: the forms only fusion reaches are raisable now, and still met
+    // in the wild like any other (MILLENNIUMMON is the one with public art).
+    bool fusionMet = false, anyFusionOnly = false;
+    for (uint32_t r = 0; r < 4000 && !fusionMet; r++)
+      if (wildPickSpecies(TS_ST_MEGA, r) == 399) fusionMet = true;
+    for (int16_t d = 1; d <= DEX_COUNT; d++)
+      if (TS_DEX_TBL[d].flags & TSF_FUSION_ONLY) anyFusionOnly = true;
+    ck(fusionMet && (TS_DEX_TBL[399].flags & TSF_RAISABLE),
+       "a Jogress result with art (MILLENNIUMMON) is raisable and still met in the wild");
+    ck(!anyFusionOnly, "and no form is left fusion-only");
+    ck((TS_DEX_TBL[430].flags & TSF_WILD_ONLY) && !strcmp(TS_DEX_TBL[430].name, "SUSANOMON"),
+       "SUSANOMON stays wild-only: both its halves are Hybrids");
+  }
+  // The Jogress boost: the other half on rolls 0..19 (1 battle in 5), the ordinary
+  // roll on 20..99, and nothing to pick with no eligible pair.
+  {
+    const int16_t halves[2] = { 400, 21 };
+    int hits = 0;
+    for (int r = 0; r < 100; r++)
+      if (wildJogressPick(halves, 2, (uint8_t)r, 0)) hits++;
+    ck(hits == WILD_JOGRESS_PCT && WILD_JOGRESS_PCT == 20, "the other half is met on exactly 20 rolls in 100");
+    ck(wildJogressPick(halves, 2, 19, 0) == 400 && !wildJogressPick(halves, 2, 20, 0),
+       "roll 19 is the last that meets it, roll 20 the first that does not");
+    ck(wildJogressPick(halves, 2, 0, 1) == 21 && wildJogressPick(halves, 2, 0, 2) == 400,
+       "with two eligible pairs the pick chooses between their halves");
+    ck(!wildJogressPick(halves, 0, 0, 0) && !wildJogressPick(nullptr, 2, 0, 0),
+       "and with none the ordinary roll always decides");
   }
 
   // Negative check: with no pack there is nothing to meet, and the picker has to say

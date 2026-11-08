@@ -423,6 +423,9 @@ bool btlWild = false;
 int16_t wildDex = 0;
 uint8_t wildLvl = 1;
 bool wildVariant = false;
+// A wild win your partner could fuse with: set on the win, turned into the Jogress
+// prompt (choiceKind 5) when the fight closes. 0 = none.
+int16_t btlJogDex = 0;
 // What a win handed over, for the settlement lines on the win screen.
 ItemKey wildDrops[4] = { ITEM_NONE, ITEM_NONE, ITEM_NONE, ITEM_NONE };
 uint8_t wildDropN = 0;
@@ -761,7 +764,7 @@ bool swallowGesture = false; // the touch that wakes the screen does nothing els
 uint32_t holdStart = 0;     // long press on the creature
 uint32_t confirmUntil = 0;  // "release?" dialog active until this millis
 uint8_t choiceKind = 0;     // decision dialog: 0 none, 1 digivolution, 2 farewell,
-                            // 3 retirement, 4 de-digivolution
+                            // 3 retirement, 4 de-digivolution, 5 Jogress after a wild win
 // THE EVOLUTION OFFER. One open branch at a time, paged on the rim (uiRimTarget()),
 // with DIGIVOLVE for the one shown and KEEP FORM for none. A round 466 px panel has
 // room for one branch's name and requirements at a size that can be read, not for a
@@ -777,6 +780,34 @@ int16_t evoChoiceTarget() {
   int16_t open[EVO_OPTIONS_MAX];
   const uint8_t n = pet.evoOptions(open, EVO_OPTIONS_MAX);
   return n ? open[evoPick % n] : 0;
+}
+// Is this offered branch a fusion with a partner from the history? Then *o says with
+// whom. An open route to the same form is a plain digivolution (Pet::evolveTo()).
+bool evoChoiceFusion(int16_t to, JogressOption *o) {
+  const TsEvo *e = tsRoute(pet.speciesId, to);
+  if (e && pet.routeMet(*e)) return false;
+  JogressOption jo[JOGRESS_OPTIONS_MAX];
+  const uint8_t n = pet.jogressOptions(jo, JOGRESS_OPTIONS_MAX, 0);
+  for (uint8_t i = 0; i < n; i++)
+    if (jo[i].to == to) { if (o) *o = jo[i]; return true; }
+  return false;
+}
+// THE JOGRESS PROMPT after a wild win: the fusions open with the Digimon just
+// beaten, paged on the rim like the evolution offer (ExVeemon + Stingmon has two),
+// with JOGRESS! and NO. Declining, or letting it time out, is a plain win.
+#define JOG_PROMPT_MS 30000UL
+int16_t jogWildDex = 0;
+uint8_t jogPick = 0;
+uint8_t jogChoiceCount() {
+  JogressOption jo[JOGRESS_OPTIONS_MAX];
+  return jogWildDex ? pet.jogressOptions(jo, JOGRESS_OPTIONS_MAX, jogWildDex) : 0;
+}
+bool jogChoice(JogressOption *o) {
+  JogressOption jo[JOGRESS_OPTIONS_MAX];
+  const uint8_t n = jogWildDex ? pet.jogressOptions(jo, JOGRESS_OPTIONS_MAX, jogWildDex) : 0;
+  if (!n) return false;
+  *o = jo[jogPick % n];
+  return true;
 }
 // What a route needs, in one line ("Lv.25 ATK41 DEF30 RANK5"): the data's own
 // numbers, scaled the way routeMet() scales them, not this partner's clock. The
@@ -1934,6 +1965,14 @@ void onTap(int16_t x, int16_t y) {
     } else if (choiceKind == 2) {          // farewell
       if (b1) pet.startFarewell();
       else if (b2) pet.declineFarewell();
+    } else if (choiceKind == 5) {          // Jogress with the wild Digimon just beaten
+      JogressOption o;
+      if (b1 && jogChoice(&o)) {
+        int16_t old = pet.speciesId;
+        if (pet.jogress(o.to, o.other, jogWildDex)) evoPmd.load(old, pet.variant);
+      }
+      // b2 (NO) is a plain win: nothing to undo, nothing remembered
+      jogWildDex = 0;
     }
     choiceKind = 0;
     return;
@@ -2242,6 +2281,7 @@ static uint8_t *uiRimTarget(uint8_t *pages) {
     // The evolution offer pages through the open branches.
     case SCR_MAIN:
       if (choiceKind == 1) { p = &evoPick; n = evoChoiceCount(); }
+      else if (choiceKind == 5) { p = &jogPick; n = jogChoiceCount(); }
       break;
     case SCR_MOVEPICK: {
       uint16_t all[MOVE_PICK_MAX];
@@ -4020,6 +4060,12 @@ static void btlResolve(uint16_t yourMove) {
     // scanned is the one that was fought.
     if (btlWon && btlTrainer >= 0) pet.addScan(btlBossDex, SCAN_FULL);
     if (btlWon && btlWild) pet.addScan(btlFoe.dex, 1);
+    // A wild win your partner can fuse with asks once the fight closes (battleTap).
+    btlJogDex = 0;
+    if (btlWon && btlWild && !btlLink) {
+      JogressOption jo[JOGRESS_OPTIONS_MAX];
+      if (pet.jogressOptions(jo, JOGRESS_OPTIONS_MAX, btlFoe.dex)) btlJogDex = btlFoe.dex;
+    }
     if (btlWon && btlTrainer >= 0 && !pet.hasBadge(btlTrainer, btlHard)) {
       pet.winBadge(btlTrainer, btlHard);
       btlNewBadge = true;
@@ -4450,6 +4496,14 @@ void battleTap(int16_t x, int16_t y) {
       // Back to the LAN screen rather than all the way out: that is where a
       // rematch is offered, and re-pairing for every fight would be tedious.
       if (btlLink) { btlLink = false; lanOpen = true; }
+      // A wild win that can fuse: the Jogress prompt, over the main screen.
+      if (btlJogDex) {
+        jogWildDex = btlJogDex;
+        btlJogDex = 0;
+        jogPick = 0;
+        choiceKind = 5;
+        choiceUntil = millis() + JOG_PROMPT_MS;
+      }
       return;
     }
     return;
@@ -5691,12 +5745,19 @@ bool startWildBattle(bool hard) {
   if (!gArtPack) return false;
   const uint8_t lvl = wildLevelFor(pet.level());
   const bool megaPlus = TS_DEX_TBL[pet.speciesId].stage == TS_ST_MEGA_PLUS;
-  uint8_t stage = wildStageFor(pet.level(), megaPlus, (uint8_t)random(100));
-  int16_t dex = wildPickSpecies(stage, (uint32_t)random(65536) * 31u + random(31));
-  // A stage can be empty (no Mega+ form has public art): step down rather than
-  // refuse, since "nothing happened" reads as a broken button.
-  for (int st = (int)stage - 1; !dex && st >= TS_ST_IN_TRAINING_1; st--)
-    dex = wildPickSpecies((uint8_t)st, random(65536));
+  // A partner eligible for a Jogress meets the other half about 1 battle in 5. No
+  // roll is drawn when it is not, so every other encounter is the one it always was.
+  int16_t halves[JOGRESS_OPTIONS_MAX];
+  const uint8_t hn = pet.jogressWildHalves(halves, JOGRESS_OPTIONS_MAX);
+  int16_t dex = hn ? wildJogressPick(halves, hn, (uint8_t)random(100), (uint32_t)random(65536)) : 0;
+  if (!dex) {
+    uint8_t stage = wildStageFor(pet.level(), megaPlus, (uint8_t)random(100));
+    dex = wildPickSpecies(stage, (uint32_t)random(65536) * 31u + random(31));
+    // A stage can be empty (no Mega+ form has public art): step down rather than
+    // refuse, since "nothing happened" reads as a broken button.
+    for (int st = (int)stage - 1; !dex && st >= TS_ST_IN_TRAINING_1; st--)
+      dex = wildPickSpecies((uint8_t)st, random(65536));
+  }
   if (!dex) return false;
   wildDex = dex;
   wildLvl = lvl;
@@ -5715,6 +5776,7 @@ bool startWildBattle(bool hard) {
   btlLink = false;
   btlTrainer = -1;
   btlHard = hard;
+  btlJogDex = 0;
   pet.markSeen(dex);
   btlMsgCount = 0;
   btlOver = false;
@@ -5998,14 +6060,20 @@ void galleryClampPage() {
   if (galleryPage >= n) galleryPage = n - 1;
 }
 
-// Every route INTO a form, as indices into TS_EVO_TBL. Routes are grouped by their
-// source, so this walks them all; it runs when a page is drawn, not per frame of
-// anything else.
+// Every route INTO a form, as indices into TS_EVO_TBL, then its Jogress pairs as
+// TS_EVO_COUNT + their index in TS_JOGRESS_TBL. Routes are grouped by their source,
+// so this walks them all; it runs when a page is drawn, not per frame of anything
+// else. A pair whose halves can never be partners (Susanomon's) is not a way in.
 uint8_t galleryRoutesInto(int16_t dex, uint16_t *out, uint8_t max) {
   uint8_t n = 0;
   for (uint16_t i = 0; i < TS_EVO_COUNT; i++) {
     if ((int16_t)TS_EVO_TBL[i].to != dex) continue;
     if (out && n < max) out[n] = i;
+    if (n < 255) n++;
+  }
+  for (uint16_t i = 0; i < TS_JOGRESS_COUNT; i++) {
+    if ((int16_t)TS_JOGRESS_TBL[i].to != dex || !TS_JOGRESS_TBL[i].partnersRaisable) continue;
+    if (out && n < max) out[n] = (uint16_t)(TS_EVO_COUNT + i);
     if (n < 255) n++;
   }
   return n;
@@ -6115,17 +6183,33 @@ static void galleryDetailRoutes(int16_t dex, uint8_t page) {
   for (uint8_t k = 0; k < GAL_ROUTES_PER_PAGE; k++) {
     const uint16_t at = (uint16_t)page * GAL_ROUTES_PER_PAGE + k;
     if (at >= n || at >= 64) break;
-    const TsEvo &e = TS_EVO_TBL[idx[at]];
     const int y = 136 + k * 62;
-    const int16_t from = (int16_t)e.from;
-    // The source is named once you have met it, like every other entry.
-    const char *nm = pet.dexState(from) >= DEX_SEEN ? TS_DEX_TBL[from].name : "???";
-    gfx->setTextColor(UI_INK);
-    gfx->setTextSize(2);
-    gfx->setCursor(CX - (int)strlen(nm) * 6, y);
-    gfx->print(nm);
     char req[64];
-    routeReqText(e, req, sizeof(req));
+    char pair[40];
+    const char *nm;
+    if (idx[at] >= TS_EVO_COUNT) {
+      // A Jogress pair: both halves, each named once met, and "JOGRESS" (a name, the
+      // same in every language) ahead of what your partner, either half, needs.
+      const TsJogress &j = TS_JOGRESS_TBL[idx[at] - TS_EVO_COUNT];
+      snprintf(pair, sizeof(pair), "%s + %s",
+               pet.dexState((int16_t)j.a) >= DEX_SEEN ? TS_DEX_TBL[j.a].name : "???",
+               pet.dexState((int16_t)j.b) >= DEX_SEEN ? TS_DEX_TBL[j.b].name : "???");
+      nm = pair;
+      const int w = snprintf(req, sizeof(req), "JOGRESS ");
+      if (w > 0 && (size_t)w < sizeof(req))
+        routeReqText(jogressRoute(j, (int16_t)j.a), req + w, sizeof(req) - w);
+    } else {
+      const TsEvo &e = TS_EVO_TBL[idx[at]];
+      const int16_t from = (int16_t)e.from;
+      // The source is named once you have met it, like every other entry.
+      nm = pet.dexState(from) >= DEX_SEEN ? TS_DEX_TBL[from].name : "???";
+      routeReqText(e, req, sizeof(req));
+    }
+    gfx->setTextColor(UI_INK);
+    // A pair's two names can run to 33 characters: those go in the small font.
+    gfx->setTextSize(strlen(nm) > 24 ? 1 : 2);
+    gfx->setCursor(CX - (int)strlen(nm) * (strlen(nm) > 24 ? 3 : 6), y);
+    gfx->print(nm);
     gfx->setTextColor(UI_INK_SOFT);
     gfx->setTextSize(1);
     gfx->setCursor(CX - (int)strlen(req) * 3, y + 22);
@@ -6502,39 +6586,70 @@ void drawConfirmPanel(const char *q, const char *sub1, const char *sub2,
   gfx->print(o2);
 }
 
+// The branch card above the offer and the Jogress prompt: the result's name once you
+// have seen it ("???" otherwise), one line under it, and the page counter when there
+// is more than one.
+static void drawBranchCard(int16_t to, const char *req, uint8_t page, uint8_t n) {
+  const char *nm = (to && pet.dexState(to) >= DEX_SEEN) ? TS_DEX_TBL[to].name : "???";
+  gfx->fillRoundRect(CONFIRM_X + 10, CONFIRM_Y - 66, CONFIRM_W - 20, 58, 12, UI_WHITE);
+  gfx->drawRoundRect(CONFIRM_X + 10, CONFIRM_Y - 66, CONFIRM_W - 20, 58, 12, UI_INK);
+  gfx->setTextColor(to && pet.dexState(to) >= DEX_SEEN ? dexAccent(to) : UI_INK);
+  gfx->setTextSize(2);
+  gfx->setCursor(CX - (int)strlen(nm) * 6, CONFIRM_Y - 58);
+  gfx->print(nm);
+  gfx->setTextColor(UI_INK_SOFT);
+  gfx->setTextSize(1);
+  gfx->setCursor(CX - (int)strlen(req) * 3, CONFIRM_Y - 34);
+  gfx->print(req);
+  if (n > 1) {
+    char pg[16];
+    snprintf(pg, sizeof(pg), "< %u/%u >", (unsigned)(page % n + 1), (unsigned)n);
+    gfx->setTextColor(UI_INK);
+    gfx->setCursor(CX - (int)strlen(pg) * 3, CONFIRM_Y - 21);
+    gfx->print(pg);
+  }
+}
+
+// "JOGRESS + METALGARURUMON", then the pair's requirements when the result is
+// scanned or raised (the same rule as any branch).
+static void jogressReqText(const JogressOption &o, char *out, size_t n) {
+  const char *other = pet.dexState(o.other) >= DEX_SEEN ? TS_DEX_TBL[o.other].name : "???";
+  int w = snprintf(out, n, T(S_JOG_WITH_FMT), other);
+  if (w < 0 || (size_t)w >= n || !pet.dexKnows(o.to)) return;
+  for (uint8_t i = 0; i < TS_JOGRESS_COUNT; i++) {
+    const TsJogress &j = TS_JOGRESS_TBL[i];
+    if ((int16_t)j.to != o.to || jogressOther(j, o.other) != pet.speciesId) continue;
+    out[w++] = ' ';
+    routeReqText(jogressRoute(j, pet.speciesId), out + w, n - w);
+    return;
+  }
+}
+
 void drawChoiceDialog() {
   const char *q, *o1, *o2;
   const char *sub1 = nullptr, *sub2 = nullptr;
   uint16_t c1, c2, t1, t2;
-  if (choiceKind == 1) {  // evolution: the open branch on this page of the rim
+  if (choiceKind == 5) {  // Jogress with the wild Digimon just beaten
+    q = T(S_JOG_Q); o1 = T(S_JOG_GO); o2 = T(S_NO);
+    c1 = UI_BAR_BAD; t1 = UI_WHITE; c2 = UI_TRACK; t2 = UI_INK;
+    JogressOption o;
+    char req[80] = "";
+    if (jogChoice(&o)) jogressReqText(o, req, sizeof(req));
+    else o.to = 0;
+    drawBranchCard(o.to, req, jogPick, jogChoiceCount());
+  } else if (choiceKind == 1) {  // evolution: the open branch on this page of the rim
     q = T(S_EVO_Q); o1 = T(S_EVO_TAP); o2 = T(S_EVO_KEEP);
     c1 = UI_BAR_BAD; t1 = UI_WHITE; c2 = UI_TRACK; t2 = UI_INK;
     const int16_t to = evoChoiceTarget();
     // The branch on this page, in a card above the panel and big enough to read: its
     // name once you have seen it, its requirements once it is scanned or raised,
-    // "???" otherwise. The page counter rides on the name line when there are more.
-    const char *nm = (to && pet.dexState(to) >= DEX_SEEN) ? TS_DEX_TBL[to].name : "???";
-    char req[64] = "???";
+    // "???" otherwise. A fusion with a partner from the history says with whom.
+    char req[80] = "???";
+    JogressOption jo;
     const TsEvo *e = to ? tsRoute(pet.speciesId, to) : nullptr;
-    if (e && pet.dexKnows(to)) routeReqText(*e, req, sizeof(req));
-    const uint8_t n = evoChoiceCount();
-    gfx->fillRoundRect(CONFIRM_X + 10, CONFIRM_Y - 66, CONFIRM_W - 20, 58, 12, UI_WHITE);
-    gfx->drawRoundRect(CONFIRM_X + 10, CONFIRM_Y - 66, CONFIRM_W - 20, 58, 12, UI_INK);
-    gfx->setTextColor(to && pet.dexState(to) >= DEX_SEEN ? dexAccent(to) : UI_INK);
-    gfx->setTextSize(2);
-    gfx->setCursor(CX - (int)strlen(nm) * 6, CONFIRM_Y - 58);
-    gfx->print(nm);
-    gfx->setTextColor(UI_INK_SOFT);
-    gfx->setTextSize(1);
-    gfx->setCursor(CX - (int)strlen(req) * 3, CONFIRM_Y - 34);
-    gfx->print(req);
-    if (n > 1) {
-      char pg[16];
-      snprintf(pg, sizeof(pg), "< %u/%u >", (unsigned)(evoPick % n + 1), (unsigned)n);
-      gfx->setTextColor(UI_INK);
-      gfx->setCursor(CX - (int)strlen(pg) * 3, CONFIRM_Y - 21);
-      gfx->print(pg);
-    }
+    if (to && evoChoiceFusion(to, &jo)) jogressReqText(jo, req, sizeof(req));
+    else if (e && pet.dexKnows(to)) routeReqText(*e, req, sizeof(req));
+    drawBranchCard(to, req, evoPick, evoChoiceCount());
   } else if (choiceKind == 4) {   // de-digivolution
     q = T(S_DEVOLVE); o1 = T(S_YES); o2 = T(S_NO);
     c1 = UI_BAR_WARN; t1 = UI_INK; c2 = UI_TRACK; t2 = UI_INK;

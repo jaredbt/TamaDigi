@@ -206,6 +206,11 @@ enum StrId : uint16_t {   // 16-bit: phase 2 took the table past 256 strings
   S_REQ_RANK_FMT,
   S_EVO_RANK_FMT,
   S_AGE_DH_FMT,
+  // Jogress: the fusion prompt after a wild win, its button, and "JOGRESS + <half>"
+  // (the offer's card and the Digidex's route pages)
+  S_JOG_Q,
+  S_JOG_GO,
+  S_JOG_WITH_FMT,
   STR_COUNT
 };
 

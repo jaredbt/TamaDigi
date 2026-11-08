@@ -4,7 +4,7 @@
 
 A custom fork of **TamaDigi**, the **Digimon V-Pet** for the **Waveshare ESP32-S3-Touch-AMOLED-1.75** (a round 466×466 AMOLED with touch, battery and speaker). The goal is to rebuild it around the roster and evolution tree of ***Digimon Story: Time Stranger***.
 
-> **Status (November 2026):** the firmware runs on the Time Stranger data and rules: the roster, the routes, the stats, the skills and the elements, the 13-boss ladder with Agent Rank and Hard mode, wild Digimon by stage, the Digidex by stage with scanning, and a partner history, described under [The current firmware](#the-current-firmware). Jogress (fusion) and the presentation work are still to come, under [Planned](#planned). A public build has art for only 73 of the 469 forms, so those are the ones you meet. Saves from v1.0.0 are not carried forward: the firmware says so and starts a new game.
+> **Status (November 2026):** the firmware runs on the Time Stranger data and rules: the roster, the routes, the stats, the skills and the elements, the 13-boss ladder with Agent Rank and Hard mode, wild Digimon by stage, the Digidex by stage with scanning, a partner history and Jogress (fusion), described under [The current firmware](#the-current-firmware). The presentation work is still to come, under [Planned](#planned). A public build has art for only 73 of the 469 forms, so those are the ones you meet. Saves from v1.0.0 are not carried forward: the firmware says so and starts a new game.
 >
 > **Non-commercial fan project.** The code is MIT licensed. Digimon, all names and all game art are © Bandai / Bandai Namco / Toei Animation. See [CREDITS.md](CREDITS.md).
 
@@ -39,6 +39,7 @@ joop0810 published TamaDigi as a single commit with no history. This repo puts t
 - **The Time Stranger data** the rework needs (`tools/data/time-stranger/`): every Digimon's stats, evolution requirements, attribute, elemental weaknesses and skills, plus an audit of what the conversion has to handle.
 - **The cutover, phase 1:** the firmware now runs on that data. One roster with no V-Pet versions, seven raisable stages, Time Stranger's stat growth, routes, skills, elements and statuses, and a new save format.
 - **The cutover, phase 2:** the game's progress. The 13-boss ladder sets an Agent Rank that gates Ultimate and later, with an optional Hard mode; wild Digimon by your stage; a random first egg; a Digidex by stage that fills in as you see, scan and raise Digimon; a partner history on the tamer card; and a list of the open branches when your Digimon digivolves.
+- **Jogress:** fusion with a past partner or a wild Digimon you have just beaten, which makes the 16 fusion-only forms (Omnimon and its forms, Millenniummon, Examon and the rest) raisable.
 
 > **Private builds only.** The models, and every frame rendered from them, are Bandai Namco's assets. `tools/prerender/.gitignore` keeps them out of the repo, and they must never be committed or published. A public build would need other art.
 
@@ -46,7 +47,6 @@ joop0810 published TamaDigi as a single commit with no history. This repo puts t
 
 The decisions, all recorded in [docs/HANDOFF.md](docs/HANDOFF.md):
 
-- **Jogress**: fusion with a past partner or a defeated wild Digimon, which would make the 17 fusion-only forms raisable (a stretch goal for v1; until then they are met in the wild only).
 - **Firmware work**: more frames per action, larger sprite files, the new sad and special-attack slots, the attack animation chosen by skill type, longer battle animation windows, and the new backdrop. socquique's later battery and drawing improvements should be ported too.
 
 Still open: how the 72-hour farewell is offered, battle timing and balance, and art for a public build.
@@ -105,6 +105,7 @@ Time Stranger's **469 forms**, in its Field Guide order, in seven raisable stage
 - **Digivolution** is yours to choose: the branches whose stat, age, stage-timer and Agent Rank conditions are met are offered, and never forced. The offer shows one branch at a time (drag at the edge for the next): its name once you have seen that Digimon, and what the route needs once you have scanned it, otherwise "???". "Keep form" asks again next level.
 - **Agent Rank** is 1 plus the Easy area badges you hold (up to 9), and 10 once you beat the champion. Champion to Ultimate needs rank 5, Ultimate to Mega 7, Mega to Mega+ 8; nothing below Ultimate needs a rank, so no battling is needed up to Champion. The tamer card shows your rank, and the status card says when rank is what a branch is waiting for.
 - **De-digivolution**, from the status card's progress page, goes back to any earlier form in your Digidex. The form then waits out its stage again.
+- **Jogress (fusion)**: a partner that is one half of a fusion pair fuses with the other half, either a past partner that left as exactly that form (it stays in your history) or a wild one it has just beaten (a prompt after the win; NO is a plain win). The pair's Agent Rank (5 for the four Ultimate fusions such as Paildramon, 7 for Millenniummon and Mastemon, 8 for the rest) and stat minimums apply, and so does the result's stage timer. A fusion with a past partner is offered with the other branches. Once your partner could fuse, its other half turns up in about one wild battle in five. De-digivolving the result goes back to your own half (Omnimon to WarGreymon). Susanomon stays wild-only: both its halves are Hybrids.
 - **Skills**: four slots. Becoming a form gives its special skills at once and its attachment skills over the hours after. A free slot fills silently, a full set makes an offer, and a skill you drop is gone until you become a form that has it. Skills carry over between forms.
 
 ### Battle

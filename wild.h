@@ -23,6 +23,10 @@ constexpr uint8_t WILD_BONUS_DROP_CHANCE = 30;   // percent, one extra item
 // this much the same stage, this much one behind, and the rest (10%) one ahead.
 constexpr uint8_t WILD_STAGE_SAME_PCT = 65;
 constexpr uint8_t WILD_STAGE_BEHIND_PCT = 25;
+// Once your partner is eligible for a Jogress (form, rank and clock), the other half
+// is met this often instead of by the usual roll (about 1 battle in 200 for any one
+// form): about 1 in 5.
+constexpr uint8_t WILD_JOGRESS_PCT = 20;
 
 uint32_t wildVariantThreshold(uint8_t bonus);
 bool wildVariantForRoll(uint32_t roll, uint8_t bonus);
@@ -53,7 +57,12 @@ uint8_t wildStageForLevel(uint8_t level);
 // for anyone else the level's stage stops at Mega, and a Mega's "ahead" stays Mega.
 uint8_t wildStageFor(uint8_t level, bool megaPlusPartner, uint8_t roll);
 // A Digimon whose wild TIER is that stage, and that can be drawn: the raisable
-// forms, the wild-only ones and (until Jogress) the fusion-only ones, with Armor
-// and Hybrid at their stat tier. 0 if the tier has none. The Aegiomon line is not
-// in the roster at all.
+// forms (the Jogress results among them) and the wild-only ones, with Armor and
+// Hybrid at their stat tier. 0 if the tier has none. The Aegiomon line is not in
+// the roster at all.
 int16_t wildPickSpecies(uint8_t stage, uint32_t roll);
+// The Jogress boost: from a 0..99 roll, one of `halves` (Pet::jogressWildHalves(),
+// the other halves of the pairs your partner is eligible for) WILD_JOGRESS_PCT of
+// the time, chosen by `pick`; 0 otherwise, and always 0 with no halves. 0 means
+// the ordinary roll decides.
+int16_t wildJogressPick(const int16_t *halves, uint8_t n, uint8_t roll, uint32_t pick);

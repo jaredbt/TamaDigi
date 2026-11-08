@@ -344,14 +344,14 @@ int main() {
       nvsResumeWrites();
       const char *slot = newerSlot("petA", "petB");
       std::vector<uint8_t> b = slotBytes(slot);
-      if (b.size() == 118) {
+      if (b.size() == 122) {
         memset(b.data() + 96, 0, 20);   // the departed partner and its serial
         reseal(b);
         nvs()[slot] = b;
       }
       Pet lost;
       lost.begin();
-      ck(b.size() == 118 && lost.historyCount == 0,
+      ck(b.size() == 122 && lost.historyCount == 0,
          "(and without the creature record's copy, that cut would have lost it)");
     }
   }
@@ -403,7 +403,7 @@ int main() {
 
     const char *slot = newerSlot("petA", "petB");
     std::vector<uint8_t> whole = slotBytes(slot);
-    ck(whole.size() == 118, "the record is its 116-byte body and a crc");
+    ck(whole.size() == 122, "the record is its 120-byte body and a crc");
     const size_t SHORT_BODY = 84;             // everything before the nickname
     std::vector<uint8_t> shorter(whole.begin(), whole.begin() + SHORT_BODY);
     uint16_t size = SHORT_BODY + 2;
@@ -582,6 +582,48 @@ int main() {
     pet.saveNow();
     ck(pet.saveHealthy(), "and one success clears it again");
     ck(!pet.savePending(), "leaving nothing pending");
+  }
+
+  // --- Jogress appended the fused partner's own half ------------------------
+  //
+  // A phase-2 record (116-byte body) has no such field: it loads whole, unfused.
+  // The field round-trips, and junk in it is never used as a dex number.
+  {
+    nvs().clear();
+    Pet pet;
+    pet.begin();
+    pet.dbgHatchAs(399, false);               // MILLENNIUMMON
+    pet.jogressHalf = 229;                    // fused from KIMERAMON
+    pet.trDef = 44;
+    pet.saveNow();
+    Pet back;
+    back.begin();
+    ck(back.speciesId == 399 && back.jogressHalf == 229, "a fused partner's own half is saved");
+
+    const char *slot = newerSlot("petA", "petB");
+    std::vector<uint8_t> whole = slotBytes(slot);
+    ck(whole.size() == 122, "(the record is its 120-byte body and a crc)");
+    std::vector<uint8_t> phase2(whole.begin(), whole.begin() + 116);
+    uint16_t size = 116 + 2;
+    memcpy(phase2.data() + 6, &size, 2);
+    phase2.push_back(0);
+    phase2.push_back(0);
+    reseal(phase2);
+    nvs()[slot] = phase2;
+    nvs().erase(std::string(slot) == "petA" ? "petB" : "petA");
+    Pet old;
+    old.begin();
+    ck(old.speciesId == 399 && old.trDef == 44 && old.jogressHalf == 0,
+       "a phase-2 record loads whole, with no half (not fused)");
+
+    std::vector<uint8_t> junk = whole;
+    const int16_t bogus = 30000;
+    memcpy(junk.data() + 116, &bogus, 2);
+    reseal(junk);
+    nvs()[slot] = junk;
+    Pet j;
+    j.begin();
+    ck(j.speciesId == 399 && j.jogressHalf == 0, "and a half no table has is dropped on load");
   }
 
   printf("%s\n", bad ? "FAILURES" : "all good");
