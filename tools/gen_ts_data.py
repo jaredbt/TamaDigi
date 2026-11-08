@@ -54,17 +54,22 @@ ON_ICE = {'Aegiomon', 'Aegiochusmon', 'Aegiochusmon: Green', 'Aegiochusmon: Dark
 WILD_ONLY = {'Jupitermon', 'Jupitermon WM', 'Chronomon HM', 'Chronomon DM', 'Agumon (Bond of Bravery)',
              'Gabumon (Bond of Friendship)', 'Lucemon', 'Lucemon CM', 'Lucemon SM', 'Parallelmon',
              'Imperialdramon PM', 'Magnamon (X Antibody)'}
-# Reached only by Jogress (a v1 stretch goal): wild-only until it ships. The
-# 16 HANDOFF names, plus Susanomon, whose partners are both Hybrids.
+# Reached only by Jogress. The 16 HANDOFF names, plus Susanomon, whose partners
+# are both Hybrids.
 FUSION_ONLY = {'Omnimon', 'Omnimon Zwart', 'Omnimon Alter-B', 'Omnimon Alter-S', 'Omnimon Zwart Defeat',
                'Omnimon MM', 'Omnimon (X Antibody)', 'Millenniummon', 'Mastemon', 'GraceNovamon',
                'Alphamon: Ouryuken', 'Chaosmon', 'Chaosmon: Valdur Arm', 'Examon', 'Craniamon + Enbarrmon',
                'Titamon + SkullBaluchimon', 'Susanomon'}
-# When Jogress ships, this makes the fusion-only forms raisable and brings back
-# the routes among them (Omnimon (X Antibody) -> Omnimon and the like). It is
-# not a one-line flip: validate() must then also walk the Jogress pairs in its
-# reachability check, and its expected counts (419 / 33 / 17) change.
-JOGRESS_SHIPPED = False
+# Jogress shipped (2026-11-08): the fusion-only forms are raisable, the routes
+# among them are kept (Omnimon (X Antibody) -> Omnimon and the like), and
+# validate() walks the Jogress pairs in its reachability check. False restores
+# the pre-Jogress tables (fusion-only forms wild-only, 419 / 33 / 17).
+JOGRESS_SHIPPED = True
+# Fusion-only forms that stay wild-only once Jogress ships: both partners are
+# Hybrids, which cannot be raised in v1 (their pair has partnersRaisable = 0).
+FUSION_WILD = {'Susanomon'}
+# Expected raisable / wild-only / fusion-only counts.
+FORM_COUNTS = (435, 34, 0) if JOGRESS_SHIPPED else (419, 33, 17)
 # Armor and Hybrid are wild-only, met in the wild at this stat tier (Stages row).
 WILD_TIER = {
     'Champion': ['Submarimon', 'Shurimon', 'Digmon', 'Nefertimon', 'Flamedramon', 'Pegasusmon', 'Halsemon',
@@ -228,7 +233,7 @@ def load_roster():
         need(r['name'] not in by_name, f'duplicate name {r["name"]}')
         by_name[r['name']] = f
         forms.append(f)
-    for n in ON_ICE | WILD_ONLY | FUSION_ONLY | set(SHORT_NAMES) | {n for v in WILD_TIER.values() for n in v}:
+    for n in ON_ICE | WILD_ONLY | FUSION_ONLY | FUSION_WILD | set(SHORT_NAMES) | {n for v in WILD_TIER.values() for n in v}:
         need(n in by_name, f'rule names a Digimon not in the roster: {n}')
     v1 = [f for f in forms if f['name'] not in ON_ICE]
     for i, f in enumerate(v1, 1):
@@ -239,7 +244,7 @@ def load_roster():
         armor_hybrid = f['stage'] in ('Armor', 'Hybrid')
         need(armor_hybrid == (f['name'] in tier_of), f'{f["name"]}: Armor/Hybrid without a wild tier, or the reverse')
         f['tier'] = tier_of.get(f['name'], f['stage'])
-        f['wild_only'] = armor_hybrid or f['name'] in WILD_ONLY
+        f['wild_only'] = armor_hybrid or f['name'] in WILD_ONLY or (JOGRESS_SHIPPED and f['name'] in FUSION_WILD)
         f['fusion_only'] = f['name'] in FUSION_ONLY and not JOGRESS_SHIPPED
         f['raisable'] = not f['wild_only'] and not f['fusion_only']
     return v1, {f['name']: f for f in v1}, by_name
@@ -648,17 +653,27 @@ def validate(D):
     fusion = {f['name'] for f in v1 if f['fusion_only']}
     need(len(raisable) + len(wild) + len(fusion) == 469 and not (raisable & wild) and not (wild & fusion)
          and not (raisable & fusion), 'raisable / wild-only / fusion-only do not partition the roster')
-    need((len(raisable), len(wild), len(fusion)) == (419, 33, 17),
-         f'raisable {len(raisable)}, wild-only {len(wild)}, fusion-only {len(fusion)}; expected 419, 33, 17')
+    need((len(raisable), len(wild), len(fusion)) == FORM_COUNTS,
+         f'raisable {len(raisable)}, wild-only {len(wild)}, fusion-only {len(fusion)}; expected {FORM_COUNTS}')
+    need(FUSION_WILD <= FUSION_ONLY, 'FUSION_WILD names a form that is not fusion-only')
     tiers = Counter(f['tier'] for f in v1 if f['stage'] in ('Armor', 'Hybrid'))
     need(tiers == Counter({'Champion': 14, 'Ultimate': 2, 'Mega': 5}), f'Armor/Hybrid tiers {dict(tiers)}')
     for r in routes:
         need(r['from']['raisable'] and r['to']['raisable'], 'a kept route touches a non-raisable form')
-    # Reachability: from every In-Training I, by digivolving or de-digivolving.
+    # Reachability: from every In-Training I, by digivolving or de-digivolving and,
+    # once Jogress ships, by fusing (either half becomes the result; de-digivolving
+    # a fused partner returns to that half). The other half is a partner from the
+    # history or a wild Digimon, so only the partner's own half has to be reached.
     adj = defaultdict(set)
     for r in routes:
         adj[r['from']['name']].add(r['to']['name'])
         adj[r['to']['name']].add(r['from']['name'])
+    if JOGRESS_SHIPPED:
+        for j in D['jogress']:
+            if j['partners_raisable']:
+                for half in (j['a'], j['b']):
+                    adj[half['name']].add(j['to']['name'])
+                    adj[j['to']['name']].add(half['name'])
     eggs = [f['name'] for f in v1 if f['stage'] == 'In-Training I' and f['raisable']]
     need(len(eggs) == 7, f'{len(eggs)} In-Training I forms, expected 7')
     seen, q = set(eggs), deque(eggs)
@@ -735,8 +750,19 @@ def validate(D):
     levels = [b['level'] for b in D['bosses']]
     need(levels == sorted(levels), 'boss levels are not in ladder order')
     # Jogress.
+    need(len(D['jogress']) == 17, f'{len(D["jogress"])} Jogress pairs, expected 17')
     for j in D['jogress']:
         need(j['to']['fusion_only'] or j['to']['raisable'] or j['to']['wild_only'], 'Jogress result')
+        need(j['partners_raisable'] == (j['a']['raisable'] and j['b']['raisable']), 'partnersRaisable')
+        need(j['rank'] == {'Ultimate': 5, 'Mega': 7}.get(j['to']['stage'], 8) or
+             (j['to']['stage'] == 'Mega' and j['rank'] == 8),
+             f'{j["to"]["name"]}: Jogress rank {j["rank"]}')
+        if JOGRESS_SHIPPED:
+            need(j['partners_raisable'] == (j['to']['name'] not in FUSION_WILD),
+                 f'{j["to"]["name"]}: a fusion with unraisable partners must stay wild-only, and only then')
+    if JOGRESS_SHIPPED:
+        for n in FUSION_WILD:
+            need(not [r for r in routes if n in (r['from']['name'], r['to']['name'])], f'{n} has an ordinary route')
 
 
 # ---------------------------------------------------------------- emit
@@ -771,8 +797,12 @@ def emit_dex(D):
     w('// Stat slots of TsDexEntry::base / max and of the evolution minimums.\n')
     w('enum : uint8_t { %s, TS_STAT_COUNT };\n\n' % ', '.join('TS_STAT_' + s for s in STAT_IDS))
     w('enum : uint8_t {\n  TSF_RAISABLE = 1,     // can be a partner (hatched or digivolved into)\n'
-      '  TSF_WILD_ONLY = 2,    // Armor, Hybrid and the 12 Digimon that need a missing mechanic\n'
-      '  TSF_FUSION_ONLY = 4,  // reached only by Jogress (wild-only until Jogress ships)\n};\n\n')
+      '  TSF_WILD_ONLY = 2,    // %s\n'
+      '  TSF_FUSION_ONLY = 4,  // %s\n};\n\n'
+      % (('Armor, Hybrid, the 12 Digimon that need a missing mechanic, Susanomon',
+          'none since Jogress shipped (the pre-Jogress fusion-only forms)') if JOGRESS_SHIPPED
+         else ('Armor, Hybrid and the 12 Digimon that need a missing mechanic',
+               'reached only by Jogress (wild-only until Jogress ships)')))
     w('struct TsDexEntry {\n'
       '  const char *name;       // display name, upper case, at most 15 characters\n'
       '  uint16_t tsDex;         // Time Stranger Field Guide number (1-475)\n'
@@ -827,8 +857,13 @@ def emit_dex(D):
             r['from']['id'], r['to']['id'], ', '.join(str(r['min'][k]) for k in STATS), r['min_level'], r['rank'],
             r['from']['name'], r['to']['name']))
     w('};\n\n')
-    w('// Jogress pairs (data only; a v1 stretch goal). Partner personalities are not\n'
-      '// required. partnersRaisable = 0 when a partner can never be a partner in v1.\n')
+    if JOGRESS_SHIPPED:
+        w('// Jogress pairs: your partner (either half) fuses with a Digimon from its history or\n'
+          '// a wild one it just beat. Partner personalities are not required; rank and min[]\n'
+          '// apply to your partner. partnersRaisable = 0 when a half can never be a partner in v1.\n')
+    else:
+        w('// Jogress pairs (data only; a v1 stretch goal). Partner personalities are not\n'
+          '// required. partnersRaisable = 0 when a partner can never be a partner in v1.\n')
     w('struct TsJogress {\n'
       '  uint16_t a, b, to;      // dex ids\n'
       '  uint16_t min[TS_STAT_COUNT];  // raw stat minimums (0 = none)\n'
@@ -967,7 +1002,8 @@ def summary(D):
     print(f'  {len(sp)} routes had an SP minimum and it became a level minimum, except {len(D["sp_over"])} above the source\'s level-99 SP '
           f'and were dropped: ' + ', '.join(f'{a} -> {b}' for a, b, *_ in D['sp_over']
                                               if a not in ON_ICE and b not in ON_ICE))
-    print(f'{len(D["jogress"])} Jogress pairs (data only), {sum(not j["partners_raisable"] for j in D["jogress"])} '
+    print(f'{len(D["jogress"])} Jogress pairs{"" if JOGRESS_SHIPPED else " (data only)"}, '
+          f'{sum(not j["partners_raisable"] for j in D["jogress"])} '
           f'with a partner that cannot be raised')
     att_drop = Counter(v for v in D['fate'].values() if isinstance(v, str))
     print(f'{len(D["learn"])} learnable skills from {len(D["att"])} attachment rows; dropped: '

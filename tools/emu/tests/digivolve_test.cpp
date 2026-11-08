@@ -317,6 +317,103 @@ int main(){
     ck(p->canFarewellNow(), "a three-day-old Champion can say goodbye");
   }
 
+  // JOGRESS. KIMERAMON + MACHINEDRAMON -> MILLENNIUMMON (Mega, Agent Rank 7) is the one
+  // pair the public art draws end to end, so it carries the rules.
+  {
+    const int16_t KIMERA = 229, MACHINE = 400, MILLENNIUM = 399;
+    const TsJogress *mj = nullptr;
+    for (uint8_t i = 0; i < TS_JOGRESS_COUNT; i++)
+      if (TS_JOGRESS_TBL[i].to == MILLENNIUM) mj = &TS_JOGRESS_TBL[i];
+    ck(mj && mj->a == KIMERA && mj->b == MACHINE && mj->rank == 7 && mj->partnersRaisable,
+       "KIMERAMON + MACHINEDRAMON -> MILLENNIUMMON asks Agent Rank 7");
+    ck(!strcmp(TS_DEX_TBL[KIMERA].name, "KIMERAMON") && !strcmp(TS_DEX_TBL[MACHINE].name, "MACHINEDRAMON") &&
+           !strcmp(TS_DEX_TBL[MILLENNIUM].name, "MILLENNIUMMON"),
+       "(the dex ids name the forms this block says)");
+    Pet *p = fresh(KIMERA, 61);
+    p->badges = 0x3F;                      // six Easy area badges: rank 7
+    p->historyCount = 0;
+    int16_t h[JOGRESS_OPTIONS_MAX];
+    ck(p->jogressEligible(*mj) && p->jogressMet(*mj), "a rank-7 KIMERAMON at the Mega stage timer can fuse");
+    ck(p->jogressWildHalves(h, JOGRESS_OPTIONS_MAX) == 1 && h[0] == MACHINE,
+       "and its other half, MACHINEDRAMON, is the wild boost's pool");
+    p->badges = 0x1F;                      // rank 6
+    ck(!p->jogressEligible(*mj) && !p->jogressWildHalves(h, JOGRESS_OPTIONS_MAX),
+       "rank 6 is not eligible: no fusion, no boost");
+    p->badges = 0x3F;
+    p->ageMinutes = 59UL * MINUTES_PER_LEVEL;   // level 60
+    ck(!p->jogressEligible(*mj), "nor is level 60: the result's stage timer applies, as on any route");
+    p->ageMinutes = 60UL * MINUTES_PER_LEVEL;
+    // Either half fuses.
+    Pet *m = fresh(MACHINE, 61);
+    m->badges = 0x3F;
+    m->historyCount = 0;
+    ck(m->jogressWildHalves(h, JOGRESS_OPTIONS_MAX) == 1 && h[0] == KIMERA, "MACHINEDRAMON is a half too");
+    p = fresh(KIMERA, 61);
+    p->badges = 0x3F;
+    p->historyCount = 0;
+
+    // (b) a wild Digimon just beaten: only the other half opens it.
+    JogressOption jo[JOGRESS_OPTIONS_MAX];
+    ck(p->jogressOptions(jo, JOGRESS_OPTIONS_MAX, MACHINE) == 1 && jo[0].to == MILLENNIUM && jo[0].other == MACHINE,
+       "beating a wild MACHINEDRAMON opens MILLENNIUMMON");
+    ck(!p->jogressOptions(jo, JOGRESS_OPTIONS_MAX, GREYMON), "beating anything else opens nothing");
+    ck(!p->jogress(MILLENNIUM, MACHINE, GREYMON), "and the fusion cannot be claimed off another win");
+
+    // (a) the partner history: it must have left as that exact form.
+    ck(!offers(p, MILLENNIUM), "with an empty history the offer has no fusion");
+    p->history[0] = PartnerRecord();
+    p->history[0].dex = 401;               // not MACHINEDRAMON
+    p->historyCount = 1;
+    ck(!offers(p, MILLENNIUM), "a partner that left as another form is no half");
+    p->history[1] = PartnerRecord();
+    p->history[1].dex = MACHINE;
+    p->historyCount = 2;
+    ck(offers(p, MILLENNIUM) && p->canEvolveNow(), "one that left as MACHINEDRAMON is: the offer has the fusion");
+    p->badges = 0x1F;
+    ck(!offers(p, MILLENNIUM), "(not at rank 6)");
+    p->badges = 0x3F;
+    const uint8_t dd0 = p->deDigiCount;
+    ck(p->evolveTo(MILLENNIUM) && p->speciesId == MILLENNIUM, "taking it fuses into MILLENNIUMMON");
+    ck(p->jogressHalf == KIMERA, "remembering KIMERAMON as its own half");
+    ck(p->historyCount == 2 && p->history[1].dex == MACHINE, "and the history entry stays");
+    ck(p->isRegistered(MILLENNIUM), "MILLENNIUMMON is raised in the Digidex");
+
+    // De-digivolving goes back to your own half, with the usual HP boost.
+    int16_t back[EVO_OPTIONS_MAX];
+    ck(p->devolveOptions(back, EVO_OPTIONS_MAX) >= 1 && back[0] == KIMERA,
+       "de-digivolving a fused MILLENNIUMMON offers KIMERAMON first");
+    p->dbgRegister(MACHINE);
+    bool machineOffered = false;
+    const uint8_t nb = p->devolveOptions(back, EVO_OPTIONS_MAX);
+    for (uint8_t i = 0; i < nb; i++) if (back[i] == MACHINE) machineOffered = true;
+    ck(!machineOffered, "never the other half, even one in the Digidex");
+    ck(p->devolve(KIMERA) && p->speciesId == KIMERA, "and goes back to it");
+    ck(p->deDigiCount == dd0 + 1 && p->vitStat() == petCalcHp(KIMERA, p->level(), dd0 + 1),
+       "HP x1.1, as any de-digivolution");
+    ck(p->evoHold > p->level() && p->jogressHalf == 0, "it waits out its stage, unfused");
+
+    // A wild fusion, then the same way back.
+    p = fresh(KIMERA, 61);
+    p->badges = 0x3F;
+    p->historyCount = 0;
+    ck(p->jogress(MILLENNIUM, MACHINE, MACHINE) && p->speciesId == MILLENNIUM && p->jogressHalf == KIMERA,
+       "a wild MACHINEDRAMON fuses the same way");
+    p->dbgHatchAs(BOTAMON, false);
+    ck(p->jogressHalf == 0, "a new partner has not fused");
+    p->badges = 0;
+
+    // A pair whose halves can never be partners never opens (SUSANOMON's).
+    for (uint8_t i = 0; i < TS_JOGRESS_COUNT; i++) {
+      const TsJogress &j = TS_JOGRESS_TBL[i];
+      if (j.partnersRaisable) continue;
+      Pet *e = fresh((int16_t)j.a, 90);
+      e->badges = 0xFF | (1u << TRAINER_CHAMPION);
+      ck(!e->jogressEligible(j) && !e->jogressWildHalves(h, JOGRESS_OPTIONS_MAX),
+         "a pair with a half that cannot be raised (SUSANOMON's) never opens");
+      e->badges = 0;
+    }
+  }
+
   // every stage a partner can reach has art to reach: the game stays playable
   {
     int stages[STAGE_COUNT] = { 0 };

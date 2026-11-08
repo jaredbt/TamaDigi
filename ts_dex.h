@@ -26,8 +26,8 @@ enum : uint8_t { TS_STAT_HP, TS_STAT_ATK, TS_STAT_DEF, TS_STAT_SPD, TS_STAT_MATK
 
 enum : uint8_t {
   TSF_RAISABLE = 1,     // can be a partner (hatched or digivolved into)
-  TSF_WILD_ONLY = 2,    // Armor, Hybrid and the 12 Digimon that need a missing mechanic
-  TSF_FUSION_ONLY = 4,  // reached only by Jogress (wild-only until Jogress ships)
+  TSF_WILD_ONLY = 2,    // Armor, Hybrid, the 12 Digimon that need a missing mechanic, Susanomon
+  TSF_FUSION_ONLY = 4,  // none since Jogress shipped (the pre-Jogress fusion-only forms)
 };
 
 struct TsDexEntry {
@@ -378,7 +378,7 @@ static const TsDexEntry TS_DEX_TBL[TS_DEX_COUNT + 1] = {
   { "HERCKABUTERIMON", 334, { 1917, 605, 905, 735, 865, 825 }, { 3678, 1304, 1472, 1136, 1629, 1358 }, TS_ST_MEGA, TS_ST_MEGA, TS_AT_VACCINE, TSF_RAISABLE, { 15, 10, 10, 10, 15, 10, 10, 5, 10, 10, 5 }, 0, 0, 1202, 5 },  // 328 HerculesKabuterimon
   { "PHOENIXMON", 335, { 1826, 390, 475, 860, 1400, 825 }, { 3058, 923, 910, 1393, 2168, 1623 }, TS_ST_MEGA, TS_ST_MEGA, TS_AT_VACCINE, TSF_RAISABLE, { 5, 15, 10, 10, 10, 10, 10, 10, 5, 15, 10 }, 0, 0, 1207, 5 },  // 329 Phoenixmon
   { "MAGNADRAMON", 336, { 2464, 430, 645, 735, 1295, 1085 }, { 3696, 963, 1080, 1268, 2063, 1883 }, TS_ST_MEGA, TS_ST_MEGA, TS_AT_VACCINE, TSF_RAISABLE, { 10, 10, 15, 10, 10, 10, 10, 5, 0, 20, 10 }, 0, 0, 1212, 3 },  // 330 Magnadramon
-  { "MASTEMON", 337, { 1554, 990, 775, 860, 1240, 820 }, { 2786, 1523, 1210, 1393, 2008, 1618 }, TS_ST_MEGA, TS_ST_MEGA, TS_AT_VACCINE, TSF_FUSION_ONLY, { 10, 10, 10, 10, 10, 10, 15, 10, 5, 5, 15 }, 0, 0, 1215, 6 },  // 331 Mastemon
+  { "MASTEMON", 337, { 1554, 990, 775, 860, 1240, 820 }, { 2786, 1523, 1210, 1393, 2008, 1618 }, TS_ST_MEGA, TS_ST_MEGA, TS_AT_VACCINE, TSF_RAISABLE, { 10, 10, 10, 10, 10, 10, 15, 10, 5, 5, 15 }, 0, 0, 1215, 6 },  // 331 Mastemon
   { "MARINEANGEMON", 338, { 1463, 215, 390, 820, 1505, 1130 }, { 2695, 748, 825, 1353, 2273, 1928 }, TS_ST_MEGA, TS_ST_MEGA, TS_AT_VACCINE, TSF_RAISABLE, { 10, 5, 15, 10, 10, 10, 10, 10, 5, 15, 10 }, 0, 0, 1221, 3 },  // 332 MarineAngemon
   { "MARSMON", 339, { 1687, 1190, 800, 975, 590, 715 }, { 3090, 2085, 1304, 1836, 1158, 1150 }, TS_ST_MEGA, TS_ST_MEGA, TS_AT_VACCINE, TSF_RAISABLE, { 5, 15, 10, 15, 10, 10, 10, 10, 10, 10, 0 }, 0, 0, 1224, 5 },  // 333 Marsmon
   { "JUPITERMON", 340, { 1652, 1095, 760, 795, 1050, 760 }, { 3055, 2157, 1558, 1328, 1618, 1195 }, TS_ST_MEGA, TS_ST_MEGA, TS_AT_VACCINE, TSF_WILD_ONLY, { 10, 15, 10, 10, 0, 10, 10, 10, 0, 20, 10 }, 0, 0, 1229, 6 },  // 334 Jupitermon
@@ -446,7 +446,7 @@ static const TsDexEntry TS_DEX_TBL[TS_DEX_COUNT + 1] = {
   { "BELPHEMON SM", 402, { 1456, 430, 560, 820, 1505, 1100 }, { 2688, 1159, 995, 1647, 2273, 1604 }, TS_ST_MEGA, TS_ST_MEGA, TS_AT_VIRUS, TSF_RAISABLE, { 5, 10, 10, 15, 10, 10, 10, 10, 15, 5, 10 }, 993, 1, 1537, 4 },  // 396 Belphemon SM
   { "MAGNAKIDMON", 403, { 1547, 1010, 760, 820, 1125, 650 }, { 2779, 1739, 1195, 1647, 1893, 1154 }, TS_ST_MEGA, TS_ST_MEGA, TS_AT_VIRUS, TSF_RAISABLE, { 10, 15, 10, 15, 5, 10, 10, 10, 10, 10, 5 }, 0, 0, 1541, 5 },  // 397 MagnaKidmon
   { "MINERVAMON", 404, { 1826, 1250, 605, 950, 865, 670 }, { 3229, 2243, 1403, 1517, 1433, 1105 }, TS_ST_MEGA, TS_ST_MEGA, TS_AT_VIRUS, TSF_RAISABLE, { 15, 10, 10, 10, 15, 5, 10, 5, 10, 10, 10 }, 994, 1, 1546, 6 },  // 398 Minervamon
-  { "MILLENNIUMMON", 405, { 1379, 1565, 700, 970, 505, 405 }, { 2782, 2558, 1498, 1537, 1073, 840 }, TS_ST_MEGA, TS_ST_MEGA, TS_AT_VIRUS, TSF_FUSION_ONLY, { 10, 10, 10, 10, 15, 10, 10, 10, 15, 5, 5 }, 0, 0, 1552, 5 },  // 399 Millenniummon
+  { "MILLENNIUMMON", 405, { 1379, 1565, 700, 970, 505, 405 }, { 2782, 2558, 1498, 1537, 1073, 840 }, TS_ST_MEGA, TS_ST_MEGA, TS_AT_VIRUS, TSF_RAISABLE, { 10, 10, 10, 10, 15, 10, 10, 10, 15, 5, 5 }, 0, 0, 1552, 5 },  // 399 Millenniummon
   { "MACHINEDRAMON", 406, { 1372, 1035, 1035, 735, 805, 870 }, { 3133, 1930, 1602, 1136, 1373, 1403 }, TS_ST_MEGA, TS_ST_MEGA, TS_AT_VIRUS, TSF_RAISABLE, { 10, 10, 10, 10, 15, 15, 5, 10, 10, 10, 5 }, 0, 0, 1557, 5 },  // 400 Machinedramon
   { "MEGIDRAMON", 407, { 2282, 1295, 715, 775, 645, 640 }, { 3685, 2259, 1513, 1308, 1213, 1075 }, TS_ST_MEGA, TS_ST_MEGA, TS_AT_VIRUS, TSF_RAISABLE, { 5, 15, 10, 15, 10, 10, 10, 10, 10, 5, 10 }, 0, 0, 1562, 6 },  // 401 Megidramon
   { "METALETEMON", 408, { 1826, 775, 1080, 735, 490, 830 }, { 3195, 1474, 1941, 1136, 1058, 1657 }, TS_ST_MEGA, TS_ST_MEGA, TS_AT_VIRUS, TSF_RAISABLE, { 10, 10, 10, 15, 20, 5, 5, 10, 10, 10, 5 }, 0, 0, 1568, 4 },  // 402 MetalEtemon
@@ -468,22 +468,22 @@ static const TsDexEntry TS_DEX_TBL[TS_DEX_COUNT + 1] = {
   { "EMPERORGREYMON", 424, { 1896, 1320, 955, 760, 725, 765 }, { 3299, 2284, 1459, 1587, 1293, 1200 }, TS_ST_HYBRID, TS_ST_MEGA, TS_AT_VARIABLE, TSF_WILD_ONLY, { 0, 15, 10, 20, 10, 5, 10, 10, 10, 10, 10 }, 0, 0, 1654, 6 },  // 418 EmperorGreymon
   { "MAGNAGARURUMON", 425, { 1484, 1175, 750, 1100, 840, 600 }, { 2887, 2168, 1548, 1667, 1408, 1035 }, TS_ST_HYBRID, TS_ST_MEGA, TS_AT_VARIABLE, TSF_WILD_ONLY, { 10, 10, 10, 10, 10, 10, 10, 5, 0, 20, 15 }, 0, 0, 1660, 5 },  // 419 MagnaGarurumon
   { "MAGNAGARURU DET", 426, { 1183, 1100, 605, 1380, 780, 570 }, { 2586, 2093, 1403, 1947, 1348, 1005 }, TS_ST_HYBRID, TS_ST_MEGA, TS_AT_VARIABLE, TSF_WILD_ONLY, { 10, 10, 10, 10, 10, 10, 10, 5, 0, 20, 15 }, 0, 0, 1665, 5 },  // 420 MagnaGarurumon (Detached)
-  { "ALPHA OURYUKEN", 427, { 2212, 1525, 1020, 1020, 1000, 965 }, { 3444, 2352, 1749, 1553, 1768, 1469 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_VACCINE, TSF_FUSION_ONLY, { 15, 10, 10, 15, 10, 5, 15, 5, 10, 10, 10 }, 0, 0, 1670, 6 },  // 421 Alphamon: Ouryuken
-  { "CRANIA+ENBARR", 428, { 2191, 940, 1570, 1035, 1320, 1250 }, { 3560, 1639, 2137, 1436, 2182, 2077 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_VACCINE, TSF_FUSION_ONLY, { 15, 10, 10, 10, 5, 15, 0, 10, 10, 10, 10 }, 0, 0, 1676, 4 },  // 422 Craniamon + Enbarrmon
+  { "ALPHA OURYUKEN", 427, { 2212, 1525, 1020, 1020, 1000, 965 }, { 3444, 2352, 1749, 1553, 1768, 1469 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_VACCINE, TSF_RAISABLE, { 15, 10, 10, 15, 10, 5, 15, 5, 10, 10, 10 }, 0, 0, 1670, 6 },  // 421 Alphamon: Ouryuken
+  { "CRANIA+ENBARR", 428, { 2191, 940, 1570, 1035, 1320, 1250 }, { 3560, 1639, 2137, 1436, 2182, 2077 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_VACCINE, TSF_RAISABLE, { 15, 10, 10, 10, 5, 15, 0, 10, 10, 10, 10 }, 0, 0, 1676, 4 },  // 422 Craniamon + Enbarrmon
   { "IMPERDRAMON PM", 429, { 2212, 1270, 1070, 1020, 1070, 1120 }, { 3615, 2234, 1574, 1847, 1638, 1555 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_VACCINE, TSF_WILD_ONLY, { 10, 10, 10, 10, 10, 10, 10, 15, 5, 15, 5 }, 0, 0, 1680, 4 },  // 423 Imperialdramon PM
-  { "OMNIMON", 430, { 2156, 1430, 1070, 970, 1165, 940 }, { 3559, 2394, 1868, 1503, 1733, 1375 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_VACCINE, TSF_FUSION_ONLY, { 5, 10, 10, 5, 10, 15, 5, 15, 10, 10, 10 }, 0, 0, 1684, 6 },  // 424 Omnimon
-  { "OMNIMON ZWART", 431, { 2212, 1020, 1270, 970, 1140, 1240 }, { 3581, 2013, 2131, 1371, 1708, 1773 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_VACCINE, TSF_FUSION_ONLY, { 15, 10, 10, 5, 10, 10, 5, 10, 10, 10, 15 }, 0, 0, 1690, 6 },  // 425 Omnimon Zwart
-  { "CHAOSMON", 432, { 1106, 2100, 510, 1325, 640, 510 }, { 2509, 2995, 1308, 1892, 1208, 945 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_VACCINE, TSF_FUSION_ONLY, { 15, 5, 15, 15, 15, 15, 15, 5, 5, 5, 5 }, 0, 0, 1696, 5 },  // 426 Chaosmon
-  { "CHAOSMON VALDUR", 433, { 1106, 1500, 355, 1070, 1975, 660 }, { 2338, 2229, 1084, 1603, 2743, 1164 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_VACCINE, TSF_FUSION_ONLY, { 5, 15, 5, 5, 5, 5, 5, 15, 15, 15, 15 }, 0, 0, 1701, 5 },  // 427 Chaosmon: Valdur Arm
-  { "GRACENOVAMON", 434, { 2303, 1015, 1015, 965, 1270, 1015 }, { 3535, 1548, 1450, 1498, 2234, 1519 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_VACCINE, TSF_FUSION_ONLY, { 10, 10, 10, 10, 15, 10, 10, 10, 5, 5, 15 }, 0, 0, 1706, 6 },  // 428 GraceNovamon
+  { "OMNIMON", 430, { 2156, 1430, 1070, 970, 1165, 940 }, { 3559, 2394, 1868, 1503, 1733, 1375 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_VACCINE, TSF_RAISABLE, { 5, 10, 10, 5, 10, 15, 5, 15, 10, 10, 10 }, 1000, 3, 1684, 6 },  // 424 Omnimon
+  { "OMNIMON ZWART", 431, { 2212, 1020, 1270, 970, 1140, 1240 }, { 3581, 2013, 2131, 1371, 1708, 1773 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_VACCINE, TSF_RAISABLE, { 15, 10, 10, 5, 10, 10, 5, 10, 10, 10, 15 }, 1003, 2, 1690, 6 },  // 425 Omnimon Zwart
+  { "CHAOSMON", 432, { 1106, 2100, 510, 1325, 640, 510 }, { 2509, 2995, 1308, 1892, 1208, 945 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_VACCINE, TSF_RAISABLE, { 15, 5, 15, 15, 15, 15, 15, 5, 5, 5, 5 }, 0, 0, 1696, 5 },  // 426 Chaosmon
+  { "CHAOSMON VALDUR", 433, { 1106, 1500, 355, 1070, 1975, 660 }, { 2338, 2229, 1084, 1603, 2743, 1164 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_VACCINE, TSF_RAISABLE, { 5, 15, 5, 5, 5, 5, 5, 15, 15, 15, 15 }, 0, 0, 1701, 5 },  // 427 Chaosmon: Valdur Arm
+  { "GRACENOVAMON", 434, { 2303, 1015, 1015, 965, 1270, 1015 }, { 3535, 1548, 1450, 1498, 2234, 1519 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_VACCINE, TSF_RAISABLE, { 10, 10, 10, 10, 15, 10, 10, 10, 5, 5, 15 }, 0, 0, 1706, 6 },  // 428 GraceNovamon
   { "SHINEGREYMON BM", 435, { 3094, 1685, 610, 1120, 575, 635 }, { 4497, 2678, 1408, 1687, 1143, 1070 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_VACCINE, TSF_RAISABLE, { 5, 10, 10, 10, 5, 15, 15, 10, 0, 10, 10 }, 0, 0, 1712, 6 },  // 429 ShineGreymon BM
-  { "SUSANOMON", 436, { 2324, 1225, 1020, 1020, 1150, 930 }, { 3727, 2189, 1524, 1847, 1718, 1365 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_VACCINE, TSF_FUSION_ONLY, { 10, 10, 10, 10, 5, 15, 10, 10, 5, 10, 15 }, 0, 0, 1718, 5 },  // 430 Susanomon
+  { "SUSANOMON", 436, { 2324, 1225, 1020, 1020, 1150, 930 }, { 3727, 2189, 1524, 1847, 1718, 1365 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_VACCINE, TSF_WILD_ONLY, { 10, 10, 10, 10, 5, 15, 10, 10, 5, 10, 15 }, 0, 0, 1718, 5 },  // 430 Susanomon
   { "JUPITERMON WM", 437, { 1980, 2065, 910, 955, 925, 535 }, { 3383, 3127, 1708, 1488, 1493, 970 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_VACCINE, TSF_WILD_ONLY, { 10, 15, 10, 10, 0, 10, 10, 10, 0, 20, 10 }, 0, 0, 1723, 6 },  // 431 Jupitermon WM
   { "RAVEMON BM", 438, { 1330, 1020, 920, 1530, 1215, 995 }, { 2562, 1553, 1649, 2097, 1949, 1499 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_VACCINE, TSF_RAISABLE, { 10, 10, 5, 10, 15, 10, 15, 5, 10, 10, 10 }, 0, 0, 1729, 5 },  // 432 Ravemon BM
-  { "EXAMON", 439, { 2653, 1325, 920, 1070, 1080, 740 }, { 4448, 2289, 1424, 1603, 1648, 1175 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_DATA, TSF_FUSION_ONLY, { 10, 10, 15, 10, 10, 10, 10, 5, 10, 10, 10 }, 0, 0, 1734, 5 },  // 433 Examon
+  { "EXAMON", 439, { 2653, 1325, 920, 1070, 1080, 740 }, { 4448, 2289, 1424, 1603, 1648, 1175 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_DATA, TSF_RAISABLE, { 10, 10, 15, 10, 10, 10, 10, 5, 10, 10, 10 }, 0, 0, 1734, 5 },  // 433 Examon
   { "MIRAGEGAOGA BM", 440, { 2100, 1225, 610, 1275, 1275, 855 }, { 3332, 1954, 1045, 2136, 2009, 1359 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_DATA, TSF_RAISABLE, { 10, 10, 10, 10, 5, 10, 15, 5, 10, 10, 15 }, 0, 0, 1739, 5 },  // 434 MirageGaogamon BM
   { "ROSEMON BM", 441, { 2100, 1020, 920, 920, 1400, 1080 }, { 3332, 1553, 1649, 1453, 2168, 1584 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_DATA, TSF_RAISABLE, { 15, 10, 0, 15, 5, 10, 10, 10, 10, 10, 10 }, 0, 0, 1744, 6 },  // 435 Rosemon BM
-  { "TITA+SKULLBALU", 442, { 3073, 1120, 645, 785, 700, 625 }, { 4868, 2084, 1149, 1318, 1268, 1060 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_VIRUS, TSF_FUSION_ONLY, { 15, 10, 10, 5, 10, 10, 10, 10, 20, 0, 10 }, 0, 0, 1750, 2 },  // 436 Titamon + SkullBaluchimon
+  { "TITA+SKULLBALU", 442, { 3073, 1120, 645, 785, 700, 625 }, { 4868, 2084, 1149, 1318, 1268, 1060 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_VIRUS, TSF_RAISABLE, { 15, 10, 10, 5, 10, 10, 10, 10, 20, 0, 10 }, 0, 0, 1750, 2 },  // 436 Titamon + SkullBaluchimon
   { "GALLANTMON CM", 443, { 1987, 1380, 815, 1125, 1290, 810 }, { 3390, 2275, 1613, 1692, 1858, 1245 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_VIRUS, TSF_RAISABLE, { 5, 15, 10, 10, 10, 10, 10, 10, 5, 15, 10 }, 0, 0, 1752, 5 },  // 437 Gallantmon CM
   { "BEELZEMON BM", 444, { 2436, 1785, 815, 1225, 830, 780 }, { 3839, 2680, 1319, 2086, 1398, 1215 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_VIRUS, TSF_RAISABLE, { 5, 10, 10, 10, 10, 15, 10, 10, 15, 5, 10 }, 0, 0, 1757, 5 },  // 438 Beelzemon BM
   { "BELPHEMON RM", 445, { 2653, 1875, 1120, 880, 695, 910 }, { 4056, 2839, 1624, 1707, 1263, 1345 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_VIRUS, TSF_RAISABLE, { 5, 10, 10, 15, 10, 10, 5, 10, 20, 0, 10 }, 0, 0, 1762, 6 },  // 439 Belphemon RM
@@ -496,25 +496,25 @@ static const TsDexEntry TS_DEX_TBL[TS_DEX_COUNT + 1] = {
   { "CRESGARURUMON", 452, { 1281, 905, 690, 990, 865, 710 }, { 2684, 1869, 1194, 1817, 1433, 1145 }, TS_ST_MEGA, TS_ST_MEGA, TS_AT_DATA, TSF_RAISABLE, { 15, 5, 10, 5, 15, 10, 10, 10, 10, 10, 10 }, 0, 0, 1798, 4 },  // 446 CresGarurumon
   { "PARALLELMON", 453, { 2373, 1120, 645, 735, 700, 625 }, { 4168, 2084, 1149, 1268, 1268, 1060 }, TS_ST_MEGA, TS_ST_MEGA, TS_AT_VIRUS, TSF_WILD_ONLY, { 10, 10, 10, 10, 10, 10, 10, 10, 15, 10, 5 }, 0, 0, 1802, 6 },  // 447 Parallelmon
   { "BLITZGREYMON", 454, { 1918, 1120, 905, 785, 645, 735 }, { 3321, 2084, 1409, 1612, 1213, 1170 }, TS_ST_MEGA, TS_ST_MEGA, TS_AT_VIRUS, TSF_RAISABLE, { 5, 15, 10, 15, 5, 5, 10, 10, 10, 10, 10 }, 0, 0, 1808, 5 },  // 448 BlitzGreymon
-  { "OMNIMON ALTER-B", 455, { 2212, 1520, 1020, 1020, 1290, 1090 }, { 3615, 2484, 1524, 1847, 1858, 1525 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_VIRUS, TSF_FUSION_ONLY, { 10, 10, 10, 5, 10, 15, 10, 10, 15, 5, 10 }, 0, 0, 1813, 5 },  // 449 Omnimon Alter-B
-  { "OMNIMON ALTER-S", 456, { 2156, 1430, 1070, 970, 1165, 940 }, { 3559, 2394, 1574, 1797, 1733, 1375 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_VIRUS, TSF_FUSION_ONLY, { 10, 10, 10, 10, 10, 10, 10, 15, 5, 15, 5 }, 0, 0, 1818, 6 },  // 450 Omnimon Alter-S
-  { "OMNIMON ZWART D", 457, { 2212, 1070, 1020, 1120, 1190, 990 }, { 3615, 2034, 1524, 1947, 1758, 1425 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_VIRUS, TSF_FUSION_ONLY, { 10, 10, 10, 10, 10, 10, 5, 10, 15, 5, 15 }, 0, 0, 1824, 6 },  // 451 Omnimon Zwart Defeat
+  { "OMNIMON ALTER-B", 455, { 2212, 1520, 1020, 1020, 1290, 1090 }, { 3615, 2484, 1524, 1847, 1858, 1525 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_VIRUS, TSF_RAISABLE, { 10, 10, 10, 5, 10, 15, 10, 10, 15, 5, 10 }, 1005, 1, 1813, 5 },  // 449 Omnimon Alter-B
+  { "OMNIMON ALTER-S", 456, { 2156, 1430, 1070, 970, 1165, 940 }, { 3559, 2394, 1574, 1797, 1733, 1375 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_VIRUS, TSF_RAISABLE, { 10, 10, 10, 10, 10, 10, 10, 15, 5, 15, 5 }, 1006, 1, 1818, 6 },  // 450 Omnimon Alter-S
+  { "OMNIMON ZWART D", 457, { 2212, 1070, 1020, 1120, 1190, 990 }, { 3615, 2034, 1524, 1947, 1758, 1425 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_VIRUS, TSF_RAISABLE, { 10, 10, 10, 10, 10, 10, 5, 10, 15, 5, 15 }, 1007, 1, 1824, 6 },  // 451 Omnimon Zwart Defeat
   { "BANCHOMAMEMON", 458, { 1197, 1130, 830, 715, 790, 765 }, { 2992, 2094, 1334, 1248, 1358, 1200 }, TS_ST_MEGA, TS_ST_MEGA, TS_AT_DATA, TSF_RAISABLE, { 10, 10, 10, 15, 15, 10, 5, 10, 10, 10, 5 }, 0, 0, 1830, 4 },  // 452 BanchoMamemon
   { "BANCHOLILLYMON", 459, { 1190, 615, 630, 835, 1590, 1045 }, { 2422, 1344, 1359, 1368, 2358, 1549 }, TS_ST_MEGA, TS_ST_MEGA, TS_AT_DATA, TSF_RAISABLE, { 15, 10, 5, 10, 10, 5, 15, 10, 10, 10, 10 }, 0, 0, 1834, 5 },  // 453 BanchoLillymon
   { "BANCHOGOLEMON", 460, { 2394, 1130, 1130, 605, 570, 865 }, { 3763, 2025, 1991, 1006, 1138, 1398 }, TS_ST_MEGA, TS_ST_MEGA, TS_AT_VIRUS, TSF_RAISABLE, { 10, 10, 15, 10, 10, 5, 5, 15, 10, 10, 10 }, 0, 0, 1839, 4 },  // 454 BanchoGolemon
   { "BANCHOSTINGMON", 461, { 1631, 1235, 560, 1045, 730, 565 }, { 3034, 2130, 1064, 1906, 1298, 1000 }, TS_ST_MEGA, TS_ST_MEGA, TS_AT_FREE, TSF_RAISABLE, { 5, 15, 10, 15, 5, 10, 10, 10, 10, 10, 10 }, 0, 0, 1843, 6 },  // 455 BanchoStingmon
-  { "OMNIMON MM", 462, { 2156, 1430, 1070, 970, 1165, 940 }, { 3951, 2394, 1574, 1503, 1733, 1375 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_VACCINE, TSF_FUSION_ONLY, { 10, 10, 15, 10, 15, 5, 10, 5, 10, 10, 10 }, 0, 0, 1849, 5 },  // 456 Omnimon MM
-  { "ULFORCEVDRMON X", 463, { 2009, 1080, 560, 1205, 700, 665 }, { 3412, 1975, 1064, 2066, 1268, 1100 }, TS_ST_MEGA, TS_ST_MEGA, TS_AT_VACCINE, TSF_RAISABLE, { 15, 10, 10, 10, 15, 5, 10, 5, 10, 10, 10 }, 1000, 1, 1854, 5 },  // 457 UlforceVeedramon (X Antibody)
+  { "OMNIMON MM", 462, { 2156, 1430, 1070, 970, 1165, 940 }, { 3951, 2394, 1574, 1503, 1733, 1375 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_VACCINE, TSF_RAISABLE, { 10, 10, 15, 10, 15, 5, 10, 5, 10, 10, 10 }, 0, 0, 1849, 5 },  // 456 Omnimon MM
+  { "ULFORCEVDRMON X", 463, { 2009, 1080, 560, 1205, 700, 665 }, { 3412, 1975, 1064, 2066, 1268, 1100 }, TS_ST_MEGA, TS_ST_MEGA, TS_AT_VACCINE, TSF_RAISABLE, { 15, 10, 10, 10, 15, 5, 10, 5, 10, 10, 10 }, 1008, 1, 1854, 5 },  // 457 UlforceVeedramon (X Antibody)
   { "MAGNAMON X", 464, { 1372, 990, 1250, 735, 975, 820 }, { 2775, 1954, 1754, 1562, 1543, 1255 }, TS_ST_MEGA, TS_ST_MEGA, TS_AT_VACCINE, TSF_WILD_ONLY, { 10, 10, 10, 10, 5, 10, 5, 10, 10, 15, 15 }, 0, 0, 1859, 5 },  // 458 Magnamon (X Antibody)
-  { "JESMON X", 465, { 1645, 1165, 905, 950, 805, 775 }, { 3048, 2158, 1703, 1517, 1373, 1210 }, TS_ST_MEGA, TS_ST_MEGA, TS_AT_DATA, TSF_RAISABLE, { 5, 10, 10, 15, 5, 10, 10, 10, 10, 10, 15 }, 1001, 1, 1864, 5 },  // 459 Jesmon (X Antibody)
-  { "GALLANTMON X", 466, { 1736, 860, 855, 820, 1075, 865 }, { 2968, 1589, 1584, 1353, 1843, 1369 }, TS_ST_MEGA, TS_ST_MEGA, TS_AT_VIRUS, TSF_RAISABLE, { 10, 10, 10, 10, 10, 10, 5, 15, 5, 15, 10 }, 1002, 1, 1869, 5 },  // 460 Gallantmon (X Antibody)
-  { "OMNIMON X", 467, { 2156, 1430, 1070, 970, 1165, 940 }, { 3559, 2394, 1868, 1503, 1733, 1375 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_VACCINE, TSF_FUSION_ONLY, { 5, 10, 10, 5, 10, 15, 5, 15, 10, 10, 10 }, 0, 0, 1874, 6 },  // 461 Omnimon (X Antibody)
-  { "AGUMON BLACK", 468, { 581, 335, 275, 200, 120, 165 }, { 2376, 1299, 779, 733, 688, 600 }, TS_ST_ROOKIE, TS_ST_ROOKIE, TS_AT_VIRUS, TSF_RAISABLE, { 5, 15, 10, 10, 5, 10, 10, 15, 10, 10, 10 }, 1003, 5, 1880, 3 },  // 462 Agumon (Black)
-  { "GABUMON BLACK", 469, { 588, 275, 220, 210, 175, 190 }, { 2349, 974, 787, 611, 939, 723 }, TS_ST_ROOKIE, TS_ST_ROOKIE, TS_AT_VIRUS, TSF_RAISABLE, { 5, 10, 15, 5, 10, 10, 10, 15, 10, 10, 10 }, 1008, 6, 1883, 3 },  // 463 Gabumon (Black)
-  { "GARURUMON BLACK", 470, { 623, 300, 275, 350, 190, 235 }, { 2026, 1293, 1073, 917, 758, 670 }, TS_ST_CHAMPION, TS_ST_CHAMPION, TS_AT_VIRUS, TSF_RAISABLE, { 5, 10, 10, 5, 15, 10, 10, 15, 10, 10, 10 }, 1014, 3, 1886, 4 },  // 464 Garurumon (Black)
-  { "GREYMON BLUE", 471, { 965, 450, 300, 250, 125, 220 }, { 2760, 1414, 804, 783, 693, 655 }, TS_ST_CHAMPION, TS_ST_CHAMPION, TS_AT_VIRUS, TSF_RAISABLE, { 5, 15, 10, 15, 5, 10, 10, 10, 10, 10, 10 }, 1017, 3, 1890, 4 },  // 465 Greymon (Blue)
-  { "METALGREY BLUE", 472, { 1868, 970, 750, 540, 330, 535 }, { 3663, 1934, 1254, 1073, 898, 970 }, TS_ST_ULTIMATE, TS_ST_ULTIMATE, TS_AT_VIRUS, TSF_RAISABLE, { 5, 10, 10, 15, 20, 10, 5, 10, 10, 10, 10 }, 1020, 3, 1894, 5 },  // 466 MetalGreymon (Blue)
-  { "WEREGARURU BLK", 473, { 1547, 1060, 530, 795, 330, 510 }, { 2950, 2122, 1328, 1328, 898, 945 }, TS_ST_ULTIMATE, TS_ST_ULTIMATE, TS_AT_VIRUS, TSF_RAISABLE, { 10, 5, 10, 5, 10, 15, 10, 15, 10, 10, 10 }, 1023, 2, 1899, 5 },  // 467 WereGarurumon (Black)
+  { "JESMON X", 465, { 1645, 1165, 905, 950, 805, 775 }, { 3048, 2158, 1703, 1517, 1373, 1210 }, TS_ST_MEGA, TS_ST_MEGA, TS_AT_DATA, TSF_RAISABLE, { 5, 10, 10, 15, 5, 10, 10, 10, 10, 10, 15 }, 1009, 1, 1864, 5 },  // 459 Jesmon (X Antibody)
+  { "GALLANTMON X", 466, { 1736, 860, 855, 820, 1075, 865 }, { 2968, 1589, 1584, 1353, 1843, 1369 }, TS_ST_MEGA, TS_ST_MEGA, TS_AT_VIRUS, TSF_RAISABLE, { 10, 10, 10, 10, 10, 10, 5, 15, 5, 15, 10 }, 1010, 1, 1869, 5 },  // 460 Gallantmon (X Antibody)
+  { "OMNIMON X", 467, { 2156, 1430, 1070, 970, 1165, 940 }, { 3559, 2394, 1868, 1503, 1733, 1375 }, TS_ST_MEGA_PLUS, TS_ST_MEGA_PLUS, TS_AT_VACCINE, TSF_RAISABLE, { 5, 10, 10, 5, 10, 15, 5, 15, 10, 10, 10 }, 1011, 1, 1874, 6 },  // 461 Omnimon (X Antibody)
+  { "AGUMON BLACK", 468, { 581, 335, 275, 200, 120, 165 }, { 2376, 1299, 779, 733, 688, 600 }, TS_ST_ROOKIE, TS_ST_ROOKIE, TS_AT_VIRUS, TSF_RAISABLE, { 5, 15, 10, 10, 5, 10, 10, 15, 10, 10, 10 }, 1012, 5, 1880, 3 },  // 462 Agumon (Black)
+  { "GABUMON BLACK", 469, { 588, 275, 220, 210, 175, 190 }, { 2349, 974, 787, 611, 939, 723 }, TS_ST_ROOKIE, TS_ST_ROOKIE, TS_AT_VIRUS, TSF_RAISABLE, { 5, 10, 15, 5, 10, 10, 10, 15, 10, 10, 10 }, 1017, 6, 1883, 3 },  // 463 Gabumon (Black)
+  { "GARURUMON BLACK", 470, { 623, 300, 275, 350, 190, 235 }, { 2026, 1293, 1073, 917, 758, 670 }, TS_ST_CHAMPION, TS_ST_CHAMPION, TS_AT_VIRUS, TSF_RAISABLE, { 5, 10, 10, 5, 15, 10, 10, 15, 10, 10, 10 }, 1023, 3, 1886, 4 },  // 464 Garurumon (Black)
+  { "GREYMON BLUE", 471, { 965, 450, 300, 250, 125, 220 }, { 2760, 1414, 804, 783, 693, 655 }, TS_ST_CHAMPION, TS_ST_CHAMPION, TS_AT_VIRUS, TSF_RAISABLE, { 5, 15, 10, 15, 5, 10, 10, 10, 10, 10, 10 }, 1026, 3, 1890, 4 },  // 465 Greymon (Blue)
+  { "METALGREY BLUE", 472, { 1868, 970, 750, 540, 330, 535 }, { 3663, 1934, 1254, 1073, 898, 970 }, TS_ST_ULTIMATE, TS_ST_ULTIMATE, TS_AT_VIRUS, TSF_RAISABLE, { 5, 10, 10, 15, 20, 10, 5, 10, 10, 10, 10 }, 1029, 3, 1894, 5 },  // 466 MetalGreymon (Blue)
+  { "WEREGARURU BLK", 473, { 1547, 1060, 530, 795, 330, 510 }, { 2950, 2122, 1328, 1328, 898, 945 }, TS_ST_ULTIMATE, TS_ST_ULTIMATE, TS_AT_VIRUS, TSF_RAISABLE, { 10, 5, 10, 5, 10, 15, 10, 15, 10, 10, 10 }, 1032, 2, 1899, 5 },  // 467 WereGarurumon (Black)
   { "BLACKWARGREYMON", 474, { 2100, 1035, 1035, 785, 540, 760 }, { 3895, 1930, 1539, 1352, 1108, 1195 }, TS_ST_MEGA, TS_ST_MEGA, TS_AT_VIRUS, TSF_RAISABLE, { 10, 10, 10, 10, 10, 10, 5, 15, 15, 5, 10 }, 0, 0, 1904, 5 },  // 468 BlackWarGreymon
   { "METALGARURU BLK", 475, { 1281, 950, 950, 785, 865, 850 }, { 2684, 2012, 1748, 1318, 1433, 1285 }, TS_ST_MEGA, TS_ST_MEGA, TS_AT_VIRUS, TSF_RAISABLE, { 10, 10, 15, 5, 15, 10, 5, 10, 10, 10, 10 }, 0, 0, 1909, 6 },  // 469 MetalGarurumon (Black)
 };
@@ -528,7 +528,7 @@ struct TsEvo {
   uint8_t minLevel;       // from the SP minimum (SP is dropped); 0 = none
   uint8_t rank;           // Agent Rank needed; 0 = none
 };
-#define TS_EVO_COUNT 1025
+#define TS_EVO_COUNT 1034
 static const TsEvo TS_EVO_TBL[TS_EVO_COUNT] = {
   { 1, 16, { 0, 0, 0, 0, 0, 0 }, 4, 0 },  // Kuramon -> Pagumon
   { 1, 12, { 0, 170, 0, 0, 0, 0 }, 2, 0 },  // Kuramon -> Tsumemon
@@ -1530,9 +1530,18 @@ static const TsEvo TS_EVO_TBL[TS_EVO_COUNT] = {
   { 410, 411, { 0, 2500, 0, 0, 0, 0 }, 0, 7 },  // Imperialdramon DM -> Imperialdramon FM
   { 411, 410, { 2890, 0, 0, 0, 0, 1180 }, 51, 7 },  // Imperialdramon FM -> Imperialdramon DM
   { 415, 442, { 4450, 3980, 0, 0, 0, 0 }, 0, 8 },  // Diaboromon -> Armageddemon
+  { 424, 425, { 0, 0, 0, 0, 0, 0 }, 0, 8 },  // Omnimon -> Omnimon Zwart
+  { 424, 456, { 0, 2970, 0, 2680, 0, 0 }, 0, 8 },  // Omnimon -> Omnimon MM
+  { 424, 461, { 0, 0, 0, 0, 0, 0 }, 0, 8 },  // Omnimon -> Omnimon (X Antibody)
+  { 425, 424, { 0, 0, 0, 0, 0, 0 }, 0, 8 },  // Omnimon Zwart -> Omnimon
+  { 425, 451, { 0, 0, 0, 1900, 0, 2720 }, 0, 8 },  // Omnimon Zwart -> Omnimon Zwart Defeat
+  { 449, 450, { 2620, 2620, 0, 1650, 0, 0 }, 0, 8 },  // Omnimon Alter-B -> Omnimon Alter-S
+  { 450, 449, { 0, 2280, 0, 1730, 2190, 0 }, 0, 8 },  // Omnimon Alter-S -> Omnimon Alter-B
+  { 451, 449, { 0, 2280, 0, 1730, 2190, 0 }, 0, 8 },  // Omnimon Zwart Defeat -> Omnimon Alter-B
   { 457, 303, { 2960, 0, 0, 1980, 0, 0 }, 0, 7 },  // UlforceVeedramon (X Antibody) -> UlforceVeedramon
   { 459, 346, { 0, 1730, 1730, 1650, 0, 0 }, 0, 7 },  // Jesmon (X Antibody) -> Jesmon
   { 460, 382, { 0, 1800, 0, 0, 0, 2240 }, 0, 7 },  // Gallantmon (X Antibody) -> Gallantmon
+  { 461, 424, { 0, 0, 0, 0, 0, 0 }, 0, 8 },  // Omnimon (X Antibody) -> Omnimon
   { 462, 92, { 1090, 0, 0, 0, 0, 0 }, 0, 0 },  // Agumon (Black) -> Strikedramon
   { 462, 154, { 0, 540, 0, 0, 0, 0 }, 0, 0 },  // Agumon (Black) -> Tuskmon
   { 462, 155, { 0, 0, 0, 430, 0, 0 }, 59, 0 },  // Agumon (Black) -> Devimon
@@ -1557,8 +1566,9 @@ static const TsEvo TS_EVO_TBL[TS_EVO_COUNT] = {
   { 467, 469, { 2760, 0, 0, 1720, 0, 1680 }, 0, 7 },  // WereGarurumon (Black) -> MetalGarurumon (Black)
 };
 
-// Jogress pairs (data only; a v1 stretch goal). Partner personalities are not
-// required. partnersRaisable = 0 when a partner can never be a partner in v1.
+// Jogress pairs: your partner (either half) fuses with a Digimon from its history or
+// a wild one it just beat. Partner personalities are not required; rank and min[]
+// apply to your partner. partnersRaisable = 0 when a half can never be a partner in v1.
 struct TsJogress {
   uint16_t a, b, to;      // dex ids
   uint16_t min[TS_STAT_COUNT];  // raw stat minimums (0 = none)

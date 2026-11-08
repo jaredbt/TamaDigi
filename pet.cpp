@@ -17,8 +17,10 @@ static constexpr size_t PET_CORE_CAP = PET_CKPT_CAP;
 // The fixed part of the record. PetCoreSnapshot below is exactly this prefix, and
 // only PET_FIXED bytes of it are ever copied -- the struct's own sizeof may be
 // rounded up by its 4-byte alignment and those bytes are not part of the format.
-// 96 up to `nick` (phase 1); phase 2 appended the departed partner (20 bytes).
-static constexpr size_t PET_FIXED = 116;
+// 96 up to `nick` (phase 1); phase 2 appended the departed partner (20 bytes);
+// Jogress appended the fused partner's own half and two spare bytes (the struct's
+// 4-byte alignment would pad them in anyway).
+static constexpr size_t PET_FIXED = 120;
 
 struct PetCoreSnapshot {
   uint32_t magic;
@@ -45,13 +47,17 @@ struct PetCoreSnapshot {
   // --- appended in phase 2: the partner that left last, and its history serial
   PartnerRecord departed;
   uint16_t departedSerial;
+  // --- appended with Jogress: the half it fused from (0 = none)
+  int16_t jogressHalf;
+  uint16_t spare;
 };
 // EXACT, not "< 256". PET_FIXED is on-disk format -- it is what the crc covers
 // and what a stored `size` implies -- so a field added above changes what every
 // device already holds. Failing these asserts is the reminder to read the
 // append-only rule in ckpt.h, then append the field at the end and move the number.
 static_assert(offsetof(PetCoreSnapshot, nick) == 84, "pet checkpoint fixed layout changed");
-static_assert(offsetof(PetCoreSnapshot, departedSerial) == PET_FIXED - sizeof(uint16_t),
+static_assert(offsetof(PetCoreSnapshot, departedSerial) == 114, "pet checkpoint fixed layout changed");
+static_assert(offsetof(PetCoreSnapshot, spare) == PET_FIXED - sizeof(uint16_t),
               "pet checkpoint fixed layout changed");
 static_assert(sizeof(PetCoreSnapshot) == PET_FIXED, "PET_FIXED overruns the struct");
 static_assert(PET_FIXED + CKPT_CRC <= PET_CORE_CAP, "raise PET_CORE_CAP");
@@ -634,7 +640,95 @@ uint8_t Pet::evoOptions(int16_t *out, uint8_t max) const {
     const TsEvo &e = TS_EVO_TBL[i];
     if (speciesShowable((int16_t)e.to) && routeMet(e)) out[n++] = (int16_t)e.to;
   }
+  // A fusion with a partner from the history is a branch like any other. A result an
+  // open route already reaches is that route: the plain digivolution wins.
+  JogressOption jo[JOGRESS_OPTIONS_MAX];
+  const uint8_t k = jogressOptions(jo, JOGRESS_OPTIONS_MAX, 0);
+  for (uint8_t i = 0; i < k && n < max; i++) {
+    bool dup = false;
+    for (uint8_t j = 0; j < n; j++)
+      if (out[j] == jo[i].to) dup = true;
+    if (!dup) out[n++] = jo[i].to;
+  }
   return n;
+}
+
+// ---------- Jogress ----------
+
+TsEvo jogressRoute(const TsJogress &j, int16_t from) {
+  TsEvo e = {};
+  e.from = (uint16_t)from;
+  e.to = j.to;
+  for (uint8_t i = 0; i < TS_STAT_COUNT; i++) e.min[i] = j.min[i];
+  e.minLevel = 0;
+  e.rank = j.rank;
+  return e;
+}
+
+int16_t jogressOther(const TsJogress &j, int16_t half) {
+  if ((int16_t)j.a == half) return (int16_t)j.b;
+  if ((int16_t)j.b == half) return (int16_t)j.a;
+  return 0;
+}
+
+bool Pet::jogressEligible(const TsJogress &j) const {
+  if (isEgg() || frozen || !dexValid(speciesId) || !j.partnersRaisable) return false;
+  if (!jogressOther(j, speciesId) || !speciesShowable((int16_t)j.to)) return false;
+  const TsEvo e = jogressRoute(j, speciesId);
+  return agentRank() >= e.rank && level() >= routeClock(e);
+}
+
+bool Pet::jogressMet(const TsJogress &j) const {
+  return jogressEligible(j) && routeMet(jogressRoute(j, speciesId));
+}
+
+bool Pet::historyHas(int16_t dex) const {
+  for (uint8_t i = 0; i < historyCount && i < PARTNER_HISTORY_MAX; i++)
+    if (history[i].dex == dex) return true;
+  return false;
+}
+
+uint8_t Pet::jogressOptions(JogressOption *out, uint8_t max, int16_t wildDex) const {
+  uint8_t n = 0;
+  for (uint8_t i = 0; i < TS_JOGRESS_COUNT && n < max; i++) {
+    const TsJogress &j = TS_JOGRESS_TBL[i];
+    if (!jogressMet(j)) continue;
+    const int16_t other = jogressOther(j, speciesId);
+    if (wildDex ? other != wildDex : !historyHas(other)) continue;
+    out[n].to = (int16_t)j.to;
+    out[n].other = other;
+    n++;
+  }
+  return n;
+}
+
+uint8_t Pet::jogressWildHalves(int16_t *out, uint8_t max) const {
+  uint8_t n = 0;
+  for (uint8_t i = 0; i < TS_JOGRESS_COUNT && n < max; i++) {
+    const TsJogress &j = TS_JOGRESS_TBL[i];
+    if (!jogressEligible(j)) continue;
+    const int16_t other = jogressOther(j, speciesId);
+    if (!speciesShowable(other)) continue;
+    bool dup = false;
+    for (uint8_t k = 0; k < n; k++)
+      if (out[k] == other) dup = true;
+    if (!dup) out[n++] = other;
+  }
+  return n;
+}
+
+bool Pet::jogress(int16_t to, int16_t other, int16_t wildDex) {
+  if (frozen || isEgg() || sleeping || ceremony != CER_NONE || !to || !other) return false;
+  JogressOption jo[JOGRESS_OPTIONS_MAX];
+  const uint8_t n = jogressOptions(jo, JOGRESS_OPTIONS_MAX, wildDex);
+  bool ok = false;
+  for (uint8_t i = 0; i < n; i++)
+    if (jo[i].to == to && jo[i].other == other) ok = true;
+  if (!ok) return false;
+  jogressHalf = speciesId;
+  evoHold = 0;
+  becomeForm(to);
+  return true;
 }
 
 // THE digivolution answer. 0 means none is open -- a form whose branches ask for
@@ -1113,6 +1207,7 @@ void Pet::hatch() {
   trAtk = trDef = trSpe = 0;
   deDigiCount = 0;
   evoHold = 0;
+  jogressHalf = 0;
   goodTicks = 0;
   berryKnown = false;
   bond = 0;          // bond, medals and name belong to the individual
@@ -1172,6 +1267,15 @@ bool Pet::evolveTo(int16_t dex) {
   for (uint8_t i = 0; i < n; i++)
     if (open[i] == dex) ok = true;
   if (!ok) return false;
+  // An open route first; otherwise this branch is a fusion with the history.
+  const TsEvo *e = tsRoute(speciesId, dex);
+  if (!(e && speciesShowable(dex) && routeMet(*e))) {
+    JogressOption jo[JOGRESS_OPTIONS_MAX];
+    const uint8_t k = jogressOptions(jo, JOGRESS_OPTIONS_MAX, 0);
+    for (uint8_t i = 0; i < k; i++)
+      if (jo[i].to == dex) return jogress(dex, jo[i].other, 0);
+    return false;
+  }
   evoHold = 0;
   becomeForm(dex);
   return true;
@@ -1182,6 +1286,16 @@ bool Pet::evolveTo(int16_t dex) {
 uint8_t Pet::devolveOptions(int16_t *out, uint8_t max) const {
   if (frozen || isEgg() || sleeping || ceremony != CER_NONE || !dexValid(speciesId)) return 0;
   uint8_t n = 0;
+  // A fused partner goes back to its own half, whatever else it could become.
+  if (dexValid(jogressHalf) && max && speciesShowable(jogressHalf)) {
+    for (uint8_t i = 0; i < TS_JOGRESS_COUNT; i++) {
+      const TsJogress &j = TS_JOGRESS_TBL[i];
+      if ((int16_t)j.to == speciesId && j.partnersRaisable && jogressOther(j, jogressHalf)) {
+        out[n++] = jogressHalf;
+        break;
+      }
+    }
+  }
   for (uint16_t i = 0; i < TS_EVO_COUNT && n < max; i++) {
     const TsEvo &e = TS_EVO_TBL[i];
     if ((int16_t)e.to != speciesId || !isRegistered((int16_t)e.from)) continue;
@@ -1209,6 +1323,7 @@ bool Pet::devolve(int16_t to) {
   const uint16_t hold = (uint16_t)level() + gap;
   evoHold = hold > 255 ? 255 : (uint8_t)hold;
   if (deDigiCount < DEDIGI_COUNT_MAX) deDigiCount++;
+  if (to == jogressHalf) jogressHalf = 0;   // unfused: back to being that half
   becomeForm(to);
   return true;
 }
@@ -1507,6 +1622,7 @@ bool Pet::saveCoreSnapshot() {
   strncpy(snapshot.nick, nick, sizeof(snapshot.nick) - 1);
   snapshot.departed = departed;
   snapshot.departedSerial = departedSerial;
+  snapshot.jogressHalf = jogressHalf;
 
   uint8_t buf[PET_CORE_CAP] = {};
   memcpy(buf, &snapshot, PET_FIXED);
@@ -1566,6 +1682,7 @@ bool Pet::loadCoreSnapshot() {
   departed = snapshot.departed;
   departed.name[sizeof(departed.name) - 1] = 0;
   departedSerial = snapshot.departedSerial;
+  jogressHalf = dexValid(snapshot.jogressHalf) ? snapshot.jogressHalf : 0;
   return true;
 }
 
