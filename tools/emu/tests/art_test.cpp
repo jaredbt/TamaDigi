@@ -71,9 +71,19 @@ int main(){
     ck(notHatchling == 0, "and every egg is an In-Training I");
     // a line with a form not raised yet is preferred, once the first is done
     for (int16_t d = 1; d <= DEX_COUNT; d++) if (speciesHasArt(d) && d != 7) p.dbgRegister(d);
+    // It LEANS (weight 3 against 1 for each finished line, so 3 in 5 here) rather
+    // than forcing: the finished lines still turn up.
     int seven = 0;
-    for (int i = 0; i < 200; i++) if (p.pickEggSpecies() == 7) seven++;
-    ck(seven == 200, "an egg leans toward the line with something left to raise");
+    for (int i = 0; i < 1000; i++) if (p.pickEggSpecies() == 7) seven++;
+    printf("      POYOMON's line, the only one left to raise: %d of 1000 eggs\n", seven);
+    ck(seven > 520 && seven < 680, "an egg leans toward the line with something left to raise");
+    ck(seven < 1000, "and only leans: a finished line can still hatch");
+    // Negative check: with every line equally fresh the lean has nothing to act on.
+    Pet q; q.begin();
+    q.dbgRegister(5);                    // past the first egg, nothing finished
+    int sevenQ = 0;
+    for (int i = 0; i < 1000; i++) if (q.pickEggSpecies() == 7) sevenQ++;
+    ck(sevenQ > 270 && sevenQ < 400, "with every line fresh it is a fair third each");
     p.dbgRegister(7);
     bool varied = false;
     for (int i = 0; i < 200; i++) if (p.pickEggSpecies() != 7) varied = true;

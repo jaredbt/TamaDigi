@@ -61,7 +61,9 @@ sips -s format png shot.ppm --out shot.png     # macOS; or use ImageMagick
 ```
 
 `--shot` accepts `main`, `battle`, `profile`, `medals`, `progress`, `gallery`,
-`clock`, `menu`, `egg`, `starter`. `--lvl`, `--iv` and
+`clock`, `menu`, `egg`, `stages` (the Digidex's stage picker), `dexentry`, `dexstats`,
+`dexroutes` (an entry's three kinds of page), `evochoice` (the evolution offer),
+`partners` (the partner history), among others. `--lvl`, `--iv` and
 `--dex` set up the pet first.
 
 ## How it works

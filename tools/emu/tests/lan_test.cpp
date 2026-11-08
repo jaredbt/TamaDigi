@@ -50,7 +50,7 @@ static LinkMon mon(int16_t dex, uint8_t lvl, const char *nm){
 int main(){
   setup();
   for (int i=0;i<4;i++) render();
-  if (pet.awaitingStarter()) pet.chooseStarter(6);
+  pet.dbgSetEgg(6);
   if (pet.isEgg()) pet.dbgHatchAs(6,false);
   // The live pet is a level-1 BLAZE; what we advertise is deliberately not it.
 

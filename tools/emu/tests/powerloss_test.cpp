@@ -213,6 +213,8 @@ int main() {
     pet.streak = 9;
     pet.gameHi = 1234;
     strncpy(pet.trainerName, "RIVAL", sizeof(pet.trainerName) - 1);
+    pet.markSeen(2);
+    pet.addScan(4, 2);
     pet.saveNow();
 
     // Truncate the record as a build with a smaller dex would have written it:
@@ -221,16 +223,22 @@ int main() {
     std::vector<uint8_t> small = slotBytes(slot);
     ck(small.size() > 60, "the player checkpoint was written");
     if (small.size() > 60) {
-      const size_t FIXED = 44;
+      const size_t FIXED = small[19];                // the record says where its arrays start
+      const size_t nameN = small[16];
       uint16_t storedDex;
       memcpy(&storedDex, small.data() + 12, 2);
       const size_t shrinkTo = 19;                    // dex 1..152, the Ver.1-era size
       std::vector<uint8_t> out(small.begin(), small.begin() + FIXED);
-      // dexReg prefix, then dexVariantReg prefix, then the rest unchanged
-      out.insert(out.end(), small.begin() + FIXED, small.begin() + FIXED + shrinkTo);
-      out.insert(out.end(), small.begin() + FIXED + storedDex,
-                 small.begin() + FIXED + storedDex + shrinkTo);
-      out.insert(out.end(), small.begin() + FIXED + 2 * storedDex, small.end() - 2);
+      // Every array that is sized by the dex keeps its prefix: dexReg, dexVariantReg,
+      // then the trainer name whole, then the seen bitmap and the scans (two bits a
+      // Digimon, so twice the bytes), then the history whole.
+      size_t at = FIXED;
+      out.insert(out.end(), small.begin() + at, small.begin() + at + shrinkTo); at += storedDex;
+      out.insert(out.end(), small.begin() + at, small.begin() + at + shrinkTo); at += storedDex;
+      out.insert(out.end(), small.begin() + at, small.begin() + at + nameN); at += nameN;
+      out.insert(out.end(), small.begin() + at, small.begin() + at + shrinkTo); at += storedDex;
+      out.insert(out.end(), small.begin() + at, small.begin() + at + 2 * shrinkTo); at += 2 * storedDex;
+      out.insert(out.end(), small.begin() + at, small.end() - 2);
       uint16_t newDex = (uint16_t)shrinkTo;
       memcpy(out.data() + 12, &newDex, 2);
       uint16_t total = (uint16_t)(out.size() + 2);
@@ -247,8 +255,135 @@ int main() {
          "a player record from a smaller dex keeps every bit's meaning");
       ck(loaded.badgesHard == 0x20 && loaded.streak == 9 && loaded.gameHi == 1234,
          "and every field after the shortened arrays still reads correctly");
-      ck(!strcmp(loaded.trainerName, "RIVAL"), "including the trainer name at the very end");
+      ck(!strcmp(loaded.trainerName, "RIVAL"), "including the trainer name");
+      ck(loaded.dexState(2) == DEX_SEEN && loaded.scanProgress(4) == 2 && loaded.dexState(3) == DEX_RAISED,
+         "and the seen bitmap and the scans after it keep their meaning too");
     }
+  }
+
+  // A PHASE-1 player record: the 44-byte scalar block and no seen bitmap, scans or
+  // history after the trainer name. It must load whole, with those empty -- a reader
+  // that demanded the new block would cost every phase-1 player their badges.
+  {
+    nvs().clear();
+    Pet pet;
+    pet.begin();
+    pet.dbgHatchAs(7, false);
+    pet.badges = 0x15;
+    pet.dexReg[0] = 0x05;
+    strncpy(pet.trainerName, "OLDIE", sizeof(pet.trainerName) - 1);
+    pet.saveNow();
+    const char *slot = newerSlot("plyA", "plyB");
+    std::vector<uint8_t> cur = slotBytes(slot);
+    ck(cur.size() > 60 && cur[19] == 48, "this build writes the 48-byte scalar block");
+    if (cur.size() > 60) {
+      uint16_t dexBytes;
+      memcpy(&dexBytes, cur.data() + 12, 2);
+      const size_t nameN = cur[16];
+      std::vector<uint8_t> old(cur.begin(), cur.begin() + 44);       // phase 1's scalars
+      old.insert(old.end(), cur.begin() + 48, cur.begin() + 48 + 2 * dexBytes + nameN);
+      old[19] = 44;
+      uint16_t total = (uint16_t)(old.size() + 2);
+      memcpy(old.data() + 6, &total, 2);
+      old.push_back(0);
+      old.push_back(0);
+      reseal(old);
+      nvs()[slot] = old;
+      nvs().erase(std::string(slot) == "plyA" ? "plyB" : "plyA");
+      Pet loaded;
+      loaded.begin();
+      ck(loaded.badges == 0x15 && loaded.isRegistered(1) && !strcmp(loaded.trainerName, "OLDIE"),
+         "a phase-1 player record loads whole");
+      ck(loaded.historyCount == 0 && loaded.seenCount() == loaded.registeredCount(),
+         "with no history and nothing seen beyond what was raised");
+    }
+  }
+
+  // --- a partner leaving crosses both records -------------------------------
+  //
+  // newEgg() puts the partner into the history (player record) and the egg into the
+  // creature's record, and save() writes them one after the other. The creature's
+  // record also carries the departed partner, so a cut after it is repaired on the
+  // next load -- and repaired ONCE, however many loads follow.
+  {
+    nvs().clear();
+    Pet pet;
+    pet.begin();
+    pet.dbgHatchAs(89, false);           // GREYMON
+    pet.ageMinutes = 80UL * 60;
+    pet.saveNow();
+    pet.startFarewell();
+    gNow += CEREMONY_MS + 1;
+    nvsFailWritesAfter(1);               // the egg commits; the player write is refused
+    pet.update(gNow);
+    nvsResumeWrites();
+    ck(pet.isEgg(), "the farewell ended in an egg");
+    Pet cut;
+    cut.begin();
+    ck(cut.isEgg(), "the egg was committed");
+    ck(cut.historyCount == 1 && cut.history[0].dex == 89 && cut.history[0].end == PART_FAREWELL &&
+           cut.history[0].ageHours == 80,
+       "and the partner reaches the history although the player write was lost");
+    cut.saveNow();
+    Pet again;
+    again.begin();
+    ck(again.historyCount == 1, "the repair is not repeated on the next load");
+    // Negative check: without the copy in the creature's record, the cut loses it.
+    // Zero the departed partner in the newest pet slot and the entry must be gone,
+    // which proves it was the repair -- not some other write -- that kept it.
+    {
+      nvs().clear();
+      Pet p2;
+      p2.begin();
+      p2.dbgHatchAs(89, false);
+      p2.saveNow();
+      p2.startFarewell();
+      gNow += CEREMONY_MS + 1;
+      nvsFailWritesAfter(1);
+      p2.update(gNow);
+      nvsResumeWrites();
+      const char *slot = newerSlot("petA", "petB");
+      std::vector<uint8_t> b = slotBytes(slot);
+      if (b.size() == 118) {
+        memset(b.data() + 96, 0, 20);   // the departed partner and its serial
+        reseal(b);
+        nvs()[slot] = b;
+      }
+      Pet lost;
+      lost.begin();
+      ck(b.size() == 118 && lost.historyCount == 0,
+         "(and without the creature record's copy, that cut would have lost it)");
+    }
+  }
+
+  // An early retire is the farewell ceremony, and the history says which it was.
+  {
+    nvs().clear();
+    Pet pet;
+    pet.begin();
+    pet.dbgHatchAs(21, false);           // AGUMON, far from its farewell
+    pet.ageMinutes = 10UL * 60;
+    pet.startRetire();
+    ck(pet.retireIsEarly(), "a retire before the farewell is early");
+    gNow += CEREMONY_MS + 1;
+    pet.update(gNow);
+    ck(pet.historyCount == 1 && pet.history[0].end == PART_RETIRED && pet.history[0].dex == 21,
+       "and it goes into the history as retired, not as a farewell");
+    // The history is short: the oldest falls off the end.
+    for (int i = 0; i < PARTNER_HISTORY_MAX + 2; i++) {
+      pet.dbgHatchAs((int16_t)(8 + i), false);
+      pet.release();
+      gNow += CEREMONY_MS + 1;
+      pet.update(gNow);
+    }
+    ck(pet.historyCount == PARTNER_HISTORY_MAX && pet.history[0].dex == 8 + PARTNER_HISTORY_MAX + 1 &&
+           pet.history[PARTNER_HISTORY_MAX - 1].dex == 8 + 2,
+       "it keeps the newest PARTNER_HISTORY_MAX, newest first");
+    Pet loaded;
+    loaded.begin();
+    ck(loaded.historyCount == PARTNER_HISTORY_MAX && loaded.history[0].dex == pet.history[0].dex &&
+           loaded.history[PARTNER_HISTORY_MAX - 1].dex == pet.history[PARTNER_HISTORY_MAX - 1].dex,
+       "and a full history survives a reload");
   }
 
   // --- a record written by an EARLIER build of this format -------------------
@@ -268,7 +403,7 @@ int main() {
 
     const char *slot = newerSlot("petA", "petB");
     std::vector<uint8_t> whole = slotBytes(slot);
-    ck(whole.size() == 98, "the record is its 96-byte body and a crc");
+    ck(whole.size() == 118, "the record is its 116-byte body and a crc");
     const size_t SHORT_BODY = 84;             // everything before the nickname
     std::vector<uint8_t> shorter(whole.begin(), whole.begin() + SHORT_BODY);
     uint16_t size = SHORT_BODY + 2;

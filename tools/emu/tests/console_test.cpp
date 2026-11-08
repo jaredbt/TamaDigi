@@ -64,7 +64,7 @@ static std::string runConsole(const std::vector<std::string> &lines){
 int main(){
   setup();
   for (int i=0;i<4;i++) render();
-  if (pet.awaitingStarter()) pet.chooseStarter(6);
+  pet.dbgSetEgg(6);
   if (pet.isEgg()) pet.dbgHatchAs(59,false);
   pet.ageMinutes = 61UL*MINUTES_PER_LEVEL;
   pet.ivAtk=29; pet.ivHp=13;

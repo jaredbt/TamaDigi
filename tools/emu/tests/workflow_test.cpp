@@ -173,7 +173,10 @@ static void fixture(const Case &test) {
   }
   bool losing = test.ending == Ending::Loss;
   pet.dbgHatchAs(losing ? 6 : 400, true);              // BOTAMON, or MACHINEDRAMON
-  pet.ageMinutes = losing ? 0 : 99 * MINUTES_PER_LEVEL;
+  // A wild Digimon is met at your level and stage now, so a level-1 BOTAMON meets
+  // another hatchling and the fight outlasts the tap budget. At level 30 the
+  // BOTAMON meets Champions, which is the quick loss this case is after.
+  pet.ageMinutes = losing ? (test.gym ? 0 : 29 * MINUTES_PER_LEVEL) : 99 * MINUTES_PER_LEVEL;
   pet.formAgeMin = pet.ageMinutes;
   pet.ivAtk = pet.ivDef = pet.ivSpe = pet.ivHp = losing ? 0 : 31;
   pet.trAtk = losing ? 0 : 200; pet.trDef = losing ? 0 : 220; pet.trSpe = losing ? 0 : 240;

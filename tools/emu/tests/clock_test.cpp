@@ -29,7 +29,7 @@ static void ck(bool ok,const char*w){printf("%s  %s\n",ok?"PASS":"FAIL",w); if(!
 // case below starts from.
 static void freshPet(Pet &p, uint32_t seen) {
   p.begin();
-  if (p.awaitingStarter()) p.chooseStarter(4);
+  p.dbgSetEgg(4);
   p.dbgHatchAs(6, false);
   while (p.hasLearnOffer()) p.declineLearn();
   p.ageMinutes = 20UL * MINUTES_PER_LEVEL;

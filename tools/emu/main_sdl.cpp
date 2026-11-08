@@ -113,6 +113,11 @@ bool startWildBattle(bool hard);
 void onTap(int16_t x, int16_t y);   // the first-boot shots tap their way in
 extern bool exploreOpen, gymOpen, playerOpen;
 extern bool galleryDirty;
+extern int8_t galleryStage;
+extern uint8_t galleryDetailPage, choiceKind, evoPick;
+extern uint32_t choiceUntil;
+void galleryOpenDetail(int16_t dex);
+int16_t evoChoiceTarget();
 int wavMain(const char *path, const char *demo);
 extern bool lanOpen;
 extern uint8_t btlMyAct;
@@ -159,7 +164,7 @@ static void writePPM(const char *path) {
   printf("wrote %s\n", path);
 }
 
-// A starter for the shots that are past the first boot.
+// The egg the shots hatch from: the same In-Training I every time.
 static int16_t starterForDemo() {
   int16_t forms[8];
   return starterForms(forms, 8) ? forms[1] : 6;
@@ -168,16 +173,13 @@ static int16_t starterForDemo() {
 static int shotMode(const char *screen, const char *out, int lvl, int iv, int dex) {
   setup();
   for (int i = 0; i < 4; i++) loop();          // let the sketch settle
-  bool firstBoot = !strcmp(screen, "starter");
-  if (pet.awaitingStarter() && !firstBoot) pet.chooseStarter(starterForDemo());
+  pet.dbgSetEgg(starterForDemo());
   if (!strcmp(screen, "egg")) {
-    // a few Digimon registered, so the lottery is past the starter case
+    // a few Digimon registered, so the egg is past the first, uniform one
     for (int d = 1; d <= 40; d++) pet.dbgHatchAs(d, false);
     pet.newEgg();
   }
-  // dbgHatchAs() clears starterPick, so hatching here would skip the very
-  // screen the first-boot shots are trying to photograph.
-  if (pet.isEgg() && !firstBoot && strcmp(screen, "egg")) pet.dbgHatchAs(dex, false);
+  if (pet.isEgg() && strcmp(screen, "egg")) pet.dbgHatchAs(dex, false);
   if (lvl > 0) pet.ageMinutes = (uint32_t)(lvl - 1) * MINUTES_PER_LEVEL;
   if (iv >= 0) {
     pet.ivAtk = pet.ivDef = pet.ivSpe = pet.ivHp = iv;
@@ -192,12 +194,52 @@ static int shotMode(const char *screen, const char *out, int lvl, int iv, int de
   else if (!strcmp(screen, "profile")){ cardOpen = true; cardPage = 0; }
   else if (!strcmp(screen, "medals")) { cardOpen = true; cardPage = 3; }
   else if (!strcmp(screen, "progress")){cardOpen = true; cardPage = 3; }
-  else if (!strcmp(screen, "gallery")) {
+  else if (!strcmp(screen, "gallery") || !strcmp(screen, "stages")) {
     // The grid is static and guarded by galleryDirty, so setting galleryOpen
-    // alone leaves the screenshot black -- the real UI sets both.
+    // alone leaves the screenshot black -- the real UI sets both. Every state on
+    // show: raised, scanned, two thirds scanned, seen, and unseen.
     galleryOpen = true;
     galleryDirty = true;
-    for (int d = 1; d <= DEX_COUNT; d++) pet.dbgHatchAs(d, false);
+    const int16_t keep = pet.speciesId;
+    for (int d = 1; d <= DEX_COUNT; d++) {
+      if (d % 5 == 0) pet.dbgHatchAs(d, false);
+      else if (d % 5 == 1) pet.addScan(d, 3);
+      else if (d % 5 == 2) pet.addScan(d, 2);
+      else if (d % 5 == 3) pet.markSeen(d);
+    }
+    pet.dbgHatchAs(keep, false);
+    galleryStage = !strcmp(screen, "gallery") ? TS_ST_CHAMPION : -1;
+  }
+  else if (!strcmp(screen, "dexentry") || !strcmp(screen, "dexstats") || !strcmp(screen, "dexroutes")) {
+    // An entry's three kinds of page: GREYMON scanned, so all of them are open.
+    galleryOpen = true;
+    galleryStage = TS_ST_CHAMPION;
+    pet.addScan(21, 3);                  // AGUMON is a known source; the rest stay "???"
+    pet.addScan(89, 3);
+    galleryOpenDetail(89);
+    galleryDetailPage = !strcmp(screen, "dexentry") ? 0 : (!strcmp(screen, "dexstats") ? 1 : 2);
+  }
+  else if (!strcmp(screen, "evochoice")) {
+    // A KOROMON with two open branches, one of them scanned.
+    pet.dbgHatchAs(9, false);
+    pet.ageMinutes = 24UL * MINUTES_PER_LEVEL;
+    pet.formAgeMin = pet.ageMinutes;
+    pet.trAtk = pet.trDef = pet.trSpe = 100;
+    while (pet.hasLearnOffer()) pet.declineLearn();
+    pet.addScan(evoChoiceTarget(), 3);
+    choiceKind = 1; evoPick = 0; choiceUntil = millis() + 600000;
+  }
+  else if (!strcmp(screen, "partners")) {
+    for (int16_t d : { 89, 86, 21 }) {   // three partners, three endings
+      pet.dbgHatchAs(d, d == 86);
+      pet.ageMinutes = 80UL * MINUTES_PER_LEVEL + d;
+      if (d == 21) pet.rename("SPARKY");
+      if (d == 89) pet.startFarewell(); else if (d == 86) pet.startRunaway(); else pet.release();
+      pet.newEgg();
+    }
+    pet.dbgHatchAs(dex, false);
+    playerOpen = true;
+    playerPage = 3;
   }
   else if (!strcmp(screen, "clock"))   clockOpen = true;
   else if (!strcmp(screen, "menu"))    menuOpen = true;

@@ -17,7 +17,8 @@ static constexpr size_t PET_CORE_CAP = PET_CKPT_CAP;
 // The fixed part of the record. PetCoreSnapshot below is exactly this prefix, and
 // only PET_FIXED bytes of it are ever copied -- the struct's own sizeof may be
 // rounded up by its 4-byte alignment and those bytes are not part of the format.
-static constexpr size_t PET_FIXED = 96;
+// 96 up to `nick` (phase 1); phase 2 appended the departed partner (20 bytes).
+static constexpr size_t PET_FIXED = 116;
 
 struct PetCoreSnapshot {
   uint32_t magic;
@@ -41,12 +42,16 @@ struct PetCoreSnapshot {
   uint8_t careMistakes, sleeping, lastEnd, frozen, bond;
   uint8_t deDigiCount, evoHold;
   char nick[12];
+  // --- appended in phase 2: the partner that left last, and its history serial
+  PartnerRecord departed;
+  uint16_t departedSerial;
 };
 // EXACT, not "< 256". PET_FIXED is on-disk format -- it is what the crc covers
 // and what a stored `size` implies -- so a field added above changes what every
-// device already holds. Failing this assert is the reminder to read the
+// device already holds. Failing these asserts is the reminder to read the
 // append-only rule in ckpt.h, then append the field at the end and move the number.
-static_assert(offsetof(PetCoreSnapshot, nick) == PET_FIXED - sizeof(PetCoreSnapshot::nick),
+static_assert(offsetof(PetCoreSnapshot, nick) == 84, "pet checkpoint fixed layout changed");
+static_assert(offsetof(PetCoreSnapshot, departedSerial) == PET_FIXED - sizeof(uint16_t),
               "pet checkpoint fixed layout changed");
 static_assert(sizeof(PetCoreSnapshot) == PET_FIXED, "PET_FIXED overruns the struct");
 static_assert(PET_FIXED + CKPT_CRC <= PET_CORE_CAP, "raise PET_CORE_CAP");
@@ -99,14 +104,22 @@ static constexpr uint16_t PLAYER_VERSION = 1;
 // simply raising this number would make every existing record fail that check.
 // So a future scalar goes at the end of the block, this number moves, and both
 // directions keep working.
-static constexpr size_t PLAYER_FIXED = 44;
+//
+// 44 in phase 1. Phase 2 appended the partner history's dimensions (count, entry
+// size, serial) at 44..47, and appended its arrays AFTER trainerName -- the seen
+// bitmap, the scan counts and the history -- so the name stays where a phase-1
+// reader (and web/savefile.js, which labels backups) looks for it.
+static constexpr size_t PLAYER_FIXED = 48;
+static constexpr size_t PLAYER_FIXED_MIN = 44;   // the shortest block a reader accepts
 static constexpr size_t PLAYER_CAP = PLAYER_CKPT_CAP;
 static constexpr size_t PLAYER_DEX_BYTES = (DEX_COUNT + 7) / 8;
 // DERIVED from the tables, never restated: CLAUDE.md § "A record's size is
 // load-bearing" is what a literal here costs. Failing this is
 // the signal to raise PLAYER_CAP, not to trim the record.
 static constexpr size_t PLAYER_MAX =
-    PLAYER_FIXED + 2 * PLAYER_DEX_BYTES + 12 /* trainerName */ + CKPT_CRC;
+    PLAYER_FIXED + 2 * PLAYER_DEX_BYTES + 12 /* trainerName */ +
+    PLAYER_DEX_BYTES /* seen */ + 2 * PLAYER_DEX_BYTES /* scans */ +
+    PARTNER_HISTORY_MAX * sizeof(PartnerRecord) + CKPT_CRC;
 static_assert(PLAYER_MAX <= PLAYER_CAP, "raise PLAYER_CAP for the player record");
 
 // A bounds-checked cursor over the variable tail of a blob. Overrunning sets
@@ -131,11 +144,17 @@ bool Pet::savePlayerSnapshot() {
   ckptWr16(buf + 38, strHi);
   ckptWr16(buf + 40, spdHi);
   ckptWr16(buf + 42, memoHi);
+  buf[44] = historyCount;
+  buf[45] = (uint8_t)sizeof(PartnerRecord);
+  ckptWr16(buf + 46, historySerial);
 
   CkptCursor cur{ buf, PLAYER_FIXED, sizeof(buf) - CKPT_CRC };
   cur.put(dexReg, sizeof(dexReg));
   cur.put(dexVariantReg, sizeof(dexVariantReg));
   cur.put(trainerName, sizeof(trainerName));
+  cur.put(dexSeen, sizeof(dexSeen));
+  cur.put(dexScan, sizeof(dexScan));
+  for (uint8_t i = 0; i < historyCount; i++) cur.put(&history[i], sizeof(PartnerRecord));
   if (cur.bad) {   // PLAYER_MAX static_asserts this cannot happen; say so if it does
     Serial.println("save: player record does not fit PLAYER_CAP");
     return false;
@@ -171,7 +190,7 @@ bool Pet::loadPlayerSnapshot() {
   // appended field.
   const size_t body = n - CKPT_CRC;
   const size_t fixed = buf[19];
-  if (fixed < PLAYER_FIXED || fixed > body) {
+  if (fixed < PLAYER_FIXED_MIN || fixed > body) {
     Serial.println("save: player checkpoint scalar block length is not believable");
     return false;
   }
@@ -201,6 +220,32 @@ bool Pet::loadPlayerSnapshot() {
   cur.take(trainerName, sizeof(trainerName), nameN);
   trainerName[sizeof(trainerName) - 1] = 0;
 
+  // Phase 2's tail: present when the scalar block covers its dimensions. A phase-1
+  // record has none, and these keep their zeros. A tail shorter than its dimensions
+  // is left out rather than half-read; the rest of the record is still good.
+  historyCount = 0;
+  historySerial = 0;
+  if (fixed >= PLAYER_FIXED) {
+    const uint8_t hc = buf[44];
+    const size_t hs = buf[45];
+    const size_t tail = dexBytes + 2 * dexBytes + (size_t)hc * hs;
+    if (cur.at + tail <= body && hs) {
+      cur.take(dexSeen, sizeof(dexSeen), dexBytes);
+      cur.take(dexScan, sizeof(dexScan), 2 * dexBytes);
+      for (uint8_t i = 0; i < hc; i++) {
+        PartnerRecord r = {};
+        cur.take(&r, sizeof(r), hs);
+        if (historyCount < PARTNER_HISTORY_MAX) {
+          r.name[sizeof(r.name) - 1] = 0;
+          history[historyCount++] = r;
+        }
+      }
+      historySerial = ckptRd16(buf + 46);
+    } else {
+      Serial.println("save: player checkpoint's Digidex and history tail is short; left out");
+    }
+  }
+
   if (avatar >= AVATAR_COUNT) avatar = 0;   // a save from when there were four
   return true;
 }
@@ -224,6 +269,12 @@ void Pet::begin() {
   // it never showed there, but anything calling begin() twice would see it.
   memset(dexReg, 0, sizeof(dexReg));
   memset(dexVariantReg, 0, sizeof(dexVariantReg));
+  memset(dexSeen, 0, sizeof(dexSeen));
+  memset(dexScan, 0, sizeof(dexScan));
+  memset(history, 0, sizeof(history));
+  historyCount = 0;
+  historySerial = 0;
+  departedSerial = 0;
   if (!prefs.getBool("init", false)) {
     prefs.putBool("init", true);
     newEgg();
@@ -234,13 +285,30 @@ void Pet::begin() {
 }
 
 void Pet::newEgg() {
+  // The partner leaves for good: into the history, then the egg. The pet record
+  // carries it too (`departed`), so the one write that commits the egg also commits
+  // the entry; see load().
+  if (ceremony != CER_NONE && dexValid(speciesId)) {
+    PartnerRecord r = {};
+    strncpy(r.name, nick, sizeof(r.name) - 1);
+    r.dex = speciesId;
+    const uint32_t h = ageMinutes / 60;
+    r.ageHours = h > 0xFFFF ? 0xFFFF : (uint16_t)h;
+    r.end = retirePending ? PART_RETIRED : ceremony;
+    r.flags = variant ? PARTNER_VARIANT : 0;
+    departed = r;
+    departedSerial = (uint16_t)(historySerial + 1);
+    pushHistory(r, departedSerial);
+  }
   ceremony = CER_NONE;
   neglectTicks = 0;
   weight = 0;
   speciesId = -1;
   prevSpeciesId = -1;
-  eggTarget = pickEggSpecies();  // hidden species, leaning toward incomplete lines
-  starterPick = (registeredCount() == 0);  // first game: the player chooses a starter
+  // The first egg is a random In-Training I; later ones lean toward lines with
+  // Digimon not raised yet. Nobody is asked: the starter screen is gone.
+  eggTarget = pickEggSpecies();
+  starterPick = false;
   // variant roll: 1/48 base, better after a farewell and with a high streak/bond
   int variantBase = (lastEnd == CER_FAREWELL ? 24 : 48) - careBonus();
   if (variantBase < 8) variantBase = 8;
@@ -318,8 +386,8 @@ void Pet::syncClock(uint32_t nowEpoch) {
     save();
     return;
   }
-  if (ceremony != CER_NONE || starterPick) {
-    save();  // no time to apply, or still choosing a starter
+  if (ceremony != CER_NONE) {
+    save();  // no time to apply during a ceremony
     return;
   }
 
@@ -369,10 +437,6 @@ void Pet::update(uint32_t nowMs) {
 
 void Pet::tick() {
   if (ceremony != CER_NONE) return;  // time stops during the farewell
-  if (starterPick) return;  // the game does not start until a starter is chosen: if
-                            // time ran here, the egg would hatch by itself after
-                            // 3 min with the rolled species and the player's
-                            // choice would be lost
   if (!frozen) ageMinutes++;   // a revived companion does not age
 
   if (isEgg()) {
@@ -522,12 +586,44 @@ uint16_t Pet::routeStat(uint8_t tsStat) const {
   }
 }
 
-bool Pet::routeMet(const TsEvo &e) const {
+bool Pet::routeMetExceptRank(const TsEvo &e) const {
   if (level() < routeClock(e) || level() < e.minLevel) return false;
-  if (agentRank() < e.rank) return false;
   for (uint8_t i = 0; i < TS_STAT_COUNT; i++)
     if (e.min[i] && routeStat(i) < tsScaled(e.min[i])) return false;
   return true;
+}
+
+bool Pet::routeMet(const TsEvo &e) const {
+  return agentRank() >= e.rank && routeMetExceptRank(e);
+}
+
+uint8_t Pet::agentRank() const {
+  if (hasBadge(TRAINER_CHAMPION, false)) return AGENT_RANK_MAX;
+  uint8_t n = 0;
+  for (uint8_t i = 0; i < TRAINER_GYMS; i++)
+    if (hasBadge(i, false)) n++;
+  return (uint8_t)(1 + n);
+}
+
+uint8_t Pet::evoRankWanted() const {
+  if (isEgg() || !dexValid(speciesId)) return 0;
+  const TsDexEntry &d = TS_DEX_TBL[speciesId];
+  uint8_t want = 0;
+  for (uint16_t i = d.evoFirst; i < (uint16_t)d.evoFirst + d.evoCount; i++) {
+    const TsEvo &e = TS_EVO_TBL[i];
+    if (!speciesShowable((int16_t)e.to)) continue;
+    if (routeMet(e)) return 0;   // something is open: rank is not in the way
+    if (e.rank > agentRank() && routeMetExceptRank(e) && (!want || e.rank < want)) want = e.rank;
+  }
+  return want;
+}
+
+const TsEvo *tsRoute(int16_t from, int16_t to) {
+  if (!dexValid(from) || !dexValid(to)) return nullptr;
+  const TsDexEntry &d = TS_DEX_TBL[from];
+  for (uint16_t i = d.evoFirst; i < (uint16_t)d.evoFirst + d.evoCount; i++)
+    if ((int16_t)TS_EVO_TBL[i].to == to) return &TS_EVO_TBL[i];
+  return nullptr;
 }
 
 uint8_t Pet::evoOptions(int16_t *out, uint8_t max) const {
@@ -546,7 +642,7 @@ uint8_t Pet::evoOptions(int16_t *out, uint8_t max) const {
 int16_t Pet::digiTarget() const {
   int16_t open[EVO_OPTIONS_MAX];
   const uint8_t n = evoOptions(open, EVO_OPTIONS_MAX);
-  return n ? open[evoBranch % n] : 0;
+  return n ? open[0] : 0;
 }
 
 uint8_t Pet::evoNextLevel() const {
@@ -593,10 +689,12 @@ uint8_t starterForms(int16_t *out, uint8_t max) {
   return n;
 }
 
-// The egg: a random In-Training I, leaning toward lines with Digimon not raised yet.
-// A stand-in for phase 2's egg rules, which keep this lean and drop what is left of
-// the old tiers. With no pack on the card the table is still the answer: it is what
-// the first egg of a board with no SD has always been.
+// The egg: a random In-Training I with art. The first is uniform; after that a line
+// with Digimon not raised yet weighs EGG_FRESH_WEIGHT against 1 for a line you have
+// finished, so it leans rather than forces. There are no rarity tiers. With no pack
+// on the card the table is still the answer: it is what the first egg of a board
+// with no SD has always been.
+#define EGG_FRESH_WEIGHT 3
 int16_t Pet::pickEggSpecies() {
   int16_t pool[8];       // the roster has seven In-Training I forms
   const uint8_t n = starterForms(pool, sizeof(pool) / sizeof(pool[0]));
@@ -605,11 +703,83 @@ int16_t Pet::pickEggSpecies() {
       if (TS_DEX_TBL[d].stage == TS_ST_IN_TRAINING_1 && speciesHasArt(d)) return d;
     return 1;
   }
-  int16_t fresh[8];
-  uint8_t f = 0;
-  for (uint8_t i = 0; i < n; i++)
-    if (lineHasUnregistered(pool[i])) fresh[f++] = pool[i];
-  return f ? fresh[random(f)] : pool[random(n)];
+  if (registeredCount() == 0) return pool[random(n)];
+  uint8_t w[8];
+  uint16_t total = 0;
+  for (uint8_t i = 0; i < n; i++) {
+    w[i] = lineHasUnregistered(pool[i]) ? EGG_FRESH_WEIGHT : 1;
+    total += w[i];
+  }
+  uint16_t r = (uint16_t)random(total);
+  for (uint8_t i = 0; i < n; i++) {
+    if (r < w[i]) return pool[i];
+    r -= w[i];
+  }
+  return pool[n - 1];
+}
+
+int16_t bossForm(uint8_t i) {
+  if (i >= TRAINER_COUNT) return 0;
+  const int16_t real = (int16_t)TS_BOSS_TBL[i].dex;
+  if (speciesShowable(real)) return real;
+  const int16_t sub = (int16_t)TRAINER_STAND_IN[i];
+  if (sub && speciesShowable(sub)) return sub;
+  // A build whose art is not the public map's: the first drawable form of the boss's
+  // stage, or of the nearest stage below that has one.
+  for (int st = TS_BOSS_TBL[i].stage; st >= 0; st--)
+    for (int16_t d = 1; d <= DEX_COUNT; d++)
+      if (TS_DEX_TBL[d].stage == st && speciesShowable(d)) return d;
+  return 0;
+}
+
+// ---------- the Digidex ----------
+
+uint8_t Pet::scanProgress(int16_t dex) const {
+  if (!dexValid(dex)) return 0;
+  const int b = (dex - 1) * 2;
+  return (uint8_t)((dexScan[b >> 3] >> (b & 7)) & 3);
+}
+
+uint8_t Pet::dexState(int16_t dex) const {
+  if (!dexValid(dex)) return DEX_UNSEEN;
+  if (isRegistered(dex)) return DEX_RAISED;
+  if (scanProgress(dex) >= SCAN_FULL) return DEX_SCANNED;
+  if (dexSeen[(dex - 1) >> 3] & (1 << ((dex - 1) & 7))) return DEX_SEEN;
+  return DEX_UNSEEN;
+}
+
+// Neither of these writes: a battle's start is no moment for a flash stall. A win
+// saves (the badge, the training, or Pet::saveNow() in the sketch); a sighting rides
+// on the next save, which is never more than a few minutes away.
+void Pet::markSeen(int16_t dex) {
+  if (!dexValid(dex)) return;
+  dexSeen[(dex - 1) >> 3] |= (uint8_t)(1 << ((dex - 1) & 7));
+}
+
+void Pet::addScan(int16_t dex, uint8_t thirds) {
+  if (!dexValid(dex)) return;
+  markSeen(dex);
+  uint16_t v = (uint16_t)scanProgress(dex) + thirds;
+  if (v > SCAN_FULL) v = SCAN_FULL;
+  const int b = (dex - 1) * 2;
+  dexScan[b >> 3] = (uint8_t)((dexScan[b >> 3] & ~(3 << (b & 7))) | (v << (b & 7)));
+}
+
+uint16_t Pet::seenCount() const {
+  uint16_t n = 0;
+  for (int16_t d = 1; d <= DEX_COUNT; d++)
+    if (dexState(d) >= DEX_SEEN) n++;
+  return n;
+}
+
+// Newest first, the oldest falling off the end. A serial already in the history is
+// skipped, which is what makes the repair in load() safe to run more than once.
+void Pet::pushHistory(const PartnerRecord &r, uint16_t serial) {
+  if (historyCount && (int16_t)(serial - historySerial) <= 0) return;
+  if (historyCount < PARTNER_HISTORY_MAX) historyCount++;
+  for (uint8_t i = historyCount - 1; i > 0; i--) history[i] = history[i - 1];
+  history[0] = r;
+  historySerial = serial;
 }
 
 void Pet::registerSpecies(int16_t dex) {
@@ -880,7 +1050,7 @@ bool Pet::canRunawayNow() const {
 
 bool Pet::canRetireNow() const {
   if (frozen) return false;     // a companion is never given up
-  return !isEgg() && !sleeping && ceremony == CER_NONE && !starterPick;
+  return !isEgg() && !sleeping && ceremony == CER_NONE;
 }
 
 // The ceremony is the same one; only the debt differs. Marked BEFORE the
@@ -982,7 +1152,6 @@ void Pet::becomeForm(int16_t dex) {
   speciesId = dex;
   registerSpecies(speciesId);
   careMistakes = 0;
-  evoBranch = 0;
   evoDeclinedLv = 0;
   formAgeMin = ageMinutes;
   learnCursor = 0;
@@ -993,12 +1162,19 @@ void Pet::becomeForm(int16_t dex) {
   save();
 }
 
-void Pet::evolve() {
-  if (!canEvolveNow()) return;
-  int16_t next = digiTarget();
-  if (!next) return;
+void Pet::evolve() { evolveTo(digiTarget()); }
+
+bool Pet::evolveTo(int16_t dex) {
+  if (!canEvolveNow() || !dex) return false;
+  int16_t open[EVO_OPTIONS_MAX];
+  const uint8_t n = evoOptions(open, EVO_OPTIONS_MAX);
+  bool ok = false;
+  for (uint8_t i = 0; i < n; i++)
+    if (open[i] == dex) ok = true;
+  if (!ok) return false;
   evoHold = 0;
-  becomeForm(next);
+  becomeForm(dex);
+  return true;
 }
 
 // A route read backwards. Routes are grouped by their source, so finding the ones
@@ -1329,6 +1505,8 @@ bool Pet::saveCoreSnapshot() {
   snapshot.lastEnd = lastEnd; snapshot.frozen = frozen; snapshot.bond = bond;
   snapshot.deDigiCount = deDigiCount; snapshot.evoHold = evoHold;
   strncpy(snapshot.nick, nick, sizeof(snapshot.nick) - 1);
+  snapshot.departed = departed;
+  snapshot.departedSerial = departedSerial;
 
   uint8_t buf[PET_CORE_CAP] = {};
   memcpy(buf, &snapshot, PET_FIXED);
@@ -1377,7 +1555,7 @@ bool Pet::loadCoreSnapshot() {
   memcpy(learnQueue, snapshot.learnQueue, sizeof(learnQueue));
   learnCursor = snapshot.learnCursor; learnQCount = snapshot.learnQCount;
   berryKnown = snapshot.berryKnown != 0; variant = snapshot.variant != 0;
-  eggVariant = snapshot.eggVariant != 0; starterPick = snapshot.starterPick != 0;
+  eggVariant = snapshot.eggVariant != 0; starterPick = false;
   evoPen = snapshot.evoPen; sleepAuto = snapshot.sleepAuto;
   retirePending = snapshot.retirePending != 0; eggTaps = snapshot.eggTaps;
   careMistakes = snapshot.careMistakes; sleeping = snapshot.sleeping != 0;
@@ -1385,6 +1563,9 @@ bool Pet::loadCoreSnapshot() {
   deDigiCount = snapshot.deDigiCount; evoHold = snapshot.evoHold;
   memcpy(nick, snapshot.nick, sizeof(nick));
   nick[sizeof(nick) - 1] = 0;
+  departed = snapshot.departed;
+  departed.name[sizeof(departed.name) - 1] = 0;
+  departedSerial = snapshot.departedSerial;
   return true;
 }
 
@@ -1433,6 +1614,13 @@ void Pet::load() {
   checkLearnGates();
   // seed: the current pet counts as raised
   if (speciesId >= 1) registerSpecies(speciesId);
+  // The partner that left last is in the creature's record. If the player record
+  // that should hold it is older (a cut between the two writes), add it now.
+  if (departedSerial && dexValid(departed.dex) &&
+      (!historyCount || (int16_t)(departedSerial - historySerial) > 0)) {
+    pushHistory(departed, departedSerial);
+    pendingSave = true;
+  }
   // Create the missing record now, once, so the checkpoints are authoritative the
   // moment begin() returns: EXPORT, or a crash, should not see half a save.
   if (!playerCkptLoaded) save();

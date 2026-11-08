@@ -47,11 +47,10 @@ enum : uint8_t { SLEEP_NONE = 0, SLEEP_AUTO, SLEEP_PLAYER };
 #define DEDIGI_HP_STEP_PCT 10
 #define DEDIGI_HP_MAX_PCT 200
 #define DEDIGI_COUNT_MAX ((DEDIGI_HP_MAX_PCT - 100) / DEDIGI_HP_STEP_PCT)
-// PHASE 2 REPLACES THIS. Agent Rank comes from the boss ladder (1 + area badges, 10
-// for the champion). Until that lands the rank check passes for every route: a
-// real rank of 1 would shut every route into Ultimate and later, which the ladder
-// has no way yet to open. See Pet::agentRank().
-#define AGENT_RANK_STUB 255
+// Agent Rank, from the boss ladder: 1 + the Easy area badges held (2-9), and this
+// for beating the champion. Routes into Ultimate need 5, into Mega 7, into Mega+ 8
+// (TsEvo::rank; 0 below Ultimate). Hard badges never count. See Pet::agentRank().
+#define AGENT_RANK_MAX 10
 #define EVO_OPTIONS_MAX 32                 // more than any form has open at once
 
 // ---------------------------------------------------------------------------
@@ -95,6 +94,34 @@ ClockVerdict clockVerdict(uint32_t seen, uint32_t now, uint32_t *minsOut);
 
 // end-of-cycle ceremonies
 enum : uint8_t { CER_NONE = 0, CER_FAREWELL, CER_RUNAWAY, CER_RELEASE };
+
+// ---------------------------------------------------------------------------
+// THE DIGIDEX. Each Digimon is in one of four states, best first:
+//   raised   -- it was your partner (dexReg): everything, plus your record
+//   scanned  -- three wild wins, or one boss win: stats and evolution requirements
+//   seen     -- met in the wild or a boss fight: name and sprite
+//   unseen   -- a silhouette and "???"
+// Scan progress is kept in thirds, so the Digidex can say "SCAN 1/3".
+enum : uint8_t { DEX_UNSEEN = 0, DEX_SEEN, DEX_SCANNED, DEX_RAISED };
+#define SCAN_FULL 3        // thirds: a wild win adds one, a boss win all three
+
+// ---------------------------------------------------------------------------
+// PARTNER HISTORY: who left, as what, how old, and how. Player-wide, newest first,
+// on the tamer card. The record is a byte copy in the player checkpoint, so its
+// layout is format: append fields, never reorder them (the entry size travels in
+// the record, as the Digidex's dimensions do).
+#define PARTNER_HISTORY_MAX 8
+enum : uint8_t { PART_FAREWELL = CER_FAREWELL, PART_RUNAWAY = CER_RUNAWAY,
+                 PART_RELEASE = CER_RELEASE, PART_RETIRED };   // an early retire
+#define PARTNER_VARIANT 0x01
+struct PartnerRecord {
+  char name[12];       // the nickname it had; empty = the species name
+  int16_t dex;         // the form it left as
+  uint16_t ageHours;
+  uint8_t end;         // PART_*
+  uint8_t flags;       // PARTNER_VARIANT
+};
+static_assert(sizeof(PartnerRecord) == 18, "PartnerRecord is saved byte for byte");
 
 enum PetMood : uint8_t { MOOD_HAPPY, MOOD_SAD, MOOD_EATING, MOOD_SLEEPING };
 
@@ -151,8 +178,18 @@ int16_t artProbe(uint8_t slot);
 bool speciesShowable(int16_t d);
 
 // The In-Training I forms that can hatch, in dex order. Writes up to `max` and
-// returns how many there are. The first-boot starters and the egg pool are this list.
+// returns how many there are. The egg pool is this list.
 uint8_t starterForms(int16_t *out, uint8_t max);
+
+// THE answer to which Digimon a boss slot fights as: the real boss (TS_BOSS_TBL) when
+// it can be drawn, else its generated stand-in (trainers.h), else the first drawable
+// form of its stage or the nearest one below. 0 when nothing can be drawn at all.
+// The battle, the boss list, the win screen and the Digidex all ask this.
+int16_t bossForm(uint8_t i);
+static inline uint8_t bossLevel(uint8_t i) { return i < TRAINER_COUNT ? TS_BOSS_TBL[i].level : 1; }
+
+// The route from one form to another, or nullptr. Routes are grouped by source.
+const TsEvo *tsRoute(int16_t from, int16_t to);
 
 class Pet {
 public:
@@ -401,7 +438,9 @@ public:
     return 1.0f - (float)left / (float)EVOLVE_ANIM_MS;
   }
   bool canEvolveNow() const;  // a branch's conditions are met (ready)
-  void evolve();              // triggers the transformation (called by a user tap)
+  void evolve();              // the first open branch (the console's, and old callers')
+  // Into this branch, if it is one of evoOptions() right now. The offer's choice.
+  bool evolveTo(int16_t dex);
   // De-digivolving: into any form that evolves into this one and is in the Digidex.
   // The earlier form then waits out its stage, and the partner's HP goes up.
   uint8_t devolveOptions(int16_t *out, uint8_t max) const;
@@ -418,14 +457,14 @@ public:
   bool evoTargetShowable() const;
   // the user decides in a dialog; "keep/stay together" postpones and re-offers later
   bool wantEvolveButton() const { return canEvolveNow() && level() > evoDeclinedLv; }
-  // "Keep form" re-offers next level, and the next time round the offer is the next
-  // branch whose conditions hold: declining is how you pass over one for another.
+  // "Keep form" re-offers next level. Which branch to take is chosen in the offer
+  // itself (evolveTo()), from evoOptions().
   bool wantFarewellButton() const { return canFarewellNow() && ageMinutes >= farDeclinedAge; }
-  void declineEvolve() { evoDeclinedLv = level(); evoBranch++; }  // re-offers on levelling up
+  void declineEvolve() { evoDeclinedLv = level(); }  // re-offers on levelling up
   void declineFarewell() { farDeclinedAge = ageMinutes + 1440; } // re-offers within 1 day
-  // first game: the player chooses a starter (PUNIMON/BOTAMON/POYOMON)
-  bool awaitingStarter() const { return starterPick; }
-  void chooseStarter(int16_t dex) { eggTarget = dex; starterPick = false; save(); }
+  // Test/console aid: what the waiting egg will hatch into. The game itself never
+  // asks the player: the first egg is a random In-Training I (pickEggSpecies()).
+  void dbgSetEgg(int16_t dex) { if (isEgg() && dexValid(dex)) { eggTarget = dex; save(); } }
   // Empties NVS; the caller restarts into a new game (serial command WIPE).
   // BOTH generation counters go back to zero with it, or the next save would
   // write a record numbered above the empty slots and the parity invariant in
@@ -472,6 +511,21 @@ public:
     return dex >= 1 && dex <= DEX_COUNT && (dexVariantReg[(dex - 1) >> 3] & (1 << ((dex - 1) & 7)));
   }
   uint16_t registeredCount() const;
+
+  // The Digidex beyond "raised": seen, and scan progress in thirds. Player-wide.
+  uint8_t dexSeen[(DEX_COUNT + 7) / 8] = { 0 };
+  uint8_t dexScan[2 * ((DEX_COUNT + 7) / 8)] = { 0 };   // 2 bits a Digimon, 0..SCAN_FULL
+  uint8_t scanProgress(int16_t dex) const;
+  uint8_t dexState(int16_t dex) const;          // DEX_*
+  // Scanned or raised: its stats and evolution requirements may be shown.
+  bool dexKnows(int16_t dex) const { return dexState(dex) >= DEX_SCANNED; }
+  void markSeen(int16_t dex);                   // met in the wild or a boss fight
+  void addScan(int16_t dex, uint8_t thirds);    // a wild win 1, a boss win SCAN_FULL
+  uint16_t seenCount() const;                   // seen or better
+
+  // Partner history, newest first. Written when a partner leaves (newEgg()).
+  PartnerRecord history[PARTNER_HISTORY_MAX] = {};
+  uint8_t historyCount = 0;
   bool lineHasUnregistered(int16_t base) const;
   int16_t pickEggSpecies();        // public so egg rolls can be simulated (EGGS)
   // What the waiting egg would hatch into. Hidden from the PLAYER, not from the
@@ -488,11 +542,15 @@ public:
   uint8_t routeClock(const TsEvo &e) const;
   // Every branch open right now, in the game's order. Returns how many.
   uint8_t evoOptions(int16_t *out, uint8_t max) const;
-  // The branch on offer: one of evoOptions(), 0 if none. declineEvolve() moves it on.
+  // The first open branch, 0 if none.
   int16_t digiTarget() const;
   // The soonest any showable branch's clock opens, 0 if this form has none left.
   uint8_t evoNextLevel() const;
-  uint8_t agentRank() const { return AGENT_RANK_STUB; }   // phase 2 replaces this
+  // The lowest Agent Rank that would open a branch whose every other condition is
+  // met right now, 0 if rank is not what stands in the way. The card says so.
+  uint8_t evoRankWanted() const;
+  // 1 + the Easy area badges, AGENT_RANK_MAX for the champion. Hard never counts.
+  uint8_t agentRank() const;
   uint8_t trainingTotal() const;   // trAtk + trDef + trSpe, capped at 255
   uint8_t lowestStat() const { return min(min(fullness, joy), min(energy, hygiene)); }
   PetMood mood() const;
@@ -569,9 +627,10 @@ private:
   uint8_t ticksSinceSave = 0;
   bool pendingSave = false;     // periodic save waiting to be flushed
   uint8_t evoDeclinedLv = 0;    // "keep form": do not offer evolution until the next level
-  uint8_t evoBranch = 0;        // which open branch is on offer; RAM only, like the decline
   uint32_t farDeclinedAge = 0;  // "stay together": do not offer the farewell until this age
-  bool starterPick = false;     // first game: waiting for the player to choose a starter
+  // Retired with the starter screen: the first egg is random now. Kept as a byte in
+  // the checkpoint (always 0) so the record's layout does not move.
+  bool starterPick = false;
   uint8_t evoPen = 0;           // levels added to this creature's digivolution gate
   bool retirePending = false;   // an early retire is under way; newEgg() spends it
   uint8_t neglectTicks = 0;
@@ -587,6 +646,15 @@ private:
   uint8_t rollIV(int bonus) const;  // an 8-31 roll pushed by care
   void rollIVs();                   // all 4, with the variant guarantee
   uint16_t routeStat(uint8_t tsStat) const;
+  bool routeMetExceptRank(const TsEvo &e) const;
+  // The partner that left last, kept in the CREATURE's checkpoint as well as the
+  // player's history: the pet record is the commit point of the handover, so a cut
+  // between the two writes is repaired on load (see load()). Serials make it
+  // idempotent: an entry is added once, whatever replays.
+  uint16_t historySerial = 0;   // the serial of history[0]
+  PartnerRecord departed = {};
+  uint16_t departedSerial = 0;
+  void pushHistory(const PartnerRecord &r, uint16_t serial);
   void becomeForm(int16_t dex);     // digivolved or de-digivolved: what both share
   void skillGranted(uint16_t mv);   // a free slot fills silently, a full set offers
   void defTick(bool resting);       // calm forges defence (see pet.cpp)

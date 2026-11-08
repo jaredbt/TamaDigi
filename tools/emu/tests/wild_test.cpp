@@ -12,6 +12,7 @@
 #include "wild.h"
 #include "noart.h"
 #include <cstdio>
+#include <cstring>
 #ifndef TAMA_NATIVE_TEST
 uint32_t g_seed=3; FakeSerial Serial; FakeESP ESP; FakeWire Wire;
 volatile int g_touchX=0,g_touchY=0; volatile bool g_touchDown=false; bool wasPressed=false;
@@ -90,14 +91,10 @@ int main(){
   ck(wildVariantForRoll(99,0) && !wildVariantForRoll(100,0),
      "the variant roll flips at its threshold, not near it");
 
-  // ---- level band ----------------------------------------------------------
-  ck(wildLevelMin(1,false)==1 && wildLevelMax(1,false)==6,
-     "a level 1 player meets 1-6");
-  ck(wildLevelMin(50,false)==45 && wildLevelMax(50,false)==55,
-     "and a level 50 player meets 45-55");
-  ck(wildLevelMax(100,false)==MAX_LEVEL, "the band never exceeds the level cap");
-  ck(wildLevelMin(50,true)==1 && wildLevelMax(50,true)==MAX_LEVEL,
-     "hard opens the whole ladder");
+  // ---- level: at your partner's -------------------------------------------
+  ck(wildLevelFor(1)==1 && wildLevelFor(50)==50 && wildLevelFor(MAX_LEVEL)==MAX_LEVEL,
+     "a wild Digimon is met at the partner's level");
+  ck(wildLevelFor(0)==1 && wildLevelFor(255)==MAX_LEVEL, "and never outside 1..MAX_LEVEL");
 
   // ---- drops per win -------------------------------------------------------
   ck(wildDropCount(false,29)==2 && wildDropCount(false,30)==1,
@@ -141,13 +138,66 @@ int main(){
      wildStageForLevel(25) == TS_ST_CHAMPION && wildStageForLevel(73) == TS_ST_MEGA_PLUS &&
      wildStageForLevel(100) == TS_ST_MEGA_PLUS,
      "a level's stage is the stage clock's, all seven of them");
+  // 65 / 25 / 10, pinned at the roll boundaries rather than as an average.
+  {
+    int same = 0, behind = 0, ahead = 0, other = 0;
+    for (int r = 0; r < 100; r++) {
+      const uint8_t st = wildStageFor(30, false, (uint8_t)r);   // a Champion's level
+      if (st == TS_ST_CHAMPION) same++;
+      else if (st == TS_ST_ROOKIE) behind++;
+      else if (st == TS_ST_ULTIMATE) ahead++;
+      else other++;
+    }
+    printf("      level 30: %d same, %d behind, %d ahead\n", same, behind, ahead);
+    ck(same == 65 && behind == 25 && ahead == 10 && other == 0,
+       "65% the level's stage, 25% one behind, 10% one ahead");
+    ck(wildStageFor(30, false, 64) == TS_ST_CHAMPION && wildStageFor(30, false, 65) == TS_ST_ROOKIE &&
+       wildStageFor(30, false, 89) == TS_ST_ROOKIE && wildStageFor(30, false, 90) == TS_ST_ULTIMATE,
+       "and the rolls flip exactly at 65 and 90");
+  }
   {
     bool early = false;
-    for (int r = 0; r < 100; r++) if (wildStageFor(20, (uint8_t)r) > TS_ST_ROOKIE) early = true;
-    ck(!early, "a level-20 encounter is never past Rookie");
-    bool baby = false;
-    for (int r = 0; r < 100; r++) if (wildStageFor(30, (uint8_t)r) == TS_ST_IN_TRAINING_1) baby = true;
-    ck(!baby, "and once Rookies exist an In-Training I is never met");
+    for (int r = 0; r < 100; r++) if (wildStageFor(20, false, (uint8_t)r) > TS_ST_CHAMPION) early = true;
+    ck(!early, "a level-20 (Rookie) partner never meets past one stage ahead");
+    bool under = false;
+    for (int r = 0; r < 100; r++) if (wildStageFor(1, false, (uint8_t)r) > TS_ST_IN_TRAINING_2) under = true;
+    ck(!under, "and a hatchling meets In-Training forms only, with nothing behind it");
+  }
+  // Mega+ only for a Mega+ partner; a Mega's "ahead" stays Mega.
+  {
+    bool megaPlus = false, megaAhead = true;
+    for (int r = 0; r < 100; r++) {
+      const uint8_t st = wildStageFor(90, false, (uint8_t)r);   // level 90, not Mega+
+      if (st == TS_ST_MEGA_PLUS) megaPlus = true;
+      if (r >= 90 && st != TS_ST_MEGA) megaAhead = false;
+    }
+    ck(!megaPlus, "a partner that is not Mega+ never meets Mega+, whatever its level");
+    ck(megaAhead, "and a Mega's ahead roll stays Mega");
+    int mp = 0;
+    for (int r = 0; r < 100; r++) if (wildStageFor(90, true, (uint8_t)r) == TS_ST_MEGA_PLUS) mp++;
+    ck(mp == 75, "a Mega+ partner meets Mega+ on its 65 and its 10 (nothing is past Mega+)");
+    ck(wildStageFor(90, true, 70) == TS_ST_MEGA, "and Mega one behind");
+  }
+  // Armor and Hybrid are met by their stat tier, and the wild-only forms are in the
+  // pool. The Aegiomon line is not in the roster at all.
+  {
+    bool tierOk = true, wildOnly = false;
+    for (int16_t d = 1; d <= DEX_COUNT; d++) {
+      const TsDexEntry &e = TS_DEX_TBL[d];
+      if (e.stage < STAGE_COUNT && e.tier != e.stage) tierOk = false;
+      if ((e.stage == TS_ST_ARMOR || e.stage == TS_ST_HYBRID) &&
+          (e.tier < TS_ST_CHAMPION || e.tier > TS_ST_MEGA)) tierOk = false;
+      if (e.flags & TSF_WILD_ONLY) wildOnly = true;
+      if (strstr(e.name, "AEGIO")) tierOk = false;
+    }
+    ck(tierOk, "every form's wild tier is its stage, Armor/Hybrid Champion..Mega, no Aegiomon");
+    ck(wildOnly, "and the wild-only forms are in the roster to be met");
+    bool fusionMet = false;
+    for (uint32_t r = 0; r < 4000 && !fusionMet; r++) {
+      const int16_t d = wildPickSpecies(TS_ST_MEGA, r);
+      if (d && (TS_DEX_TBL[d].flags & TSF_FUSION_ONLY)) fusionMet = true;
+    }
+    ck(fusionMet, "a fusion-only form with art (MILLENNIUMMON) can be met in the wild");
   }
 
   // Negative check: with no pack there is nothing to meet, and the picker has to say

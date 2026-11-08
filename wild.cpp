@@ -13,16 +13,9 @@ bool wildVariantForRoll(uint32_t roll, uint8_t bonus) {
   return (roll % WILD_VARIANT_SCALE) < wildVariantThreshold(bonus);
 }
 
-uint8_t wildLevelMin(uint8_t playerLevel, bool hard) {
-  if (hard) return 1;
-  return playerLevel > WILD_LEVEL_SPREAD
-             ? (uint8_t)(playerLevel - WILD_LEVEL_SPREAD) : 1;
-}
-
-uint8_t wildLevelMax(uint8_t playerLevel, bool hard) {
-  if (hard) return MAX_LEVEL;
-  uint16_t top = (uint16_t)playerLevel + WILD_LEVEL_SPREAD;
-  return top > MAX_LEVEL ? MAX_LEVEL : (uint8_t)top;
+uint8_t wildLevelFor(uint8_t playerLevel) {
+  if (!playerLevel) return 1;
+  return playerLevel > MAX_LEVEL ? MAX_LEVEL : playerLevel;
 }
 
 uint8_t wildDropCount(bool hard, uint8_t bonusRoll) {
@@ -59,14 +52,15 @@ uint8_t wildStageForLevel(uint8_t level) {
   return st;
 }
 
-uint8_t wildStageFor(uint8_t level, uint8_t roll) {
-  uint8_t top = wildStageForLevel(level);
-  // Mostly the stage a Digimon of this level would have reached; a quarter of
-  // the time one stage behind. Never an In-Training I once Rookies exist: a wild
-  // Botamon is no fight at all.
-  uint8_t st = (roll < 25 && top > TS_ST_IN_TRAINING_1) ? (uint8_t)(top - 1) : top;
-  if (st == TS_ST_IN_TRAINING_1 && top >= TS_ST_ROOKIE) st = TS_ST_IN_TRAINING_2;
-  return st;
+uint8_t wildStageFor(uint8_t level, bool megaPlusPartner, uint8_t roll) {
+  uint8_t st = wildStageForLevel(level);
+  const uint8_t top = megaPlusPartner ? TS_ST_MEGA_PLUS : TS_ST_MEGA;
+  if (st > top) st = top;
+  roll %= 100;
+  if (roll < WILD_STAGE_SAME_PCT) return st;
+  if (roll < WILD_STAGE_SAME_PCT + WILD_STAGE_BEHIND_PCT)
+    return st > TS_ST_IN_TRAINING_1 ? (uint8_t)(st - 1) : st;
+  return st < top ? (uint8_t)(st + 1) : st;   // ahead, never past the top
 }
 
 int16_t wildPickSpecies(uint8_t stage, uint32_t roll) {
