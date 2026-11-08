@@ -4,7 +4,7 @@
 
 A custom fork of **TamaDigi**, the **Digimon V-Pet** for the **Waveshare ESP32-S3-Touch-AMOLED-1.75** (a round 466×466 AMOLED with touch, battery and speaker). The goal is to rebuild it around the roster and evolution tree of ***Digimon Story: Time Stranger***.
 
-> **Status (October 2026):** the firmware runs on the Time Stranger data: the roster, the routes, the stats, the skills and the elements, described under [The current firmware](#the-current-firmware). The rest of the rework (Agent Rank, the real boss ladder, the Digidex and more) is still to come, under [Planned](#planned). A public build has art for only 73 of the 469 forms, so those are the ones you meet. Saves from v1.0.0 are not carried forward: the firmware says so and starts a new game.
+> **Status (November 2026):** the firmware runs on the Time Stranger data and rules: the roster, the routes, the stats, the skills and the elements, the 13-boss ladder with Agent Rank and Hard mode, wild Digimon by stage, the Digidex by stage with scanning, and a partner history, described under [The current firmware](#the-current-firmware). Jogress (fusion) and the presentation work are still to come, under [Planned](#planned). A public build has art for only 73 of the 469 forms, so those are the ones you meet. Saves from v1.0.0 are not carried forward: the firmware says so and starts a new game.
 >
 > **Non-commercial fan project.** The code is MIT licensed. Digimon, all names and all game art are © Bandai / Bandai Namco / Toei Animation. See [CREDITS.md](CREDITS.md).
 
@@ -38,6 +38,7 @@ joop0810 published TamaDigi as a single commit with no history. This repo puts t
 - **Tests that pass:** the firmware tests had failed since the Digimon conversion (a save-migration test still used Pokémon dex numbers). They pass now, and the old-save upgrade test the conversion deleted is back, with a frozen v1.0.0 save that later builds must keep loading.
 - **The Time Stranger data** the rework needs (`tools/data/time-stranger/`): every Digimon's stats, evolution requirements, attribute, elemental weaknesses and skills, plus an audit of what the conversion has to handle.
 - **The cutover, phase 1:** the firmware now runs on that data. One roster with no V-Pet versions, seven raisable stages, Time Stranger's stat growth, routes, skills, elements and statuses, and a new save format.
+- **The cutover, phase 2:** the game's progress. The 13-boss ladder sets an Agent Rank that gates Ultimate and later, with an optional Hard mode; wild Digimon by your stage; a random first egg; a Digidex by stage that fills in as you see, scan and raise Digimon; a partner history on the tamer card; and a list of the open branches when your Digimon digivolves.
 
 > **Private builds only.** The models, and every frame rendered from them, are Bandai Namco's assets. `tools/prerender/.gitignore` keeps them out of the repo, and they must never be committed or published. A public build would need other art.
 
@@ -45,25 +46,24 @@ joop0810 published TamaDigi as a single commit with no history. This repo puts t
 
 The decisions, all recorded in [docs/HANDOFF.md](docs/HANDOFF.md):
 
-- **Eggs and the wild**: the first egg hatches a random In-Training I. Armor, Hybrid and a few forms that need Time Stranger-only mechanics can be met in the wild but not raised.
-- **Progress**: a 13-boss ladder of villains from the first two anime seasons (DemiDevimon up to Apocalymon) sets an Agent Rank, with an optional Hard mode; no battling is needed up to Champion. A Digidex by stage fills in as you see, scan (three wild wins or one boss win) and raise Digimon. Fusion (Jogress) with a past partner or a defeated wild Digimon is a stretch goal.
+- **Jogress**: fusion with a past partner or a defeated wild Digimon, which would make the 17 fusion-only forms raisable (a stretch goal for v1; until then they are met in the wild only).
 - **Firmware work**: more frames per action, larger sprite files, the new sad and special-attack slots, the attack animation chosen by skill type, longer battle animation windows, and the new backdrop. socquique's later battery and drawing improvements should be ported too.
 
-Still open: how evolution and the 72-hour farewell are offered, battle timing and balance, and art for a public build.
+Still open: how the 72-hour farewell is offered, battle timing and balance, and art for a public build.
 
 ## The current firmware
 
-Everything in this section describes the firmware as it is today. The boss ladder, the wild encounters, the eggs and the Digidex are simple stand-ins on the new data until the next phase replaces them.
+Everything in this section describes the firmware as it is today.
 
-You raise a Digimon from a **Digi-Egg**. How you train it decides **which Digimon it can digivolve into**, and you choose among what is open.
+You raise a Digimon from a **Digi-Egg**. How you train it, and how far up the boss ladder you have climbed, decides **which Digimon it can digivolve into**, and you choose among what is open.
 
 ### Screens
 
 Every image comes straight from the emulator (`bash tools/make_screens.sh`) and shows exactly what the display draws.
 
-| Your Digimon | Digi-Egg | Choose a starter |
+| Your Digimon | Digi-Egg | Digidex stages |
 |---|---|---|
-| <img src="docs/screens/main.png" width="220"> | <img src="docs/screens/egg.png" width="220"> | <img src="docs/screens/starter.png" width="220"> |
+| <img src="docs/screens/main.png" width="220"> | <img src="docs/screens/egg.png" width="220"> | <img src="docs/screens/stages.png" width="220"> |
 
 | Battle | Choose a skill | Wild Digimon | Explore |
 |---|---|---|---|
@@ -93,13 +93,17 @@ Every image comes straight from the emulator (`bash tools/make_screens.sh`) and 
 
 ### One roster
 
-Time Stranger's **469 forms**, in its Field Guide order, in seven raisable stages: In-Training I, In-Training II, Rookie, Champion, Ultimate, Mega and Mega+. There are no V-Pet versions any more. A form with no art never hatches, evolves or appears, and the public sprites cover **73** of them, starting from the three In-Training I forms Punimon, Botamon and Poyomon.
+Time Stranger's **469 forms**, in its Field Guide order, in seven raisable stages: In-Training I, In-Training II, Rookie, Champion, Ultimate, Mega and Mega+, plus Armor and Hybrid forms you meet in the wild but cannot raise. There are no V-Pet versions any more. A form with no art never hatches, evolves or appears, and the public sprites cover **73** of them, starting from the three In-Training I forms Punimon, Botamon and Poyomon.
+
+- **Eggs**: the first egg hatches a random In-Training I; there is nothing to choose. Later eggs lean toward lines with Digimon you have not raised yet (three to one), and a rare colour variant can still come out.
+- **Partners leave for good.** After a farewell, a runaway or a release your partner goes into the **partner history** on the tamer card (its name, final form, age and how it ended), and the next egg appears.
 
 ### Raising
 
 - **Stats** grow in a straight line from Time Stranger's level-1 values to its level-99 ones, at one level an hour, scaled by a tenth, plus training. Training goes up to 255 on every stat, whatever the IV: a session pays 70% at IV 0 and 130% at IV 31. ATK training also raises magic attack, DEF training also raises magic defence.
 - **HP** grows with age only. Each de-digivolution multiplies it by a further 10%, up to double.
-- **Digivolution** is yours to choose: the branches whose stat, age and stage-timer conditions are met are offered, and never forced. "Keep form" asks again next level, with the next open branch.
+- **Digivolution** is yours to choose: the branches whose stat, age, stage-timer and Agent Rank conditions are met are offered, and never forced. The offer shows one branch at a time (drag at the edge for the next): its name once you have seen that Digimon, and what the route needs once you have scanned it, otherwise "???". "Keep form" asks again next level.
+- **Agent Rank** is 1 plus the Easy area badges you hold (up to 9), and 10 once you beat the champion. Champion to Ultimate needs rank 5, Ultimate to Mega 7, Mega to Mega+ 8; nothing below Ultimate needs a rank, so no battling is needed up to Champion. The tamer card shows your rank, and the status card says when rank is what a branch is waiting for.
 - **De-digivolution**, from the status card's progress page, goes back to any earlier form in your Digidex. The form then waits out its stage again.
 - **Skills**: four slots. Becoming a form gives its special skills at once and its attachment skills over the hours after. A free slot fills silently, a full set makes an offer, and a skill you drop is gone until you become a form that has it. Skills carry over between forms.
 
@@ -110,8 +114,9 @@ Time Stranger's **469 forms**, in its Field Guide order, in seven raisable stage
 - **Attribute triangle:** Vaccine beats Virus, Virus beats Data, Data beats Vaccine (×1.3 or ×0.8); the rest are neutral.
 - **Learnable skills** grow with the partner's level: tier I below 25, II at 25-60, III from 61. Multi-hit skills always land their full count of hits.
 - **Six statuses**: Injury (chip damage and halved physical attack), Crystallization (no actions until it wears off, or ALL CURE), Poison, Paralysis, Sleep and Confusion. No element is immune to any of them.
-- **Explore:** wild Digimon matched to your level. Wins can drop items. Nothing is caught.
-- **The boss ladder:** one ladder of 13, on Easy and Hard, each boss a single Digimon. Victories train your Digimon.
+- **Explore:** wild Digimon at your level, of the stage your level has reached (65%), one behind (25%) or one ahead (10%). Mega+ appears only once your partner is Mega+. Armor and Hybrid forms turn up at their strength's stage. Wins can drop items, and each win adds a third of a scan. Nothing is caught. Hard plays the wild Digimon smarter and doubles the drops.
+- **The boss ladder:** 13 villains from the first two anime seasons, one Digimon each, unlocked in order: 8 area bosses from DemiDevimon (level 15) to Arukenimon (60), each with a badge; 4 elite Megas (MetalSeadramon to Diaboromon); and the champion Apocalymon at 80. On **Easy** your partner fights at its own level; on **Hard** a partner above the boss's level is brought down to it, the boss fights smarter, the training reward is doubled, and the badges are separate and do not count toward Agent Rank. A boss without public art is fought by a stand-in of the same stage (the real boss appears when its art is installed). Beating a boss scans it fully.
+- **The Digidex** opens on a stage picker (In-Training I to Mega+, then Armor and Hybrid, with how many of each you have seen), then a grid of that stage. An entry you have not met is a silhouette and "???"; one you have **seen** shows its name, sprite and scan progress ("SCAN 1/3"); once **scanned** it adds its stats and every route into it with what the route needs; a Digimon you **raised** adds your record.
 - **The bag:** recovery disks, ALL CURE and stat chips.
 - **LAN battle** between two devices over ESP-NOW.
 
@@ -200,11 +205,11 @@ TAMA_TEST_BACKEND=host bash tools/emu/tests/run.sh digivolve # just one
 
 The runner needs `node`, `python3` and `arduino-cli` with the ESP32 core even for the host backend, because it compiles the real firmware first. The native backend also needs the `esp-emu` emulator (`TAMA_ESP_EMULATOR`).
 
-49 suites, including `digivolve_test` (the routes, the stage timers, de-digivolving, and the design's worked examples), `upgrade_test` (a frozen v1.0.0 save and older save layouts are recognised and replaced, and never misread), battle, saving through a power cut, the web installer and touch. GitHub Actions runs them on every push and also compiles the real ESP32 firmware.
+49 suites, including `digivolve_test` (the routes, the stage timers, Agent Rank, de-digivolving, and the design's worked examples), `wild_test` (the 65/25/10 stage rule), `roster_test` (the boss ladder and its stand-ins), `upgrade_test` (a frozen v1.0.0 save and older save layouts are recognised and replaced, and never misread), battle, saving through a power cut, the web installer and touch. GitHub Actions runs them on every push and also compiles the real ESP32 firmware.
 
 ## Serial console (115200)
 
-`STATS` · `SPEC <dex>` · `LVL <n>` · `MISS <n>` (care mistakes) · `TR <atk> <def> <spe>` · `HATCH` · `EGG <dex>` · `VARIANT` · `WILD` · `BATTLE <dex> <lvl>` · `BYE` · `RUN` · `WIPE` · `EXPORT` / `IMPORT` (back up the save) · `LS` / `PUT` (SD files)
+`STATS` · `SPEC <dex>` · `LVL <n>` · `MISS <n>` (care mistakes) · `TR <atk> <def> <spe>` · `HATCH` · `EGG <dex>` · `VARIANT` · `WILD` · `BATTLE <dex> <lvl>` · `BADGE <slot> [1 = hard]` (as if that boss were beaten) · `BYE` · `RUN` · `WIPE` · `EXPORT` / `IMPORT` (back up the save) · `LS` / `PUT` (SD files)
 
 ## Licence
 

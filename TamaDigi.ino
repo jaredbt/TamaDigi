@@ -1385,7 +1385,7 @@ void handleSerial() {
     inN = 0;
     if (ok) { Serial.println("DONE"); delay(100); ESP.restart(); }
   } else if (line == "WIPE") {
-    pet.factoryReset();     // wipe NVS and restart -> new game (starter choice)
+    pet.factoryReset();     // wipe NVS and restart -> new game (a random first egg)
     // Set BEFORE the restart, because the restart runs the shutdown handler, and
     // that handler's whole job is to flush a pending save. Without this it would
     // write the creature that was just deleted straight back into the empty NVS.
@@ -6207,8 +6207,9 @@ void renderGallery() {
   snprintf(head, sizeof(head), "%s %u/%u", stageName(gst), (unsigned)galleryStageKnown(gst),
            (unsigned)galleryStageTotal(gst));
   gfx->setTextColor(UI_INK);
-  gfx->setTextSize(strlen(head) <= 20 ? 3 : 2);
-  gfx->setCursor(CX - (int)strlen(head) * (strlen(head) <= 20 ? 9 : 6), 36);
+  const bool big = strlen(head) <= 12;   // size 3 runs off the glass past 12 characters
+  gfx->setTextSize(big ? 3 : 2);
+  gfx->setCursor(CX - (int)strlen(head) * (big ? 9 : 6), big ? 36 : 40);
   gfx->print(head);
   // The filter, under the tally and tappable -- it has to be VISIBLE, or a filter
   // left on reads as a Digidex that lost half its entries. Says what it is
@@ -6505,21 +6506,29 @@ void drawChoiceDialog() {
     q = T(S_EVO_Q); o1 = T(S_EVO_TAP); o2 = T(S_EVO_KEEP);
     c1 = UI_BAR_BAD; t1 = UI_WHITE; c2 = UI_TRACK; t2 = UI_INK;
     const int16_t to = evoChoiceTarget();
-    static char req[64];
-    sub1 = (to && pet.dexState(to) >= DEX_SEEN) ? TS_DEX_TBL[to].name : "???";
-    sub2 = "???";
+    // The branch on this page, in a card above the panel and big enough to read: its
+    // name once you have seen it, its requirements once it is scanned or raised,
+    // "???" otherwise. The page counter rides on the name line when there are more.
+    const char *nm = (to && pet.dexState(to) >= DEX_SEEN) ? TS_DEX_TBL[to].name : "???";
+    char req[64] = "???";
     const TsEvo *e = to ? tsRoute(pet.speciesId, to) : nullptr;
-    if (e && pet.dexKnows(to)) { routeReqText(*e, req, sizeof(req)); sub2 = req; }
-    // Which page of how many, above the panel, when there is more than one branch.
+    if (e && pet.dexKnows(to)) routeReqText(*e, req, sizeof(req));
     const uint8_t n = evoChoiceCount();
+    gfx->fillRoundRect(CONFIRM_X + 10, CONFIRM_Y - 66, CONFIRM_W - 20, 58, 12, UI_WHITE);
+    gfx->drawRoundRect(CONFIRM_X + 10, CONFIRM_Y - 66, CONFIRM_W - 20, 58, 12, UI_INK);
+    gfx->setTextColor(to && pet.dexState(to) >= DEX_SEEN ? dexAccent(to) : UI_INK);
+    gfx->setTextSize(2);
+    gfx->setCursor(CX - (int)strlen(nm) * 6, CONFIRM_Y - 58);
+    gfx->print(nm);
+    gfx->setTextColor(UI_INK_SOFT);
+    gfx->setTextSize(1);
+    gfx->setCursor(CX - (int)strlen(req) * 3, CONFIRM_Y - 34);
+    gfx->print(req);
     if (n > 1) {
       char pg[16];
       snprintf(pg, sizeof(pg), "< %u/%u >", (unsigned)(evoPick % n + 1), (unsigned)n);
-      gfx->fillRoundRect(CX - 50, CONFIRM_Y - 40, 100, 30, 10, UI_WHITE);
-      gfx->drawRoundRect(CX - 50, CONFIRM_Y - 40, 100, 30, 10, UI_INK);
       gfx->setTextColor(UI_INK);
-      gfx->setTextSize(2);
-      gfx->setCursor(CX - (int)strlen(pg) * 6, CONFIRM_Y - 32);
+      gfx->setCursor(CX - (int)strlen(pg) * 3, CONFIRM_Y - 21);
       gfx->print(pg);
     }
   } else if (choiceKind == 4) {   // de-digivolution

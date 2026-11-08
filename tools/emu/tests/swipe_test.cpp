@@ -21,6 +21,9 @@ String FakeSerial::readStringUntil(char){return String("");}
 void setup(); void render(); void onSwipe(int dir); void onSwipeV(int dir);
 void onTap(int16_t x, int16_t y);
 void onRim(int dir);
+extern uint8_t choiceKind, evoPick; extern uint32_t choiceUntil;
+uint8_t evoChoiceCount(); int16_t evoChoiceTarget();
+void uiConfirmRects(int *b1Top, int *b1Bot, int *b2Top, int *b2Bot);
 int uiTileIndex(); void uiTileGo(int i);
 uint8_t uiCurrentScreen(); uint8_t uiRimPages(); uint8_t uiRimPage();
 extern Pet pet;
@@ -222,6 +225,39 @@ int main(){
     }
     if (!carried || !offered) { printf("FAIL  picker     does not list both the slots and the form\n"); bad++; }
     else printf("PASS  picker     lists a carried-over slot beside what the form offers\n");
+  }
+
+  // THE EVOLUTION OFFER pages its open branches on the rim, one at a time, and
+  // DIGIVOLVE takes the one on the page -- not the first, not the last offered.
+  {
+    clearAll();
+    pet.dbgHatchAs(9, false);                     // KOROMON
+    pet.ageMinutes = 24UL * MINUTES_PER_LEVEL;    // level 25
+    pet.formAgeMin = pet.ageMinutes;
+    pet.trAtk = pet.trDef = pet.trSpe = 100;
+    pet.fullness = pet.joy = pet.energy = pet.hygiene = 100;
+    pet.sleeping = false;
+    while (pet.hasLearnOffer()) pet.declineLearn();
+    const uint8_t n = evoChoiceCount();
+    choiceKind = 1; evoPick = 0; choiceUntil = millis() + 12000;
+    if (n < 2) { printf("FAIL  evolve     needs a form with two open branches (%u)\n", n); bad++; }
+    else if (uiRimPages() != n) { printf("FAIL  evolve     the offer has %u rim pages for %u branches\n", uiRimPages(), n); bad++; }
+    else {
+      const int16_t first = evoChoiceTarget();
+      onRim(1);
+      const int16_t second = evoChoiceTarget();
+      for (int i = 0; i < n + 2; i++) onRim(1);
+      if (evoPick != n - 1 || second == first) { printf("FAIL  evolve     the rim does not page the branches\n"); bad++; }
+      else printf("PASS  %-10s the rim pages its %u open branches\n", "evolve", n);
+      const int16_t want = evoChoiceTarget();     // the last page: not what evolve() takes
+      if (want == pet.digiTarget()) { printf("FAIL  evolve     the last page is the first branch\n"); bad++; }
+      int b1t, b1b, b2t, b2b;
+      uiConfirmRects(&b1t, &b1b, &b2t, &b2b);
+      onTap(233, (int16_t)((b1t + b1b) / 2));
+      if (pet.speciesId != want) { printf("FAIL  evolve     DIGIVOLVE took %d, not the paged %d\n", pet.speciesId, want); bad++; }
+      else printf("PASS  %-10s DIGIVOLVE takes the branch on the page\n", "evolve");
+    }
+    choiceKind = 0;
   }
 
   printf("%s\n", bad?"FAILURES":"every paged screen pages");

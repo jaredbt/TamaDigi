@@ -1,6 +1,6 @@
 # Handoff: custom TamaDigi (Time Stranger roster)
 
-Status as of 2026-10-30. Supersedes the original notes on the `claude/handoff`
+Status as of 2026-11-08. Supersedes the original notes on the `claude/handoff`
 branch of `jaredbt/Esp-J` (archived).
 
 ## What this is
@@ -46,17 +46,16 @@ credits all four authors.
   the skills ("TamaDigi: Time Stranger skills") is in the owner's Google Drive.
 - **Every design and data decision for v1 is made** (2026-10-28): the design
   table below. What is left is presentation and balance tuning (see "Still open").
-- **The cutover is half done** (2026-10-30). Phase 1 put the firmware on the Time
-  Stranger tables: roster, stats, routes, skills, battle, items and saves. Phase 2 is
-  listed under "Firmware change list", and "Stubs phase 2 replaces" says what is
-  standing in for it.
+- **The cutover is done but for Jogress** (2026-11-08). Phase 1 (PR #5) put the
+  firmware on the Time Stranger tables: roster, stats, routes, skills, battle, items and
+  saves. Phase 2 (PR #6) replaced every stub with the design table's rules: Agent Rank,
+  the 13-boss ladder and Hard mode, wild encounters, eggs, the Digidex states and stage
+  picker, partner history and the evolution offer. "Firmware change list" has the
+  details and "Phase 2's judgment calls" what the table left open.
 
 ### Next, in order
 
-1. Phase 2 of the firmware cutover, **on a branch with a PR** (CI is the only test run,
-   and `main` deploys Pages): Agent Rank, the 13-boss ladder and Hard mode, wild
-   encounter rules, eggs, the Digidex stage picker and states, partner history, and
-   Jogress as a stretch goal.
+1. Jogress (the v1 stretch goal), on a branch with a PR: see "Still to do" below.
 2. Before the board arrives: pull the hardware bring-up notes back from upstream's
    CLAUDE.md (`git show f7f02f8:CLAUDE.md`: "Hardware bring-up order", "First
    bring-up, actually done", "Found by hand on the board, not by any test").
@@ -205,24 +204,55 @@ From the design table (each row has the detail):
 **Done earlier (PR #4, 2026-10-29):** the party and box are removed; battles are 1-on-1,
 LAN sends only the partner.
 
-**Still to do, phase 2:**
+**Done in phase 2 (2026-11-08, PR #6).** Every stub phase 1 left is gone:
 
-- **Progress**: Agent Rank from badges, the 13-boss single-Digimon ladder with Hard
-  mode, wild encounters by stage (65/25/10), eggs, Digidex states with scan progress
-  (no scan chips), partner history, Jogress (stretch goal).
-
-**Stubs phase 2 replaces:**
-
-| Stub | Where | What it does now |
+| Was a stub | Now | Where |
 |---|---|---|
-| Agent Rank | `AGENT_RANK_STUB`, `Pet::agentRank()` | 255: every rank check passes. `digivolve_test` pins this and has to flip |
-| Boss ladder | `tools/gen_ladders.py`, `TRAINERS` in `trainers.h` | `TS_BOSS_TBL`'s 13 slots and levels, each boss swapped for a form with art of its stage where it has none. Only 4 of the 13 real bosses have art |
-| Hard mode | `startTrainerBattle()` | A smarter AI and a double reward. IVs no longer touch a stat, so `HARD_IV`/`EASY_IV` do nothing. Both difficulties cap your level |
-| Wild encounters | `startWildBattle()`, `wildPickSpecies()` | The old band (level ±5) and 75/25 stage roll, on `tier`, stepping down when a stage has no art. Mega+ has none |
-| Eggs | `Pet::pickEggSpecies()`, the starter screen | The first egg is a choice of the In-Training I forms with art, not a random one. Later eggs lean toward unraised lines |
-| Digidex | `galleryPass()`, `renderGallery()` | One flat grid of the forms with art, "registered" meaning raised. No stage picker, no seen/scanned states |
-| Evolution offer | `drawChoiceDialog()`, `declineEvolve()` | The old two-button dialog names the branch on offer; "keep form" moves to the next one next level. Choosing properly is "Still open" |
-| Partner history | nothing yet | `Pet::frozen` also survives from the removed box, and nothing sets it |
+| Agent Rank (255) | 1 + the Easy area badges held, `AGENT_RANK_MAX` (10) for the champion; routes into Ultimate need 5, Mega 7, Mega+ 8 (`TsEvo::rank`). Hard badges and the elites never count. The status card names the rank when it is all a branch is missing (`evoRankWanted()`) | `Pet::agentRank()`, `routeMet()` |
+| Boss ladder | `TS_BOSS_TBL` itself (DemiDevimon 15 ... Apocalymon 80). `trainers.h` adds only the area names and a stand-in per boss with no public art; `bossForm()` fights the real boss whenever it can be drawn | `bossForm()`, `tools/gen_ladders.py` |
+| Hard mode | Easy fights at the partner's real level; Hard caps a partner above the boss's level to it (never raises it), plays the smart AI and pays double the training. Separate badges, separate unlock order. `HARD_IV`/`EASY_IV` are gone | `startTrainerBattle()` |
+| Wild encounters | At the partner's level; stage 65% the level's, 25% one behind, 10% one ahead; Mega+ only for a Mega+ partner (a Mega's ahead stays Mega); pool by `tier`, wild-only and fusion-only forms included; still steps down when a stage has no art | `wildStageFor()`, `wildLevelFor()`, `startWildBattle()` |
+| Eggs | The starter screen is gone: the first egg is a random In-Training I with art. Later eggs weigh a line with something unraised 3 to 1 (`EGG_FRESH_WEIGHT`). The colour-variant roll stays; there are no rarity tiers | `Pet::pickEggSpecies()`, `newEgg()` |
+| Digidex | A stage picker (nine discs with seen/total), then each stage's 16-per-page grid, then an entry with its pages: sprite and state, stats (level 1 / 99), and every route into it with its requirements. States unseen / seen / scanned / raised; a wild win adds a third of a scan, a boss win all three | `galleryStage`, `renderGallery()`, `Pet::dexState()` |
+| Evolution offer | One open branch per page, paged on the rim, with DIGIVOLVE and KEEP FORM. Named if seen, requirements if scanned or raised, else "???" | `drawChoiceDialog()`, `evolveTo()`, `evoPick` |
+| Partner history | Up to 8 partners on the tamer card's fourth page: name, final form, age, ending (farewell, ran away, released, retired) | `Pet::history`, `newEgg()`, `renderPlayerHistory()` |
+
+**Saves (phase 2).** Both records grew append-only; v1.0.0 detection and `upgrade_test`'s
+frozen `V1_0_0_SAVE` are untouched. The player record's scalar block grew from 44 to 48
+bytes (the history's count, entry size and serial) and its new arrays follow the trainer
+name: the seen bitmap, the scans (2 bits a Digimon) and the history. A phase-1 record
+still loads (`PLAYER_FIXED_MIN`), with those empty. The creature's record (`PET_FIXED`
+96 -> 116) carries the partner that left last, which makes the hand-over to the history
+one commit: a cut between the two writes is repaired on load, once (`powerloss_test`).
+
+**Phase 2's judgment calls** (the design table left these open):
+
+- **The evolution offer is a carousel**, not a list: a 466 px round panel has room for one
+  branch's name and requirements at a readable size, and the rim already pages every
+  other screen. A branch's name shows once it is seen; its requirements (the route's
+  stage timer or age minimum, stat minimums scaled like `routeMet()`, and rank) once it
+  is scanned or raised. KEEP FORM no longer cycles the branch; it only waits a level.
+- **Stand-ins**: same stage as the boss (stepping down while a stage has no art, so
+  Apocalymon's is a Mega on public art), not used by another slot, the boss's attribute
+  first, then the nearest level-99 stat total. The stand-in is what is seen and scanned.
+  Badges are coloured by the real area boss's element.
+- **Explore's Hard toggle** no longer changes the level or stage (the old one opened
+  levels 1-100); it plays the wild Digimon with the smart AI and doubles the drops.
+- **Hard keeps the smart AI** as well as the level cap.
+- **Seen** is a wild or boss meeting; a LAN opponent does not count. A sighting is saved
+  with the next save; a win saves its scan at once.
+- **Raised** stays "was your partner, in any form it passed through", as before; that is
+  also what de-digivolving asks. The partner that leaves is already raised.
+- **An early retire** goes into the history as "retired", a release as "released".
+- **The first egg**: uniform over the hatchlings with art. "Leaning" is a 3-to-1 weight.
+- **`FW_VERSION` stays 2.0.0**: nothing since v1.0.0 has been released, and 2.0.0 is
+  the cutover's version.
+- **`Pet::frozen`** is still there, unset, from the removed box. Removing it is a cleanup.
+
+**Still to do:** Jogress (the stretch goal, not built in phase 2): `TS_JOGRESS_TBL`,
+`JOGRESS_SHIPPED` in the generator (and its reachability check and counts), a fusion
+prompt after a wild win or from the partner history (the entry stays), the fusion
+partner at about 1 battle in 5 once eligible, and de-digivolving to your own half.
 
 **Findings from phase 1, for the balance pass:**
 
@@ -233,12 +263,13 @@ LAN sends only the partner.
 - Training dwarfs growth: the cap adds up to 255 to a stat that is about 200 at the
   top of the roster, and ATK training feeds two stats. A fully trained partner hits
   about twice as hard as the same form untrained.
-- The stand-in ladder can be beaten. `gym_test` prints a GREYMON's win rate against each
-  boss, which falls to 0% from DIGITAMAMON (level 54) on, untrained or trained: that
-  is a Champion against Ultimates and Megas with the wrong matchup, and it is why the
-  partner has to digivolve. A form with art of the right stage (or one below), played
-  by the smart AI against the random one, beats all 13 at 80-100% untrained. The hardest
-  is OGREMON at level 22.
+- The ladder can be beaten. `gym_test` prints a GREYMON's win rate against each boss
+  as fought on public art (stand-ins included), at the boss's level, untrained / trained
+  (stats = the level): 87-100% up to Etemon (47), then mixed against the Ultimates
+  (MegaDramon 0% / 95%, Vademon 52% / 92%) and the Megas (BanchoMamemon 0% / 42%,
+  BlitzGreymon at 80 0% / 72%). Training is what carries a Champion past Ultimates,
+  which is the design's intent. Easy now fights at your real level, so a high-level
+  partner can wait its way past a boss; Hard cannot be waited out.
 - `battleDamage()`'s +2 floor is per hit, so below about level 10 a 7-hit skill does
   several times what a 1-hit skill of the same family does. From level 25 the families
   are within about 25% of each other. Multi-hit skills are not learned that early in
@@ -289,7 +320,7 @@ LAN sends only the partner.
 
 ## Still open
 
-- How evolution is offered, and how the 72-hour farewell is offered (revisit later).
+- How the 72-hour farewell is offered (it is still the two-button dialog).
 - Battle timing (above), and the balance pass: the stat scale constant and boosts
   for all-enemies signatures such as Mega Flame (~55-60).
 - Jogress (a v1 stretch goal); later stand-ins for the wild-only forms (Bond for

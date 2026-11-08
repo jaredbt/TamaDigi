@@ -114,6 +114,10 @@ void onTap(int16_t x, int16_t y);   // the first-boot shots tap their way in
 extern bool exploreOpen, gymOpen, playerOpen;
 extern bool galleryDirty;
 extern int8_t galleryStage;
+extern uint8_t galleryDetailPage, choiceKind, evoPick;
+extern uint32_t choiceUntil;
+void galleryOpenDetail(int16_t dex);
+int16_t evoChoiceTarget();
 int wavMain(const char *path, const char *demo);
 extern bool lanOpen;
 extern uint8_t btlMyAct;
@@ -171,7 +175,7 @@ static int shotMode(const char *screen, const char *out, int lvl, int iv, int de
   for (int i = 0; i < 4; i++) loop();          // let the sketch settle
   pet.dbgSetEgg(starterForDemo());
   if (!strcmp(screen, "egg")) {
-    // a few Digimon registered, so the lottery is past the starter case
+    // a few Digimon registered, so the egg is past the first, uniform one
     for (int d = 1; d <= 40; d++) pet.dbgHatchAs(d, false);
     pet.newEgg();
   }
@@ -205,6 +209,37 @@ static int shotMode(const char *screen, const char *out, int lvl, int iv, int de
     }
     pet.dbgHatchAs(keep, false);
     galleryStage = !strcmp(screen, "gallery") ? TS_ST_CHAMPION : -1;
+  }
+  else if (!strcmp(screen, "dexentry") || !strcmp(screen, "dexstats") || !strcmp(screen, "dexroutes")) {
+    // An entry's three kinds of page: GREYMON scanned, so all of them are open.
+    galleryOpen = true;
+    galleryStage = TS_ST_CHAMPION;
+    pet.addScan(21, 3);                  // AGUMON is a known source; the rest stay "???"
+    pet.addScan(89, 3);
+    galleryOpenDetail(89);
+    galleryDetailPage = !strcmp(screen, "dexentry") ? 0 : (!strcmp(screen, "dexstats") ? 1 : 2);
+  }
+  else if (!strcmp(screen, "evochoice")) {
+    // A KOROMON with two open branches, one of them scanned.
+    pet.dbgHatchAs(9, false);
+    pet.ageMinutes = 24UL * MINUTES_PER_LEVEL;
+    pet.formAgeMin = pet.ageMinutes;
+    pet.trAtk = pet.trDef = pet.trSpe = 100;
+    while (pet.hasLearnOffer()) pet.declineLearn();
+    pet.addScan(evoChoiceTarget(), 3);
+    choiceKind = 1; evoPick = 0; choiceUntil = millis() + 600000;
+  }
+  else if (!strcmp(screen, "partners")) {
+    for (int16_t d : { 89, 86, 21 }) {   // three partners, three endings
+      pet.dbgHatchAs(d, d == 86);
+      pet.ageMinutes = 80UL * MINUTES_PER_LEVEL + d;
+      if (d == 21) pet.rename("SPARKY");
+      if (d == 89) pet.startFarewell(); else if (d == 86) pet.startRunaway(); else pet.release();
+      pet.newEgg();
+    }
+    pet.dbgHatchAs(dex, false);
+    playerOpen = true;
+    playerPage = 3;
   }
   else if (!strcmp(screen, "clock"))   clockOpen = true;
   else if (!strcmp(screen, "menu"))    menuOpen = true;

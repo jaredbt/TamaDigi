@@ -46,6 +46,7 @@ extern bool battleOpen, btlOver, btlWon;
 extern Combatant btlYou, btlFoe;
 extern uint8_t btlMsgCount;
 void startBattle(int16_t dex, uint8_t lvl);
+bool startWildBattle(bool hard);
 void startTrainerBattle(uint8_t idx, bool hard);
 extern uint8_t btlMenu;
 extern bool btlHard;
@@ -386,6 +387,48 @@ int main(int argc, char **argv) {
     return 1;
   }
   printf("PASS: a gym win keeps saving healthy and its badge and training survive reload\n");
+  if (afterGym.dexState(firstBoss) < DEX_SCANNED) {
+    printf("FAIL: beating the boss did not scan it fully (state %u)\n", afterGym.dexState(firstBoss));
+    return 1;
+  }
+  printf("PASS: beating a boss scans the form it fought as, and the scan survives reload\n");
+
+  // ---- a wild win adds a third of a scan, and saves it
+  {
+    bool won = false;
+    for (int tries = 0; tries < 8 && !won; tries++) {
+      battleOpen = false;
+      if (!startWildBattle(false)) break;
+      const int16_t foe = btlFoe.dex;
+      if (pet.dexState(foe) < DEX_SEEN) { printf("FAIL: meeting a wild Digimon did not mark it seen\n"); return 1; }
+      const uint8_t before = pet.scanProgress(foe);
+      int t = 0;
+      while (battleOpen && t++ < 200) {
+        if (btlMsgCount) { click(233, 320); continue; }
+        if (btlOver) break;
+        int slot = -1;
+        for (int i = 0; i < MOVE_SLOTS; i++) if (btlYou.moves[i]) { slot = i; break; }
+        if (slot < 0) break;
+        click(BTL_CELL_X(slot) + 40, BTL_CELL_Y(slot) + 20);
+      }
+      if (!btlWon) continue;              // it fled: try another
+      won = true;
+      const uint8_t want = before + 1 > SCAN_FULL ? SCAN_FULL : before + 1;
+      if (pet.scanProgress(foe) != want && pet.dexState(foe) != DEX_RAISED) {
+        printf("FAIL: a wild win took the scan from %u to %u, not %u\n", before, pet.scanProgress(foe), want);
+        return 1;
+      }
+      if (pet.savePending()) { printf("FAIL: the wild win left its scan unsaved\n"); return 1; }
+      Pet afterWild; afterWild.begin();
+      if (afterWild.scanProgress(foe) != pet.scanProgress(foe)) {
+        printf("FAIL: the wild win's scan did not survive reload\n");
+        return 1;
+      }
+    }
+    if (!won) { printf("FAIL: no wild fight was won in eight tries\n"); return 1; }
+    printf("PASS: a wild win adds a third of a scan, and it is saved\n");
+    battleOpen = false;
+  }
 
   // ---- Hard caps your level to the boss's; Easy fights at your real level
   battleOpen = false;
