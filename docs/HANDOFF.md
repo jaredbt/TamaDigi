@@ -171,6 +171,39 @@ rule): play by move category (MC_PHYS / MC_SPEC), swap per Digimon where it runs
 the other way, fall back to ba01. Status moves have no animation yet (bg01 Guard
 is a candidate).
 
+### Whole-roster batch (`tools/prerender/batch.py`)
+
+Captures and packs every form, resumably. Each of the 469 forms maps to its viewer
+model through the viewer's `data/digimon_index.json`, matched on the Time Stranger dex
+number (`TsDexEntry::tsDex`). The clip prefix and the clips the model really has come
+from the glb's own animation names. Where the index's `chr_id` disagrees (Seadramon:
+index chr347, clips chr132), the glb wins. Packs are numbered by the firmware's dex id,
+the `TS_DEX_TBL` row, not by `tsDex`. They go to `renders/ts/tpk2/` (the older
+`renders/tpk2/` uses pre-cutover numbers).
+
+```bash
+# one-time: the viewer (MIT) and its dev server
+git clone https://tangled.org/nuffle.me/dsts-viewer <dir> && (cd <dir> && pnpm install)
+(cd <dir> && DSTS_MODELS=~/Projects/TamaDigi/tools/prerender/models pnpm exec vite) &
+export PLAYWRIGHT_CORE=<path to playwright-core>/index.mjs
+# the batch (re-run the same line to resume; --limit N / --only slug,... for a slice)
+python3 -I tools/prerender/batch.py run --viewer <dir> --root ~/Projects/TamaDigi/tools/prerender
+python3 -I tools/prerender/batch.py report --viewer <dir> --root ~/Projects/TamaDigi/tools/prerender
+```
+
+- Order: the 73 forms with public art, the 13 bosses, then the rest.
+- Each form is one `actions.mjs` run with a 20-minute timeout, then `pack_tpk2.py`.
+  If a pack is over 3 MB at 24 frames, the batch retries at 16, then 12.
+- Only the ten actions with a firmware slot are captured. Sad, attack2, refuse,
+  knockdown and getup need `actions.mjs` again once the slots exist.
+- A missing clip leaves its slot empty, and the device falls back to idle. Sleep falls
+  back to bn01 with the eyes shut. A form without bn01 cannot be packed.
+- Raw frames are deleted once a form is packed; `work/<slug>/bounds.json` stays.
+- The batch stops below 5 GB free.
+- `renders/ts/log.jsonl` holds the state, and `REPORT.md` the coverage.
+- `fetch` downloads models only, and `report` audits clips offline; neither needs the
+  viewer.
+
 ## Screen
 
 - Backdrop: original V-pet-style landscape, full screen, day 35% white / 66%
@@ -349,6 +382,7 @@ crosses records. v1.0.0 detection and `upgrade_test`'s frozen `V1_0_0_SAVE` are 
 - `tools/prerender/actions.mjs`: capture action sets (`--action`, `--speed`,
   `--measure`, per-Digimon overrides, eye timelines).
 - `tools/prerender/pack_tpk2.py`: pack captures into the TPK2 sprite format.
+- `tools/prerender/batch.py`: the whole-roster capture and pack, resumable (see "Whole-roster batch").
 - `tools/prerender/preview/`: TDAG and comparison GIF builders.
 - Needs: the dsts-viewer source (`tangled.org/nuffle.me/dsts-viewer`, MIT) running
   `vite` with `DSTS_MODELS=tools/prerender/models`, `playwright-core` + Google

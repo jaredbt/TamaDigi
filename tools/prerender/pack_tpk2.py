@@ -4,9 +4,11 @@ TPK2 sprite format the firmware already reads (sdmon.cpp), so they can be tried
 in the emulator or on a board without any firmware change.
 
     python3 -I tools/prerender/pack_tpk2.py agumon 3 out_dir [--gamma 0.5] [--ref-units 3.25]
-                                            [--ref-px 100] [--max-frames 24] [--rim]
+                                            [--ref-px 100] [--max-frames 24] [--rim] [--src DIR]
 
-writes out_dir/pNNN.bin for that dex number.
+writes out_dir/pNNN.bin for that dex number: the firmware's dex id, the TS_DEX_TBL
+row in ts_dex.h (1-469), which PmdMon::load opens as /mons/pNNN.bin. --src is
+the folder actions.mjs wrote <slug>/ into (default: renders/actions beside this script).
 
 Size follows the Digimon's real in-game height (capture px / the capture's
 px-per-unit, recorded by actions.mjs), compressed so a roster spanning ~6x in
@@ -69,7 +71,8 @@ def main():
     gamma, ref_units, ref_px = opt('--gamma', 0.5), opt('--ref-units', 3.25), opt('--ref-px', 100.0)
     max_frames = opt('--max-frames', 24)
     rim = '--rim' in args
-    meta = json.load(open(os.path.join(SRC, slug, 'bounds.json')))
+    src = opt('--src', SRC)
+    meta = json.load(open(os.path.join(src, slug, 'bounds.json')))
 
     # Real height in world units, from the idle capture and its scale.
     idle_view = meta['idle'].get('view')
@@ -120,7 +123,7 @@ def main():
             sys.exit(f'{cap}: {w}x{h} exceeds the 255 px TPK2 limit; lower --ref-px')
         frames = []
         for i in idxs:
-            png = os.path.join(SRC, slug, f'{cap}_{i:02d}.png')
+            png = os.path.join(src, slug, f'{cap}_{i:02d}.png')
             raw = run(png, '-crop', crop, '+repage', *(['-flop'] if flip else []),
                       '-filter', 'box', '-resize', f'{w - (2 if rim else 0)}x{body_h - (2 if rim else 0)}!',
                       *(['-bordercolor', 'none', '-border', '1'] if rim else []),
