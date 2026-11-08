@@ -3804,6 +3804,10 @@ void startBattle(int16_t dex, uint8_t lvl) {
   if (dex < 1 || dex > DEX_COUNT) return;
   if (!buildPartner(0)) return;
   foeFromSpecies(btlFoe, dex, lvl, false);
+  // A one-off fight: no boss slot (or a win would award the last boss's badge,
+  // training and scan), no peer.
+  btlTrainer = -1;
+  btlLink = false;
   btlWild = false;
   btlMsgCount = 0;
   btlOver = false;
