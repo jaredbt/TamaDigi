@@ -65,7 +65,9 @@ CLIPS = {'idle': ['bn01'], 'walk': ['br01'], 'sleep': ['bn02', 'bn01'], 'eat': [
 CLIPS_FOR = {'agumon': {'walk': ['e011']}}   # actions.mjs ACTIONS_FOR picks
 # Frame caps tried in turn when a pack goes over the 3 MB file limit.
 FRAME_CAPS = [24, 16, 12]
-PERMANENT = {'no_model', 'no_idle'}
+# over_limit: still over 3 MB at the smallest frame cap; retry with --retry-all once
+# the firmware limit or FRAME_CAPS change.
+PERMANENT = {'no_model', 'no_idle', 'over_limit'}
 
 
 def opt(args, k, d=None):
@@ -326,7 +328,8 @@ def do_run(P, roster, args):
         cap, pout = pack(P, r)
         clear_frames(P, r['slug'])
         if cap is None:
-            log(P, {**rec, 'status': 'pack_failed', 'error': pout[-600:], 'warn': warns})
+            over = '3 MB' in pout
+            log(P, {**rec, 'status': 'over_limit' if over else 'pack_failed', 'error': pout[-600:], 'warn': warns})
             print(f'{r["dex"]:3d} {r["slug"]}: pack failed\n{pout[-600:]}')
             continue
         size = os.path.getsize(P.bin(r['dex']))
@@ -400,6 +403,11 @@ def write_report(P, roster):
     if dropped:
         L += ['## Slots left empty at pack (clip out of frame, or over 255 px)', '',
               *[f'- {s["dex"]} {s["name"]}: {n.removeprefix("note: ")}' for s, n in dropped], '']
+    over = by_status.get('over_limit', [])
+    if over:
+        L += [f'## Over the 3 MB file limit even at {FRAME_CAPS[-1]} frames ({len(over)}; not retried without --retry-all)', '',
+              *[f'- {name(r)}: {(m.group(1) if (m := re.search(r"(\d+) bytes >", state[r["dex"]].get("error", ""))) else "?")} bytes'
+                f'{" (public art)" if r["art"] else ""}{" (boss)" if r["boss"] else ""}' for r in over], '']
     L += ['## No model on the CDN', '']
     L += [f'- {name(r)}: {state.get(r["dex"], {}).get("error", "")}' for r in by_status.get('no_model', [])] or ['- none so far']
     L += ['', '## No idle clip (cannot pack)', '']
