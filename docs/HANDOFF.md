@@ -140,8 +140,18 @@ renders or packed sprites**: they are Bandai Namco's assets (`tools/prerender/.g
 A public build would need other art (the Vital Bracelet sprites + mood symbols
 were the tested fallback).
 
-- Camera: side-on facing left, azimuth 70, polar 82, zoom-out 1.5; per-Digimon
-  overrides (WarGreymon read better at 35).
+- Camera: polar 82, zoom-out 1.5, two views (`actions.mjs` `viewOf`). The models
+  face azimuth -30 in the viewer, not 0, so azimuth = degrees from the front - 30.
+  - At rest (idle, sleep, eat, nod, cheer/pose, yawn): azimuth 0, a front quarter 30
+    degrees from the front, facing left, so the pet looks at you and the Digidex
+    thumbnail (idle frame 0) isn't a bare profile. Chosen 2026-11-09 from 20/30/40.
+  - Everything else (walk, hurt, attacks, victory/hop): side-on, azimuth 70 (about
+    100 degrees from the front).
+  - WarGreymon keeps 35 for its side-on actions only: at 70 its hurt and attack are
+    mostly the back of its shield.
+  - Pack size moves both ways with the front view: long-tailed bodies shrink (Greymon
+    -18%), upright or broad ones grow (Agumon +23%, WarGreymon +10%), so some packs
+    step down a frame tier.
 - Capture at 24 fps (the game's rate); thin for the device later.
 - Size: by real in-game height, compressed: stored idle px = 100 * (H / 3.25)^0.5
   (Greymon 3.25 units -> ~200 px on screen, Koromon ~81, Agumon ~104), drawn at 2x.
@@ -189,7 +199,23 @@ export PLAYWRIGHT_CORE=<path to playwright-core>/index.mjs
 # the batch (re-run the same line to resume; --limit N / --only slug,... for a slice)
 python3 -I tools/prerender/batch.py run --viewer <dir> --root ~/Projects/TamaDigi/tools/prerender
 python3 -I tools/prerender/batch.py report --viewer <dir> --root ~/Projects/TamaDigi/tools/prerender
+# re-capture one stage at a time with the current camera (resumable; already-redone forms are skipped)
+python3 -I tools/prerender/batch.py run --viewer <dir> --root ~/Projects/TamaDigi/tools/prerender \
+  --stage "In-Training I,In-Training II" --recapture
+# thumbnails for a private build's mons folder
+python3 -I tools/make_thumbs.py --dir ~/Projects/TamaDigi/tools/prerender/renders/ts/sdcard/mons
 ```
+
+- `--stage` takes stats.tsv's stage names (Mega+ is "Mega +"); the stage comes from
+  each `TS_DEX_TBL` row's `TS_ST_*`. `--recapture` redoes packed forms whose log record
+  has an older camera (`CAMERA` in batch.py; untagged packs count as `side70`).
+- A pack is written to `tpk2.new/` and replaces the old one only once it fits, so a
+  failed re-capture keeps the old pack (its record says `keptOld`).
+- Front-quarter re-capture, one stage at a time and checked on the board between
+  batches. Batch 1 (2026-11-09), In-Training I and II (20 forms): all packed at 24
+  frames in 15 minutes. Next: Rookie (62), Champion (99), Ultimate (109), Mega (128),
+  then Mega +, Armor and Hybrid (51). The firmware roster's counts are lower than
+  stats.tsv's for Champion and Ultimate.
 
 - Order: the 73 forms with public art, the 13 bosses, then the rest.
 - Each form is one `actions.mjs` run with a 20-minute timeout, then `pack_tpk2.py`.

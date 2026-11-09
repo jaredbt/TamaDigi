@@ -29,10 +29,31 @@ const { chromium } = await import(process.env.PLAYWRIGHT_CORE ?? 'playwright-cor
 const VIEWER = 'http://127.0.0.1:6103/';
 // The prototype's five, kept as the default --only set; any other slug works too.
 const PROTOTYPE = ['koromon', 'agumon', 'greymon', 'wargreymon', 'seadramon'];
+// Camera, in camera-controls terms. The models face azimuth -30 in this viewer, not 0
+// (checked 2026-11-09 on eight forms from Dodomon to Titamon), so azimuth = degrees
+// from the front - 30. Polar 90 = level.
+// Two views: the at-rest actions (AT_REST) face the viewer at a front quarter, 30
+// degrees from the front (azimuth 0), so the pet looks at you and the Digidex thumbnail
+// (idle frame 0) isn't a bare profile. Movement and fighting stay side-on at azimuth 70
+// (about 100 degrees from the front), so they still read left/right.
 const VIEW = { azimuth: 70, polar: 82, zoomOut: 1.5 };
-// Per-Digimon camera overrides (merged over VIEW), plus any in the VIEW_FOR env var
-// as JSON, e.g. VIEW_FOR='{"wargreymon":{"azimuth":35}}'.
-const VIEW_FOR = { wargreymon: { azimuth: 35 }, ...JSON.parse(process.env.VIEW_FOR ?? '{}') };
+const REST_VIEW = { azimuth: 0 };
+const AT_REST = new Set(['idle', 'sleep', 'eat', 'nod', 'cheer', 'yawn']);
+// Per-Digimon overrides, merged last: { side: {...}, rest: {...} } for one of the two
+// views, or a flat {...} for both. More come from the VIEW_FOR env var as JSON, e.g.
+// VIEW_FOR='{"agumon":{"rest":{"azimuth":-10}}}'.
+const VIEW_FOR = {
+  // At 70 its hurt and attack are mostly the back of its shield; 35 shows the body.
+  wargreymon: { side: { azimuth: 35 } },
+  ...JSON.parse(process.env.VIEW_FOR ?? '{}'),
+};
+const viewOf = (slug, action) => {
+  const o = VIEW_FOR[slug] ?? {};
+  const flat = Object.fromEntries(Object.entries(o).filter(([k]) => k !== 'side' && k !== 'rest'));
+  return AT_REST.has(action)
+    ? { ...VIEW, ...REST_VIEW, ...flat, ...o.rest }
+    : { ...VIEW, ...flat, ...o.side };
+};
 
 // TamaDigi action -> [clip code, eyes, speed]
 // eyes: an eye-atlas row (0 open, 1 closed, 2 smile, 3 angry), or a timeline
@@ -163,7 +184,6 @@ for (const slug of slugs) {
   const bounds = (onlyActions || MEASURE) && existsSync(boundsFile) ? JSON.parse(readFileSync(boundsFile, 'utf8')) : {};
   const plan = { ...ACTIONS, ...ACTIONS_FOR[slug] };
   const { prefix, codes } = clipsFor(slug, PREFIX);
-  const viewFor = { ...VIEW, ...VIEW_FOR[slug] };
   const missing = { ...(bounds._missing ?? {}) };
   for (const [action, spec] of Object.entries(plan)) {
     if (!spec) continue;
@@ -190,7 +210,7 @@ for (const slug of slugs) {
     const rows = [...new Set(timeline.map(([, row]) => row))];
     if (MEASURE) {
       // Scale only: stage the clip and record its view, keep the frames already on disk.
-      const { view } = await stage(slug, clip, rows[0], viewFor);
+      const { view } = await stage(slug, clip, rows[0], viewOf(slug, action));
       await page.evaluate(() => window.__viewerApi.endRecording('A'));
       if (bounds[action]) bounds[action].view = view;
       console.log(`${slug} ${action.padEnd(9)} ${view.pxPerUnit.toFixed(1)} px/unit`);
@@ -202,7 +222,7 @@ for (const slug of slugs) {
     let n = 0;
     // One pass per eye row: the viewer applies the row at load, not per frame.
     for (const row of rows) {
-      ({ info, view } = await stage(slug, clip, row, viewFor));
+      ({ info, view } = await stage(slug, clip, row, viewOf(slug, action)));
       n = Math.max(1, Math.round(((info?.duration ?? 0) * FPS) / speed));
       for (let i = 0; i < n; i++) {
         if (rowAt(i / n) !== row) continue;
