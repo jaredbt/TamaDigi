@@ -4,9 +4,11 @@ TPK2 sprite format the firmware already reads (sdmon.cpp), so they can be tried
 in the emulator or on a board without any firmware change.
 
     python3 -I tools/prerender/pack_tpk2.py agumon 3 out_dir [--gamma 0.5] [--ref-units 3.25]
-                                            [--ref-px 100] [--max-frames 24] [--rim]
+                                            [--ref-px 100] [--max-frames 24] [--rim] [--src DIR]
 
-writes out_dir/pNNN.bin for that dex number.
+writes out_dir/pNNN.bin for that dex number: the firmware's dex id, the TS_DEX_TBL
+row in ts_dex.h (1-469), which PmdMon::load opens as /mons/pNNN.bin. --src is
+the folder actions.mjs wrote <slug>/ into (default: renders/actions beside this script).
 
 Size follows the Digimon's real in-game height (capture px / the capture's
 px-per-unit, recorded by actions.mjs), compressed so a roster spanning ~6x in
@@ -69,7 +71,8 @@ def main():
     gamma, ref_units, ref_px = opt('--gamma', 0.5), opt('--ref-units', 3.25), opt('--ref-px', 100.0)
     max_frames = opt('--max-frames', 24)
     rim = '--rim' in args
-    meta = json.load(open(os.path.join(SRC, slug, 'bounds.json')))
+    src = opt('--src', SRC)
+    meta = json.load(open(os.path.join(src, slug, 'bounds.json')))
 
     # Real height in world units, from the idle capture and its scale.
     idle_view = meta['idle'].get('view')
@@ -93,7 +96,13 @@ def main():
             continue
         m = meta[cap]
         k = px_per_unit / (m.get('view') or idle_view)['pxPerUnit']   # capture px -> stored px
-        idxs = list(range(m['frames']))
+        # The frames actually captured: actions.mjs skips any frame where the model is
+        # out of view, so they are not always the first m['frames'] indices.
+        idxs = [i for i, b in enumerate(m['bounds']) if b]
+        if len(idxs) < 0.75 * len(m['bounds']):
+            # Most of the clip is out of frame (it runs off): a stub would play badly.
+            print(f'  note: {cap} has only {len(idxs)} of {len(m["bounds"])} frames in view; slot {aid} left empty')
+            continue
         step = 1
         while len(idxs[::step]) > max_frames:
             step += 1
@@ -117,10 +126,15 @@ def main():
         # lowest opaque row) so the firmware's scale stays at 2x for small pets.
         h = max(body_h, MIN_IDLE_H) if aid == 0 else body_h
         if w > 255 or h > 255:
-            sys.exit(f'{cap}: {w}x{h} exceeds the 255 px TPK2 limit; lower --ref-px')
+            if aid == 0:
+                sys.exit(f'{cap}: {w}x{h} exceeds the 255 px TPK2 limit; lower --ref-px')
+            # One oversize action (a wide lunge, wings spread) shouldn't cost the
+            # whole Digimon: leave its slot empty, the device falls back to idle.
+            print(f'  note: {cap} is {w}x{h}, over the 255 px TPK2 limit; slot {aid} left empty')
+            continue
         frames = []
         for i in idxs:
-            png = os.path.join(SRC, slug, f'{cap}_{i:02d}.png')
+            png = os.path.join(src, slug, f'{cap}_{i:02d}.png')
             raw = run(png, '-crop', crop, '+repage', *(['-flop'] if flip else []),
                       '-filter', 'box', '-resize', f'{w - (2 if rim else 0)}x{body_h - (2 if rim else 0)}!',
                       *(['-bordercolor', 'none', '-border', '1'] if rim else []),
