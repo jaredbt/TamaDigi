@@ -331,7 +331,8 @@ def do_run(P, roster, args):
             continue
         size = os.path.getsize(P.bin(r['dex']))
         log(P, {**rec, 'status': 'packed', 'bytes': size, 'maxFrames': cap, 'warn': warns,
-                'secs': round(time.time() - t0), 'pack': pout.splitlines()[0] if pout else ''})
+                'secs': round(time.time() - t0), 'pack': pout.splitlines()[0] if pout else '',
+                'notes': [l.strip() for l in pout.splitlines() if 'note:' in l]})
         print(f'{r["dex"]:3d} {r["slug"]}: packed {size // 1024} KB'
               f'{"" if cap == 24 else f" (max {cap} frames)"} in {time.time() - t0:.0f} s, '
               f'missing {",".join(audit["missing"]) or "none"}; {free_bytes() / 1024 ** 3:.1f} GB free', flush=True)
@@ -394,6 +395,11 @@ def write_report(P, roster):
     if reduced:
         L += ['## Packed with fewer frames (over 3 MB at 24)', '',
               *[f'- {s["dex"]} {s["name"]}: max {s["maxFrames"]} frames' for s in reduced], '']
+    dropped = [(s, n) for r in by_status.get('packed', []) for s in [state.get(r['dex'], {})]
+               for n in s.get('notes', []) if 'in view' in n]
+    if dropped:
+        L += ['## Slots left empty at pack (clip runs out of frame)', '',
+              *[f'- {s["dex"]} {s["name"]}: {n.removeprefix("note: ")}' for s, n in dropped], '']
     L += ['## No model on the CDN', '']
     L += [f'- {name(r)}: {state.get(r["dex"], {}).get("error", "")}' for r in by_status.get('no_model', [])] or ['- none so far']
     L += ['', '## No idle clip (cannot pack)', '']

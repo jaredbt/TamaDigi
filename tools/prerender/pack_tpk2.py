@@ -96,7 +96,13 @@ def main():
             continue
         m = meta[cap]
         k = px_per_unit / (m.get('view') or idle_view)['pxPerUnit']   # capture px -> stored px
-        idxs = list(range(m['frames']))
+        # The frames actually captured: actions.mjs skips any frame where the model is
+        # out of view, so they are not always the first m['frames'] indices.
+        idxs = [i for i, b in enumerate(m['bounds']) if b]
+        if len(idxs) < 0.75 * len(m['bounds']):
+            # Most of the clip is out of frame (it runs off): a stub would play badly.
+            print(f'  note: {cap} has only {len(idxs)} of {len(m["bounds"])} frames in view; slot {aid} left empty')
+            continue
         step = 1
         while len(idxs[::step]) > max_frames:
             step += 1
