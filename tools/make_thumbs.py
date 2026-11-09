@@ -10,10 +10,14 @@ style as the main screen. TPTH format (little-endian):
   uint32  offset[count]    (from the start of the file, 1-based: offset[0]=dex 1)
   blobs:  u8 w, u8 h, u8 palCount, u16 pal[palCount], u8 data[w*h] (0xFF transp.)
 
-  python3 tools/make_thumbs.py
+  python3 tools/make_thumbs.py [--dir DIR]
+
+--dir reads the packs from, and writes thumbs.bin to, another mons folder (default
+tools/sdcard/mons), e.g. a private build's.
 """
 import os
 import struct
+import sys
 
 # Kept in step with ts_dex.h rather than hardcoded: the index is positional, so a
 # thumbs.bin sized for a smaller roster leaves the gallery showing dex numbers.
@@ -83,6 +87,9 @@ def shrink(w, h, pal, data):
 
 
 def main():
+    global DIR
+    if '--dir' in sys.argv:
+        DIR = os.path.expanduser(sys.argv[sys.argv.index('--dir') + 1])
     blobs = []
     missing = []
     for dex in range(1, DEX_COUNT + 1):

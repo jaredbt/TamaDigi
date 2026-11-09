@@ -30,9 +30,10 @@ const POSES = {
   attacking: ['ba01', 0, 0.45],
 };
 
-// Camera, in camera-controls terms: azimuth 0 = dead front (models face +Z), +90 =
-// on the model's left, which shows it in profile facing screen-LEFT like the Vital
-// Bracelet sprites. A little short of 90 lets the face read. Polar 90 = level.
+// Camera, in camera-controls terms. The models face azimuth -30 in this viewer, not 0
+// (checked 2026-11-09 on eight forms from Dodomon to Titamon): -30 is dead front,
+// 0 is 30 degrees round to the model's left (a front quarter, facing screen-left), and
+// 70 is about 100 degrees from the front, just past profile. Polar 90 = level.
 // zoomOut backs the camera off the viewer's idle framing so wide poses (wings
 // spread, lunges) stay in frame; frames are cropped to the model afterwards anyway.
 const VIEW = { azimuth: 70, polar: 82, zoomOut: 1.5 };

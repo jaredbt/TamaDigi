@@ -5,7 +5,8 @@ dsts-viewer model if it is missing, capture the action set with actions.mjs, pac
 it into the firmware's TPK2 format with pack_tpk2.py, then delete the raw PNG
 frames (bounds.json stays, so a form can be re-packed without re-capturing).
 
-    python3 -I tools/prerender/batch.py run    --viewer DIR [--root DIR] [--only slug,..] [--limit N] [--retry-all]
+    python3 -I tools/prerender/batch.py run    --viewer DIR [--root DIR] [--only slug,..] [--stage NAME,..]
+                                               [--limit N] [--retry-all] [--recapture]
     python3 -I tools/prerender/batch.py fetch  --viewer DIR [--root DIR]     # downloads only, no viewer server
     python3 -I tools/prerender/batch.py audit  --viewer DIR [--root DIR]     # offline clip check of the models on disk
     python3 -I tools/prerender/batch.py report --viewer DIR [--root DIR]
@@ -27,7 +28,13 @@ Models land in <root>/models/v3/dsts-opt/digimon/<slug>/<slug>.glb.
 
 Resumable and idempotent: a form with a pNNN.bin is skipped, as are forms whose
 last attempt ended in a permanent state (no model on the CDN, no idle clip) unless
---retry-all; anything else that failed is retried on the next run. Order: the 73
+--retry-all; anything else that failed is retried on the next run.
+--recapture also redoes packed forms whose pack was made with another camera
+(CAMERA below; packs from before the tag count as 'side70'), so a re-capture can be
+stopped and resumed like a first run. A new pack is written to tpk2.new/ and only
+replaces the old one once it fits, so a failed re-capture keeps the old pack.
+--stage keeps the forms of the named stages (stats.tsv's names, e.g.
+"In-Training I,In-Training II"; Mega+ is "Mega +"). Order: the 73
 forms with public art (noart.h), then the 13 bosses, then the rest by dex id.
 Downloads are sequential with a pause between them (a hobbyist's CDN). The run
 stops when free disk space drops below 5 GB.
@@ -68,6 +75,12 @@ FRAME_CAPS = [24, 16, 12, 8]   # 8 only for the biggest Ultimates and Megas (own
 # over_limit: still over 3 MB at the smallest frame cap; retry with --retry-all once
 # the firmware limit or FRAME_CAPS change.
 PERMANENT = {'no_model', 'no_idle', 'over_limit'}
+# The camera the packs are captured with (actions.mjs viewOf): the at-rest actions at a
+# front quarter (azimuth 0), the rest side-on (70). Packs logged without one are 'side70'.
+CAMERA = 'rest0-side70'
+# ts_dex.h's TS_ST_* enum, in order, as stats.tsv names the stages.
+STAGES = ['In-Training I', 'In-Training II', 'Rookie', 'Champion', 'Ultimate', 'Mega', 'Mega +',
+          'Armor', 'Hybrid']
 
 
 def opt(args, k, d=None):
@@ -80,6 +93,7 @@ class Paths:
         self.models = os.path.join(root, 'models')
         self.ts = os.path.join(root, 'renders', 'ts')
         self.out = os.path.join(self.ts, 'tpk2')
+        self.staging = os.path.join(self.ts, 'tpk2.new')   # a pack lands here until it fits
         self.work = os.path.join(self.ts, 'work')
         self.log = os.path.join(self.ts, 'log.jsonl')
 
@@ -89,27 +103,34 @@ class Paths:
     def bin(self, dex):
         return os.path.join(self.out, f'p{dex:03d}.bin')
 
+    def new_bin(self, dex):
+        return os.path.join(self.staging, f'p{dex:03d}.bin')
+
 
 # ---------------------------------------------------------------- roster
 
 def load_roster(viewer):
     rows = []
     for line in open(os.path.join(REPO, 'ts_dex.h')):
-        m = re.match(r'\s*\{ "([^"]+)", (\d+), ', line)
+        m = re.match(r'\s*\{ "([^"]+)", (\d+), \{[^}]*\}, \{[^}]*\}, TS_ST_(\w+),', line)
         if m and m.group(2) != '0':
-            rows.append((m.group(1), int(m.group(2))))
+            rows.append((m.group(1), int(m.group(2)), m.group(3)))
     count = int(re.search(r'#define TS_DEX_COUNT (\d+)', open(os.path.join(REPO, 'ts_dex.h')).read()).group(1))
     assert len(rows) == count, f'{len(rows)} TS_DEX_TBL rows, TS_DEX_COUNT {count}'
     noart = open(os.path.join(REPO, 'noart.h')).read()
     bits = [int(x, 16) for x in re.findall(r'0x([0-9A-F]{2})', noart.split('HAS_ART_BITS', 1)[1].split('};', 1)[0])]
     has_art = lambda d: d < len(bits) * 8 and (bits[d >> 3] >> (d & 7)) & 1
     dex_h = open(os.path.join(REPO, 'ts_dex.h')).read()
+    enum = re.search(r'enum : uint8_t \{ (TS_ST_[^}]*)\}', dex_h).group(1)
+    enum = [e.strip()[len('TS_ST_'):] for e in enum.split(',') if e.strip().startswith('TS_ST_')]
+    assert len(enum) == len(STAGES), f'ts_dex.h has {len(enum)} stages, STAGES {len(STAGES)}'
+    stage_of = dict(zip(enum, STAGES))
     bosses = [int(x) for x in re.findall(r'\{ (\d+), \d+, TS_ST_\w+, TS_BOSS_\w+ \}', dex_h)]
     index = {e['dex_number']: e for e in json.load(open(os.path.join(viewer, 'data', 'digimon_index.json')))}
     roster = []
-    for dex, (name, ts) in enumerate(rows, 1):
+    for dex, (name, ts, st) in enumerate(rows, 1):
         e = index.get(ts)
-        roster.append({'dex': dex, 'tsDex': ts, 'name': name,
+        roster.append({'dex': dex, 'tsDex': ts, 'name': name, 'stage': stage_of[st],
                        'slug': e['slug'] if e else None, 'chr': e['chr_id'] if e else None,
                        'viewerName': e['name'] if e else None,
                        'art': bool(has_art(dex)), 'boss': dex in bosses})
@@ -240,16 +261,21 @@ def capture(P, r, node):
 
 
 def pack(P, r):
+    """Pack into tpk2.new/, stepping down FRAME_CAPS while it is over 3 MB; move it over
+    the old pack only once it fits, so a failure leaves the old pack in place."""
     out = ''
+    new = P.new_bin(r['dex'])
+    os.makedirs(P.staging, exist_ok=True)
     for cap in FRAME_CAPS:
         code, out = run_group([sys.executable, '-I', os.path.join(HERE, 'pack_tpk2.py'), r['slug'], str(r['dex']),
-                               P.out, '--src', P.work, '--max-frames', str(cap)], PACK_TIMEOUT_S)
+                               P.staging, '--src', P.work, '--max-frames', str(cap)], PACK_TIMEOUT_S)
         if code == 0:
+            os.replace(new, P.bin(r['dex']))
             return cap, out
+        if os.path.exists(new):   # the over-size file it wrote
+            os.unlink(new)
         if '3 MB' not in out:
             break
-        if os.path.exists(P.bin(r['dex'])):   # the over-size file it wrote
-            os.unlink(P.bin(r['dex']))
     return None, out
 
 
@@ -280,13 +306,20 @@ def do_run(P, roster, args):
     only = set(opt(args, '--only').split(',')) if '--only' in args else None
     limit = int(opt(args, '--limit', 10 ** 6))
     retry_all = '--retry-all' in args
+    recapture = '--recapture' in args
+    stages = [s.strip() for s in opt(args, '--stage').split(',')] if '--stage' in args else None
+    if stages and (bad := [s for s in stages if s not in STAGES]):
+        sys.exit(f'unknown stage {", ".join(bad)}; the stages are: {", ".join(STAGES)}')
     state = latest(P)
     done = 0
     for r in ordered(roster):
         if only and r['slug'] not in only and r['name'] not in only and str(r['dex']) not in only:
             continue
+        if stages and r['stage'] not in stages:
+            continue
         last = state.get(r['dex'])
-        if os.path.exists(P.bin(r['dex'])) and last and last['status'] == 'packed':
+        if os.path.exists(P.bin(r['dex'])) and last and last['status'] == 'packed' and \
+                not (recapture and last.get('camera', 'side70') != CAMERA):
             continue
         if last and last['status'] in PERMANENT and not retry_all:
             continue
@@ -295,7 +328,8 @@ def do_run(P, roster, args):
         if not disk_ok():
             break
         done += 1
-        rec = {'dex': r['dex'], 'name': r['name'], 'slug': r['slug']}
+        rec = {'dex': r['dex'], 'name': r['name'], 'slug': r['slug'], 'stage': r['stage']}
+        was = last.get('maxFrames') if last and last['status'] == 'packed' else None
         t0 = time.time()
         if not r['slug']:
             log(P, {**rec, 'status': 'no_model', 'error': 'not in the viewer index'})
@@ -329,15 +363,18 @@ def do_run(P, roster, args):
         clear_frames(P, r['slug'])
         if cap is None:
             over = '3 MB' in pout
-            log(P, {**rec, 'status': 'over_limit' if over else 'pack_failed', 'error': pout[-600:], 'warn': warns})
-            print(f'{r["dex"]:3d} {r["slug"]}: pack failed\n{pout[-600:]}')
+            kept = os.path.exists(P.bin(r['dex']))   # an earlier pack, left in place
+            log(P, {**rec, 'status': 'over_limit' if over else 'pack_failed', 'error': pout[-600:], 'warn': warns,
+                    'keptOld': kept})
+            print(f'{r["dex"]:3d} {r["slug"]}: pack failed{" (the old pack stays)" if kept else ""}\n{pout[-600:]}')
             continue
         size = os.path.getsize(P.bin(r['dex']))
-        log(P, {**rec, 'status': 'packed', 'bytes': size, 'maxFrames': cap, 'warn': warns,
+        log(P, {**rec, 'status': 'packed', 'bytes': size, 'maxFrames': cap, 'camera': CAMERA, 'warn': warns,
                 'secs': round(time.time() - t0), 'pack': pout.splitlines()[0] if pout else '',
                 'notes': [l.strip() for l in pout.splitlines() if 'note:' in l]})
         print(f'{r["dex"]:3d} {r["slug"]}: packed {size // 1024} KB'
-              f'{"" if cap == 24 else f" (max {cap} frames)"} in {time.time() - t0:.0f} s, '
+              f'{"" if cap == 24 else f" (max {cap} frames)"}{f" (was {was})" if was and was != cap else ""}'
+              f' in {time.time() - t0:.0f} s, '
               f'missing {",".join(audit["missing"]) or "none"}; {free_bytes() / 1024 ** 3:.1f} GB free', flush=True)
     write_report(P, roster)
 
@@ -391,6 +428,8 @@ def write_report(P, roster):
          f'- Packed: **{len(by_status.get("packed", []))}** ({sum(r["art"] for r in by_status.get("packed", []))} of '
          f'{sum(r["art"] for r in roster)} with public art, {sum(r["boss"] for r in by_status.get("packed", []))} of '
          f'{sum(r["boss"] for r in roster)} bosses)',
+         f'- Camera: {sum(state[r["dex"]].get("camera", "side70") == CAMERA for r in by_status.get("packed", []))} packs '
+         f'with the current one ({CAMERA}), the rest older (`run --recapture` redoes them)',
          *[f'- {s}: {len(v)}' for s, v in sorted(by_status.items()) if s != 'packed'],
          f'- Size: packs {sz(P.out) / 1024 ** 2:.0f} MB in `{P.out}`; models {sz(P.models) / 1024 ** 2:.0f} MB; '
          f'{free_bytes() / 1024 ** 3:.1f} GB free', '']
