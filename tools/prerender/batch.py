@@ -396,9 +396,9 @@ def write_report(P, roster):
         L += ['## Packed with fewer frames (over 3 MB at 24)', '',
               *[f'- {s["dex"]} {s["name"]}: max {s["maxFrames"]} frames' for s in reduced], '']
     dropped = [(s, n) for r in by_status.get('packed', []) for s in [state.get(r['dex'], {})]
-               for n in s.get('notes', []) if 'in view' in n]
+               for n in s.get('notes', []) if 'in view' in n or '255 px' in n]
     if dropped:
-        L += ['## Slots left empty at pack (clip runs out of frame)', '',
+        L += ['## Slots left empty at pack (clip out of frame, or over 255 px)', '',
               *[f'- {s["dex"]} {s["name"]}: {n.removeprefix("note: ")}' for s, n in dropped], '']
     L += ['## No model on the CDN', '']
     L += [f'- {name(r)}: {state.get(r["dex"], {}).get("error", "")}' for r in by_status.get('no_model', [])] or ['- none so far']

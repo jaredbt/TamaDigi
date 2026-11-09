@@ -126,7 +126,12 @@ def main():
         # lowest opaque row) so the firmware's scale stays at 2x for small pets.
         h = max(body_h, MIN_IDLE_H) if aid == 0 else body_h
         if w > 255 or h > 255:
-            sys.exit(f'{cap}: {w}x{h} exceeds the 255 px TPK2 limit; lower --ref-px')
+            if aid == 0:
+                sys.exit(f'{cap}: {w}x{h} exceeds the 255 px TPK2 limit; lower --ref-px')
+            # One oversize action (a wide lunge, wings spread) shouldn't cost the
+            # whole Digimon: leave its slot empty, the device falls back to idle.
+            print(f'  note: {cap} is {w}x{h}, over the 255 px TPK2 limit; slot {aid} left empty')
+            continue
         frames = []
         for i in idxs:
             png = os.path.join(src, slug, f'{cap}_{i:02d}.png')
