@@ -205,6 +205,15 @@ python3 -I tools/prerender/batch.py report --viewer <dir> --root ~/Projects/Tama
   viewer. A `fetch` and a `run` may overlap (each mode has its own lock).
 - About 55 s per form on this Mac, so the roster takes about 7 hours.
 - Keep the viewer clone out of `/private/tmp`: the OS clears it.
+- First full run (2026-11-09): 446 of 469 forms packed (887 MB), with every model on the CDN.
+  - Frame caps: 295 at 24 frames, 100 at 16, 51 at 12.
+  - 43 slots left empty: a clip runs out of frame, or one action is over 255 px.
+  - 307 models have no yawn (fe03).
+  - **23 forms stay over 3 MB even at 12 frames.** They are big Ultimates and Megas,
+    including Kimeramon and Machinedramon (both have public art; Millenniummon's
+    Jogress), SkullGreymon, Megadramon and the boss Diaboromon. They need a higher
+    `PmdMon::load` limit, fewer frames, or per-action thinning.
+  - The private report is `renders/ts/REPORT.md`.
 
 ## Screen
 
