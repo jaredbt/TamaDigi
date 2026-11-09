@@ -764,7 +764,7 @@ bool speciesShowable(int16_t d) {
 
 int16_t artProbe(uint8_t slot) {
   if (slot > 2) return 0;
-  uint8_t seen = 0;
+  int16_t seen = 0;   // not uint8_t: a build with more than 255 drawable forms never reached the last probe
   for (int16_t d = 1; d <= DEX_COUNT; d++) {
     if (!speciesHasArt(d)) continue;
     const int16_t want = slot == 0 ? 0 : (slot == 1 ? NO_ART_DRAWABLE / 2 : NO_ART_DRAWABLE - 1);
