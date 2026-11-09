@@ -193,7 +193,10 @@ python3 -I tools/prerender/batch.py report --viewer <dir> --root ~/Projects/Tama
 
 - Order: the 73 forms with public art, the 13 bosses, then the rest.
 - Each form is one `actions.mjs` run with a 20-minute timeout, then `pack_tpk2.py`.
-  If a pack is over 3 MB at 24 frames, the batch retries at 16, then 12.
+  If a pack is over 3 MB at 24 frames, the batch retries at 16, then 12, then 8.
+  The 8 step was added after the first run, for the forms still too big at 12
+  (the owner's call: if 8 frames looks too choppy on the device, the fix is
+  a firmware change to the 3 MB `PmdMon::load` limit, not fewer frames).
 - Only the ten actions with a firmware slot are captured. Sad, attack2, refuse,
   knockdown and getup need `actions.mjs` again once the slots exist.
 - A missing clip leaves its slot empty, and the device falls back to idle. Sleep falls
@@ -209,10 +212,16 @@ python3 -I tools/prerender/batch.py report --viewer <dir> --root ~/Projects/Tama
   - Frame caps: 295 at 24 frames, 100 at 16, 51 at 12.
   - 43 slots left empty: a clip runs out of frame, or one action is over 255 px.
   - 307 models have no yawn (fe03).
-  - **23 forms stay over 3 MB even at 12 frames.** They are big Ultimates and Megas,
+  - 23 forms were still over 3 MB at 12 frames. They are big Ultimates and Megas,
     including Kimeramon and Machinedramon (both have public art; Millenniummon's
-    Jogress), SkullGreymon, Megadramon and the boss Diaboromon. They need a higher
-    `PmdMon::load` limit, fewer frames, or per-action thinning.
+    Jogress), SkullGreymon, Megadramon and the boss Diaboromon. The rerun at 8
+    frames packed all 23 (2.0-2.9 MB; Titamon is the biggest), so all 469 forms now
+    have a pack: 941 MB, 295 at 24 frames, 100 at 16, 51 at 12, 23 at 8.
+    Examon's attack is over 255 px, so that slot is empty.
+  - The 3 MB cap (`sdmon.cpp:37`) came from a 2026-06 code review as a guard against
+    corrupt files, not from a memory budget. A whole pack is loaded into the 8 MB of
+    PSRAM, and up to three can be loaded at once in a battle, so raising the cap
+    needs a real budget (or streaming or compressed frames), not just a bigger number.
   - The private report is `renders/ts/REPORT.md`.
 
 ## Screen

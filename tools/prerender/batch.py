@@ -64,7 +64,7 @@ CLIPS = {'idle': ['bn01'], 'walk': ['br01'], 'sleep': ['bn02', 'bn01'], 'eat': [
          'nod': ['fq01'], 'yawn': ['fe03']}
 CLIPS_FOR = {'agumon': {'walk': ['e011']}}   # actions.mjs ACTIONS_FOR picks
 # Frame caps tried in turn when a pack goes over the 3 MB file limit.
-FRAME_CAPS = [24, 16, 12]
+FRAME_CAPS = [24, 16, 12, 8]   # 8 only for the biggest Ultimates and Megas (owner OK, 2026-11-09)
 # over_limit: still over 3 MB at the smallest frame cap; retry with --retry-all once
 # the firmware limit or FRAME_CAPS change.
 PERMANENT = {'no_model', 'no_idle', 'over_limit'}
