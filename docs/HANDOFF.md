@@ -214,8 +214,12 @@ python3 -I tools/make_thumbs.py --dir ~/Projects/TamaDigi/tools/prerender/render
 - Front-quarter re-capture, one stage at a time and checked on the board between
   batches. Batch 1 (2026-11-09), In-Training I and II (20 forms): all packed at 24
   frames in 15 minutes. Batch 2, Rookie (62 forms): all packed, no frame-tier changes,
-  59 minutes; sizes moved -17% to +49% (mean +5%), none near 3 MB. Next: Champion (99), Ultimate (109), Mega (128),
-  then Mega +, Armor and Hybrid (51). The firmware roster's counts are lower than
+  59 minutes; sizes moved -17% to +49% (mean +5%), none near 3 MB. Batch 3, Champion
+  (99 forms): all packed in 67 minutes; sizes moved -30% to +45% (mean +1%). 12 changed
+  frame tier: Airdramon, Raptordramon, Golemon and Ankylomon 24 -> 16, Birdramon
+  12 -> 8; Ikkakumon, Greymon, GeoGreymon, Cyclonemon, Raremon and Greymon (Blue)
+  16 -> 24, Deltamon 12 -> 16. Raremon is 3048 KB, 99% of the limit. Next: Ultimate
+  (109), Mega (128), then Mega +, Armor and Hybrid (51). The firmware roster's counts are lower than
   stats.tsv's for Champion and Ultimate.
 
 - Order: the 73 forms with public art, the 13 bosses, then the rest.
