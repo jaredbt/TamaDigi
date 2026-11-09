@@ -213,7 +213,8 @@ python3 -I tools/make_thumbs.py --dir ~/Projects/TamaDigi/tools/prerender/render
   failed re-capture keeps the old pack (its record says `keptOld`).
 - Front-quarter re-capture, one stage at a time and checked on the board between
   batches. Batch 1 (2026-11-09), In-Training I and II (20 forms): all packed at 24
-  frames in 15 minutes. Next: Rookie (62), Champion (99), Ultimate (109), Mega (128),
+  frames in 15 minutes. Batch 2, Rookie (62 forms): all packed, no frame-tier changes,
+  59 minutes; sizes moved -17% to +49% (mean +5%), none near 3 MB. Next: Champion (99), Ultimate (109), Mega (128),
   then Mega +, Armor and Hybrid (51). The firmware roster's counts are lower than
   stats.tsv's for Champion and Ultimate.
 
